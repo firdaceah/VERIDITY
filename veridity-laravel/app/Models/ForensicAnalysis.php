@@ -26,6 +26,7 @@ class ForensicAnalysis extends Model
         'metadata_details' => 'array',
         'is_deepfake' => 'boolean',
         'ela_score' => 'float',
+        'final_result' => 'array',
     ];
 
     public function user()

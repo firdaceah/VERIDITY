@@ -23,3 +23,6 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 api_test.http
+forensic_test.http
+test.png
+history.http
