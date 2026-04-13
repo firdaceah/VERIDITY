@@ -23,10 +23,10 @@ class ForensicAnalysis extends Model
     ];
 
     protected $casts = [
-        'metadata_details' => 'array',
+        'metadata_details' => 'json',
         'is_deepfake' => 'boolean',
         'ela_score' => 'float',
-        'final_result' => 'array',
+        'final_result' => 'json',
     ];
 
     public function user()

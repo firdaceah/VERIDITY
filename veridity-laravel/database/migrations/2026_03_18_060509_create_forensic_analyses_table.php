@@ -19,8 +19,8 @@ return new class extends Migration
             $table->decimal('ela_score', 5, 2)->default(0);
             $table->boolean('is_deepfake')->default(false);
             $table->json('metadata_details')->nullable();
-            $table->string('noise_status')->nullable();
-            $table->enum('final_result', ['Aman', 'Mencurigakan', 'Bahaya'])->default('Aman');
+            $table->text('noise_status')->nullable();
+            $table->text('final_result')->nullable();
             $table->timestamps();
         });
     }
