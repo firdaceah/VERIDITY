@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class History extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -9,6 +11,57 @@ class History extends StatefulWidget {
 
 class HistoryState extends State<History> {
   int _selectedIndex = 1; // Index 1 untuk History
+  List<dynamic> _historyData = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHistory();
+  }
+
+  // Fungsi untuk mengambil data dari kolom forensic_analyses di Laravel
+  Future<void> _fetchHistory() async {
+    final String? token = widget.userData?['token'];
+
+    print("Token yang digunakan: $token");
+
+    if (token == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+    final url = Uri.parse('http://10.253.131.198:8000/api/history');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        setState(() {
+          // Ambil dari 'data' sesuai return response()->json Laravel di atas
+          _historyData = jsonResponse['data'];
+          _isLoading = false;
+        });
+      } else {
+        print("Error: ${response.statusCode}");
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print("Error fetching history: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +69,7 @@ class HistoryState extends State<History> {
       backgroundColor: const Color(0xFF111028),
       body: Stack(
         children: [
-          SafeArea(
+          Positioned.fill(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 40),
               child: Column(
@@ -30,8 +83,8 @@ class HistoryState extends State<History> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const Text(
-                    "12 foto telah dianalisis",
+                  Text(
+                    "${_historyData.length} foto telah dianalisis",
                     style: TextStyle(color: Colors.white70, fontSize: 15),
                   ),
                   const SizedBox(height: 25),
@@ -68,27 +121,46 @@ class HistoryState extends State<History> {
                   ),
                   const SizedBox(height: 30),
 
-                  // List Riwayat
-                  _buildHistoryItem(
-                    "foto_profil_linkedin.jpg",
-                    "6 April 2026",
-                    "Aman",
-                    true,
-                  ),
-                  _buildHistoryItem(
-                    "bukti_transfer.png",
-                    "1 April 2026",
-                    "Palsu",
-                    false,
-                  ),
-                  _buildHistoryItem(
-                    "selfie_ktp.png",
-                    "27 Maret 2026",
-                    "Aman",
-                    true,
-                  ),
+                  _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF39D2DD),
+                          ),
+                        )
+                      : _historyData.isEmpty
+                      ? const Center(
+                          child: Text(
+                            "Belum ada riwayat",
+                            style: TextStyle(color: Colors.white54),
+                          ),
+                        )
+                      : Column(
+                          children: _historyData.map((item) {
+                            // Logika penentuan status
+                            bool isDeepfake =
+                                item['is_deepfake'].toString() == "1";
+                            bool isSafe =
+                                !isDeepfake; // is_deepfake false (0) berarti Aman
+                            String statusText = isSafe ? "Aman" : "Beresiko";
 
-                  const SizedBox(height: 120), // Biar nggak ketutup nav
+                            String formattedDate = "Unknown Date";
+                            if (item['created_at'] != null) {
+                              formattedDate = item['created_at']
+                                  .toString()
+                                  .substring(0, 10);
+                            }
+
+                            return _buildHistoryItem(
+                              item['image_name'] ??
+                                  "No Name", // Kolom image_name
+                              formattedDate, // Kolom created_at
+                              statusText, // Berdasarkan is_deepfake
+                              isSafe, // Boolean untuk warna
+                            );
+                          }).toList(),
+                        ),
+
+                  // const SizedBox(height: 120), // Biar nggak ketutup nav
                 ],
               ),
             ),
@@ -223,6 +295,7 @@ class HistoryState extends State<History> {
               width: 75,
               height: 75,
               child: FloatingActionButton(
+                heroTag: null,
                 onPressed: () => Navigator.pushNamed(context, '/UploadFoto'),
                 backgroundColor: const Color(0xFF39D2DD),
                 shape: const CircleBorder(),
@@ -243,12 +316,17 @@ class HistoryState extends State<History> {
     bool isActive = _selectedIndex == index;
     return GestureDetector(
       onTap: () {
-        if (!isActive)
-          Navigator.pushReplacementNamed(
-            context,
-            route,
-            arguments: widget.userData,
-          );
+        if (!isActive) {
+          Future.delayed(Duration.zero, () {
+            if (mounted)
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                route,
+                (route) => false,
+                arguments: widget.userData,
+              );
+          });
+        }
       },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

@@ -15,7 +15,7 @@ class LoginState extends State<Login> {
   bool _isObscure = true;
 
   Future<void> loginUser() async {
-    final url = Uri.parse('http://192.168.0.100:8000/api/login');
+    final url = Uri.parse('http://10.253.131.198:8000/api/login');
 
     try {
       final response = await http.post(
@@ -30,9 +30,11 @@ class LoginState extends State<Login> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // Ambil data user dari response Laravel
-        // Asumsi Laravel mengirim: { "token": "...", "user": { "name": "Elsa", "email": "..." } }
-        var userData = data['user'];
+        Map<String, dynamic> userData = {
+          'token': data['token'], // Ambil token dari response Laravel
+          'name': data['user']['name'],
+          'email': data['user']['email'],
+        };
 
         // Pindah ke Home sambil membawa data userData
         Navigator.pushAndRemoveUntil(

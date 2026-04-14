@@ -19,9 +19,9 @@ class _HomeState extends State<Home> {
       backgroundColor: const Color(0xFF111028),
       body: Stack(
         children: [
-          SafeArea(
+          Positioned.fill(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
+              padding: const EdgeInsets.only(left: 25, right: 25, top: 50, bottom: 120),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -35,21 +35,18 @@ class _HomeState extends State<Home> {
                           Text(userName, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
                         ],
                       ),
-                      Container(
-                        width: 60, height: 60,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white24, width: 2),
-                          image: const DecorationImage(
-                            image: NetworkImage("https://storage.googleapis.com/tagjs-prod.appspot.com/v1/SmbShTn1dS/plf5d9p7_expires_30_days.png"),
-                            fit: BoxFit.cover,
-                          ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(30),
+                        child: Image.asset(
+                          "assets/images/user.png",
+                          width: 60,
+                          height: 60, 
+                          fit: BoxFit.cover
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 35),
-                  // Banner Scan
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(25),
@@ -91,7 +88,6 @@ class _HomeState extends State<Home> {
                       _buildMethodItem(Icons.info_outline, "Meta Deep", "Metadata Forensik"),
                     ],
                   ),
-                  const SizedBox(height: 120), 
                 ],
               ),
             ),
@@ -146,15 +142,15 @@ class _HomeState extends State<Home> {
           Positioned(
             top: -18,
             child: SizedBox(
-              width: 75,
-              height: 75,
+              width: 75, height: 75,
               child: FloatingActionButton(
+                heroTag: null,
                 onPressed: () => Navigator.pushNamed(context, '/UploadFoto'),
                 backgroundColor: const Color(0xFF39D2DD),
                 shape: const CircleBorder(),
                 child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 45),
               ),
-            )
+            ),
           ),
         ],
       ),
@@ -164,7 +160,13 @@ class _HomeState extends State<Home> {
   Widget _navItem(IconData icon, String label, int index, String route) {
     bool isActive = _selectedIndex == index;
     return GestureDetector(
-      onTap: () { if (!isActive) Navigator.pushReplacementNamed(context, route, arguments: widget.userData); },
+      onTap: () {
+        if (!isActive) {
+          Future.delayed(Duration.zero, () {
+            if (mounted) Navigator.pushNamedAndRemoveUntil(context, route, (route)=>false, arguments: widget.userData);
+          });
+        }
+      },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

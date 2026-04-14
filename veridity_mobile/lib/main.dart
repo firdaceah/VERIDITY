@@ -28,24 +28,28 @@ class MyApp extends StatelessWidget {
       // Jalankan Splash dulu
       initialRoute: '/SplashScreen',
       routes: {
+        '/SplashScreen': (context) => const SplashScreen(),
+        '/SplashScreen2': (context) => const SplashScreen2(),
+        '/Login': (context) => const Login(),
+        '/SignUp': (context) => const SignUp(),
         '/Home': (context) => Home(
           userData:
-              ModalRoute.of(context)!.settings.arguments
+              ModalRoute.of(context)?.settings.arguments
                   as Map<String, dynamic>?,
         ),
         '/History': (context) => History(
           userData:
-              ModalRoute.of(context)!.settings.arguments
+              ModalRoute.of(context)?.settings.arguments
                   as Map<String, dynamic>?,
         ),
         '/Help': (context) => Help(
           userData:
-              ModalRoute.of(context)!.settings.arguments
+              ModalRoute.of(context)?.settings.arguments
                   as Map<String, dynamic>?,
         ),
         '/Profil': (context) => Profil(
           userData:
-              ModalRoute.of(context)!.settings.arguments
+              ModalRoute.of(context)?.settings.arguments
                   as Map<String, dynamic>?,
         ),
         '/UploadFoto': (context) => const UploadFoto(),

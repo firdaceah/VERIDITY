@@ -9,6 +9,7 @@ class SignUp extends StatefulWidget {
 }
 
 class SignUpState extends State<SignUp> {
+  //controller
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
@@ -18,8 +19,7 @@ class SignUpState extends State<SignUp> {
   bool _isObscureConfirm = true;
 
   Future<void> registerUser() async {
-    // Gunakan 10.0.2.2 jika pakai Emulator Android, localhost jika pakai HP Asli (pastikan satu Wi-Fi)
-    final url = Uri.parse('http://192.168.0.100:8000/api/register');
+    final url = Uri.parse('http://10.253.131.198:8000/api/register');
     
     try {
       final response = await http.post(url, body: {

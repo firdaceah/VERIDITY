@@ -16,7 +16,7 @@ class HelpState extends State<Help> {
       backgroundColor: const Color(0xFF111028),
       body: Stack(
         children: [
-          SafeArea(
+          Positioned.fill(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 40),
               child: Column(
@@ -53,7 +53,7 @@ class HelpState extends State<Help> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 120),
+                  // const SizedBox(height: 120),
                 ],
               ),
             ),
@@ -82,19 +82,24 @@ class HelpState extends State<Help> {
               children: [
                 _navItem(Icons.home, "Home", 0, '/Home'),
                 _navItem(Icons.history, "History", 1, '/History'),
-                const SizedBox(width: 50),
+                const SizedBox(width: 60),
                 _navItem(Icons.help_outline, "Help", 2, '/Help'),
                 _navItem(Icons.person_outline, "Profile", 3, '/Profil'),
               ],
             ),
           ),
           Positioned(
-            top: -25,
-            child: FloatingActionButton(
-              onPressed: () => Navigator.pushNamed(context, '/UploadFoto'),
-              backgroundColor: const Color(0xFF39D2DD),
-              shape: const CircleBorder(),
-              child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 28),
+            top: -18,
+            child: SizedBox(
+              width: 75,
+              height: 75,
+              child: FloatingActionButton(
+                heroTag: null,
+                onPressed: () => Navigator.pushNamed(context, '/UploadFoto'),
+                backgroundColor: const Color(0xFF39D2DD),
+                shape: const CircleBorder(),
+                child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 45),
+              ),
             ),
           ),
         ],
@@ -105,7 +110,12 @@ class HelpState extends State<Help> {
   Widget _navItem(IconData icon, String label, int index, String route) {
     bool isActive = _selectedIndex == index;
     return GestureDetector(
-      onTap: () { if (!isActive) Navigator.pushReplacementNamed(context, route, arguments: widget.userData); },
+      onTap: () { if (!isActive) {
+        Future.delayed(Duration.zero, () {
+            if (mounted) Navigator.pushNamedAndRemoveUntil(context, route, (route)=>false, arguments: widget.userData);
+          });
+      }
+      },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

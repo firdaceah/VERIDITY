@@ -88,9 +88,9 @@ class ForensicController extends Controller
                 $statusLabel = 'Sangat Berbahaya';
                 $statusColor = 'danger';
             } elseif (
-                $elaScore > 20 || 
+                $elaScore > 20 ||
                 $ganScore > 0.5 ||
-                ($isNoiseInconsistent && $elaScore > 15) || 
+                ($isNoiseInconsistent && $elaScore > 15) ||
                 $metaVerdict == 'LIKELY MANIPULATED'
             ) {
                 // KONDISI: MENCURIGAKAN (WARNING)
@@ -148,7 +148,12 @@ class ForensicController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('user.history', compact('myAudits'));
+        return response()->json([
+            'status' => 'success',
+            'data' => $myAudits
+        ], 200);
+        
+        // return view('user.history', compact('myAudits'));
     }
 
     public function destroy($id)
