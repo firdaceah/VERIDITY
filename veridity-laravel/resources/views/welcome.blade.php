@@ -1,180 +1,150 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VeriDity - Digital Authenticity Platform</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <style>
-        :root {
-            --primary-blue: #0d6efd;
-            --light-bg: #ffffff;
-            --soft-blue: #f8faff;
-            --text-dark: #212529;
-            --text-muted: #6c757d;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            scroll-behavior: smooth;
-            background-color: var(--light-bg);
-            color: var(--text-dark);
-        }
-        .navbar { 
-            background: rgba(255, 255, 255, 0.95);
-            border-bottom: 1px solid #eee;
-            backdrop-filter: blur(10px);
-        }
-        .hero-section { 
-            padding: 120px 0 80px 0; 
-            background: radial-gradient(circle at top right, #e7f0ff, #ffffff); 
-        }
-        
-        .feature-card {
-            background: #ffffff;
-            border: 1px solid #eef2f7;
-            border-radius: 16px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-        }
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(13, 110, 253, 0.1);
-            border-color: var(--primary-blue);
-        }
-        
-        .icon-box {
-            width: 60px;
-            height: 60px;
-            background-color: rgba(13, 110, 253, 0.08);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem auto;
-        }
-        .icon-box i {
-            font-size: 1.5rem;
-            color: var(--primary-blue);
-        }
+@extends('layouts.app')
 
-        .btn-primary { 
-            padding: 12px 30px; 
-            border-radius: 10px; 
-            font-weight: 600;
-        }
-        section { padding: 80px 0; }
-        .bg-soft { background-color: var(--soft-blue); }
-    </style>
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg sticky-top">
-        <div class="container">
-            <a class="navbar-brand fw-bold text-primary fs-3" href="{{ url('/') }}">Veri<span style="color: #212529;">Dity</span></a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+@section('title', 'Forensic Toolkit')
+
+@section('content')
+    <header class="container mx-auto px-6 pt-16 md:pt-28 pb-20 md:pb-32 text-center">
+        <h1 class="text-4xl md:text-7xl font-extrabold mb-6 leading-[1.1] tracking-tight">
+            Detect <span class="text-blue-500 italic">Image Manipulation</span> <br class="hidden md:block"> with
+            Precision.
+        </h1>
+        <p class="text-slate-400 text-base md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+            Toolkit forensik digital berbasis web untuk menganalisis keaslian gambar menggunakan metode ELA, Noise & Ghost,
+            Metadata
+            Analysis, dan AI-Generated Detection.
+        </p>
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <a href="{{ route('register') }}"
+                class="bg-blue-600 hover:bg-blue-700 px-8 py-4 rounded-xl font-bold text-lg transition flex items-center justify-center shadow-xl shadow-blue-600/20">
+                Mulai Analisis Gratis <i class="fa-solid fa-arrow-right ml-2"></i>
+            </a>
+            <button onclick="openDemo()"
+                class="border border-slate-700 hover:bg-slate-800 px-8 py-4 rounded-xl font-bold text-lg transition">
+                Lihat Demo
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item"><a class="nav-link mx-2 fw-medium text-dark" href="#tentang">Tentang</a></li>
-                    <li class="nav-item"><a class="nav-link mx-2 fw-medium text-dark" href="#solusi">Solusi</a></li>
-                    <li class="nav-item"><a class="nav-link mx-2 fw-medium text-dark" href="#metode">Metode</a></li>
-                    
-                    @guest
-                        <li class="nav-item"><a class="btn btn-link text-decoration-none text-dark mx-2 fw-bold" href="{{ route('login') }}">Login</a></li>
-                        <li class="nav-item"><a class="btn btn-primary mx-2 shadow-sm" href="{{ route('register') }}">Daftar Gratis</a></li>
-                    @else
-                        <li class="nav-item">
-                            <a class="btn btn-primary mx-2 shadow-sm" href="{{ Auth::user()->role == 'admin' ? route('admin.dashboard') : route('user.dashboard') }}">
-                                <i class="bi bi-speedometer2 me-1"></i> Ke Dashboard
-                            </a>
-                        </li>
-                    @endguest
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <header class="hero-section">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-6">
-                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill mb-3 fw-bold">AI-Powered Security</span>
-                    <h1 class="display-4 fw-bold mb-4">Pastikan Foto yang Anda Lihat Adalah <span class="text-primary">Nyata.</span></h1>
-                    <p class="lead text-muted mb-5">VeriDity adalah platform deteksi autentikasi citra digital berbasis AI. Kami membantu Anda membedakan manusia asli dengan hasil Deepfake dalam hitungan detik.</p>
-                    <div class="d-flex gap-3">
-                        @guest
-                            <a href="{{ route('login') }}" class="btn btn-primary btn-lg px-4 shadow">Coba Verifikasi Sekarang</a>
-                        @else
-                            <a href="{{ route('user.dashboard') }}" class="btn btn-primary btn-lg px-4 shadow">Mulai Audit Sekarang</a>
-                        @endguest
-                        <a href="#metode" class="btn btn-outline-primary btn-lg px-4">Pelajari Fitur</a>
-                    </div>
-                </div>
-                <div class="col-lg-6 text-center mt-5 mt-lg-0">
-                    <img src="https://img.freepik.com/free-vector/biometric-authentication-concept_23-2148533408.jpg" class="img-fluid rounded-5 shadow-lg" alt="Security" style="max-height: 450px;">
-                </div>
-            </div>
         </div>
     </header>
 
-    <section id="solusi" class="bg-soft">
-        <div class="container">
-            <div class="text-center mb-5 mx-auto" style="max-width: 700px;">
-                <h2 class="fw-bold mb-3">Satu Fitur, Berbagai Solusi</h2>
-                <p class="text-muted fs-5">Platform ini mampu memproses berbagai kategori gambar melalui 4 metode analisis simultan secara cerdas.</p>
-            </div>
-            
-            <div class="row g-4 justify-content-center">
-                <div class="col-md-4">
-                    <div class="card feature-card h-100 p-4 text-center border-0">
-                        <div class="card-body">
-                            <div class="icon-box"><i class="bi bi-person-bounding-box"></i></div>
-                            <h5 class="fw-bold mb-3">Foto Manusia</h5>
-                            <p class="text-muted small">Verifikasi keaslian foto profil, identitas wajah, dan deteksi rekayasa pada atribut fisik.</p>
-                        </div>
+    <section class="py-20 bg-slate-800/20 border-t border-slate-800">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-2xl md:text-4xl font-bold mb-4 text-blue-400 leading-snug">Satu Fitur, Berbagai Solusi</h2>
+            <p class="text-slate-400 text-sm md:text-base max-w-3xl mx-auto mb-12">
+                Platform ini secara cerdas mampu memproses berbagai kategori gambar tanpa perlu konfigurasi manual
+                melalui 4 metode analisis simultan:
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div
+                    class="p-8 rounded-2xl bg-slate-900 border border-slate-800 hover:border-blue-500/50 transition-all group">
+                    <div
+                        class="w-16 h-16 mx-auto bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-500/20 transition-colors">
+                        <i
+                            class="fa-solid fa-user-shield text-3xl text-blue-500 group-hover:scale-110 transition-transform"></i>
                     </div>
+                    <h4 class="text-xl font-bold mb-2">Foto Manusia</h4>
+                    <p class="text-slate-400 text-sm">Verifikasi keaslian foto profil identitas wajah, dan deteksi rekayasa
+                        pada atribut fisik.</p>
                 </div>
-                <div class="col-md-4">
-                    <div class="card feature-card h-100 p-4 text-center border-0">
-                        <div class="card-body">
-                            <div class="icon-box"><i class="bi bi-file-earmark-text"></i></div>
-                            <h5 class="fw-bold mb-3">Dokumen & Teks</h5>
-                            <p class="text-muted small">Analisis integritas dokumen scan, bukti transfer, atau ID card untuk mendeteksi editing teks.</p>
-                        </div>
+                <div
+                    class="p-8 rounded-2xl bg-slate-900 border border-slate-800 hover:border-blue-500/50 transition-all group">
+                    <div
+                        class="w-16 h-16 mx-auto bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-500/20 transition-colors">
+                        <i
+                            class="fa-solid fa-file-invoice text-3xl text-blue-500 group-hover:scale-110 transition-transform"></i>
                     </div>
+                    <h4 class="text-xl font-bold mb-2">Dokumen & Teks</h4>
+                    <p class="text-slate-400 text-sm">Analisis integritas dokumen scan, bukti transfer, atau ID card untuk
+                        mendeteksi editing teks dalam format file gambar.</p>
                 </div>
-                <div class="col-md-4">
-                    <div class="card feature-card h-100 p-4 text-center border-0">
-                        <div class="card-body">
-                            <div class="icon-box"><i class="bi bi-search"></i></div>
-                            <h5 class="fw-bold mb-3">Objek Umum</h5>
-                            <p class="text-muted small">Deteksi manipulasi pada foto pemandangan, barang bukti, atau objek lingkungan lainnya.</p>
-                        </div>
+                <div
+                    class="p-8 rounded-2xl bg-slate-900 border border-slate-800 hover:border-blue-500/50 transition-all group sm:col-span-2 lg:col-span-1">
+                    <div
+                        class="w-16 h-16 mx-auto bg-blue-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-500/20 transition-colors">
+                        <i
+                            class="fa-solid fa-boxes-stacked text-3xl text-blue-500 group-hover:scale-110 transition-transform"></i>
                     </div>
+                    <h4 class="text-xl font-bold mb-2">Objek Umum</h4>
+                    <p class="text-slate-400 text-sm">Deteksi manipulasi pada foto pemandangan, barang bukti, atau objek
+                        lingkungan lainnya.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    
+    <section class="bg-slate-900 py-20 border-y border-slate-800">
+        <div class="container mx-auto px-6">
+            <h3 class="text-center text-xl md:text-2xl font-bold mb-16 opacity-50 uppercase tracking-[0.2em]">Our Core
+                Methods</h3>
 
-    <footer class="py-5 border-top bg-white">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6 text-center text-md-start">
-                    <h4 class="fw-bold text-primary mb-0">VeriDity</h4>
-                    <p class="text-muted small">Platform Keamanan Digital untuk Masa Depan.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div
+                    class="p-6 rounded-2xl bg-slate-800/30 border border-slate-700 hover:border-blue-500 transition duration-300">
+                    <div class="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-layer-group text-blue-500 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-3">Error Level Analysis</h3>
+                    <p class="text-slate-400 text-xs leading-relaxed italic">Mendeteksi perbedaan level kompresi JPEG untuk
+                        menemukan area yang dimodifikasi.</p>
                 </div>
-                <div class="col-md-6 text-center text-md-end">
-                    <p class="text-muted mb-0 small">&copy; 2026 <strong>VeriDity Project</strong>. <br> Workshop Pemrograman Framework - Firda & Team.</p>
+
+                <div
+                    class="p-6 rounded-2xl bg-slate-800/30 border border-slate-700 hover:border-orange-500 transition duration-300">
+                    <div class="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-ghost text-orange-500 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-3">Noise & Ghost Analysis</h3>
+                    <p class="text-slate-400 text-xs leading-relaxed italic">Mengidentifikasi anomali noise dan jejak
+                        "ghosting" akibat proses copy-move atau cloning.</p>
+                </div>
+
+                <div
+                    class="p-6 rounded-2xl bg-slate-800/30 border border-slate-700 hover:border-purple-500 transition duration-300">
+                    <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-circle-info text-purple-500 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-3">Metadata Deep Dive</h3>
+                    <p class="text-slate-400 text-xs leading-relaxed italic">Ekstraksi EXIF data, software editing yang
+                        digunakan, hingga riwayat modifikasi file.</p>
+                </div>
+
+                <div
+                    class="p-6 rounded-2xl bg-slate-800/30 border border-slate-700 hover:border-emerald-500 transition duration-300">
+                    <div class="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-robot text-emerald-500 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-3">AI Detection</h3>
+                    <p class="text-slate-400 text-xs leading-relaxed italic">Menganalisis pola pixel non-natural untuk
+                        memvalidasi apakah gambar di-generate oleh AI/GAN.</p>
                 </div>
             </div>
         </div>
-    </footer>
+    </section>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <div id="demoModal"
+        class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-3xl overflow-hidden shadow-2xl">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-blue-500 italic">VeriDity Interactive Demo</h3>
+                <button onclick="closeDemo()" class="text-slate-400 hover:text-white transition text-2xl">&times;</button>
+            </div>
+            <div class="aspect-video bg-black flex items-center justify-center">
+                <p class="text-slate-500 italic text-sm text-center px-10">
+                    <i class="fa-solid fa-play-circle text-5xl mb-4 block"></i>
+                    Video demo sedang disiapkan. Menampilkan simulasi analisis 4-layer pada foto dokumen dan wajah.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openDemo() {
+            document.getElementById('demoModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDemo() {
+            document.getElementById('demoModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+    </script>
+@endsection

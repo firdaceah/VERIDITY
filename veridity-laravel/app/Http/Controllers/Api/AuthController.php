@@ -109,6 +109,10 @@ class AuthController extends Controller
 
         $fraudCount = ForensicAnalysis::whereIn('final_result', ['Bahaya', 'Mencurigakan'])->count();
 
+        // $fraudCount = ForensicAnalysis::whereRaw("TO_CHAR(final_result) = 'Bahaya'")
+        //     ->orWhereRaw("TO_CHAR(final_result) = 'Mencurigakan'")
+        //     ->count();
+
         $recentAudits = ForensicAnalysis::with('user')
             ->orderBy('created_at', 'desc')
             ->take(5)
@@ -135,14 +139,14 @@ class AuthController extends Controller
         return view('admin.blacklist', compact('fraudCases'));
     }
 
-    // public function userDashboard()
-    // {
-    //     // Arahkan admin ke dashboard admin, user biasa ke dashboard user
-    //     if (auth()->user()->role === 'admin') {
-    //         return redirect()->route('admin.dashboard');
-    //     }
-    //     return view('user.dashboard');
-    // }
+    public function userDashboard()
+    {
+        // Arahkan admin ke dashboard admin, user biasa ke dashboard user
+        if (auth()->user()->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+        return view('user.dashboard');
+    }
 
     public function myAudits()
     {
@@ -150,7 +154,7 @@ class AuthController extends Controller
             ->latest()
             ->get();
 
-        return view('user.dashboard', compact('myAudits'));
+        return view('user.my-audits', compact('myAudits'));
     }
 
     public function showAudit($id)

@@ -161,6 +161,7 @@ class _HomeState extends State<Home> {
     bool isActive = _selectedIndex == index;
     return GestureDetector(
       onTap: () {
+        
         if (!isActive) {
           Future.delayed(Duration.zero, () {
             if (mounted) Navigator.pushNamedAndRemoveUntil(context, route, (route)=>false, arguments: widget.userData);

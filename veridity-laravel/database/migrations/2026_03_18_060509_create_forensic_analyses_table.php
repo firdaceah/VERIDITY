@@ -21,6 +21,12 @@ return new class extends Migration
             $table->json('metadata_details')->nullable();
             $table->text('noise_status')->nullable();
             $table->text('final_result')->nullable();
+
+            // $table->string('final_result', 100)->nullable();
+
+            // $table->json('metadata_details')->nullable();
+            // $table->text('noise_status')->nullable();
+           
             $table->timestamps();
         });
     }

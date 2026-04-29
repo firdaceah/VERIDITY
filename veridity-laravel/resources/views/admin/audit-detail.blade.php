@@ -5,8 +5,8 @@
 @section('content')
     <div class="max-w-5xl mx-auto">
         <div class="flex justify-between items-center mb-6">
-            <a href="{{ route('admin.dashboard') }}" class="text-slate-400 hover:text-white text-sm">
-                <i class="fa-solid fa-arrow-left mr-2"></i> Kembali ke Dashboard
+            <a href="{{ route('admin.audit-logs') }}" class="text-slate-400 hover:text-white text-sm">
+                <i class="fa-solid fa-arrow-left mr-2"></i> Kembali
             </a>
             <span
                 class="px-4 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full text-[10px] font-bold uppercase">

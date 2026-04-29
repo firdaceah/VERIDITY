@@ -106,11 +106,11 @@ class ForensicController extends Controller
                 'ela_score'        => $elaScore,
                 'is_deepfake'      => ($ganScore > 0.7),
                 'metadata_details' => $result['results']['metadata'],
-                'noise_status'     => $result['results']['noise']['warnings'][0] ?? ($isNoiseInconsistent ? 'Inconsistent Noise Detected' : 'Normal'),
+                'noise_status' => $result['results']['noise']['warnings'][0] ?? ($isNoiseInconsistent ? 'Inconsistent Noise Detected' : 'Normal'),
                 'final_result'     => [
                     'summary_label' => $statusLabel,
                     'summary_color' => $statusColor,
-                    'full_report'   => $result
+                    'full_report'   => $result // Simpan seluruh hasil JSON Python di sini
                 ],
             ]);
 
@@ -124,8 +124,9 @@ class ForensicController extends Controller
                 'message' => 'Analisis selesai!',
                 'data' => $analysis,
                 'visual_results' => [
-                    'ela' => asset('storage/results/' . Auth::id() . '/ela_result.jpg'),
-                    'noise' => asset('storage/results/' . Auth::id() . '/temp_noise_map.png'),
+                    // Mengambil nama file unik dari hasil Python yang disimpan di database
+                    'ela' => asset('storage/results/' . Auth::id() . '/' . $result['results']['ela']['image_url']),
+                    'noise' => asset('storage/results/' . Auth::id() . '/' . $result['results']['noise']['image_url']),
                 ]
             ]);
         } catch (\Exception $e) {
@@ -148,12 +149,16 @@ class ForensicController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return response()->json([
-            'status' => 'success',
-            'data' => $myAudits
-        ], 200);
-        
-        // return view('user.history', compact('myAudits'));
+        // CEK: Jika yang minta data adalah API/Mobile (seperti Flutter kamu)
+        if (request()->expectsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'data' => $myAudits
+            ], 200);
+        }
+
+        // Jika dibuka lewat Browser biasa, maka tampilkan file BLADE
+        return view('user.my-audits', compact('myAudits'));
     }
 
     public function destroy($id)

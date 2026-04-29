@@ -79,7 +79,7 @@
                             <div>
                                 <p class="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">Email Support
                                 </p>
-                                <p class="text-slate-200 text-sm">firdarahayu@it.student.pens.ac.id</p>
+                                <p class="text-slate-200 text-sm">veridity@admin.com</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-4 group">
@@ -137,7 +137,7 @@
                     <span>Teknik Informatika - PENS</span>
                 </div>
                 <div class="text-center md:text-right">
-                    <p>&copy; 2026 Developed by <span class="text-blue-500 font-bold">Firda</span>. All Rights Reserved.
+                    <p>&copy; 2026 Developed by <span class="text-blue-500 font-bold">Team 3</span>. All Rights Reserved.
                     </p>
                     <p class="opacity-50 mt-1">Multi-Method Digital Forensics & Image Analysis</p>
                 </div>

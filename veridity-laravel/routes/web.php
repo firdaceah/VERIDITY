@@ -20,13 +20,10 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware(['auth'])->group(function () {
-    // Route::get('/dashboard', [AuthController::class, 'userDashboard'])->name('user.dashboard');
+    Route::get('/dashboard', [AuthController::class, 'userDashboard'])->name('user.dashboard');
 
-    Route::get('/dashboard', function () {
-        return view('user.dashboard');
-    })->name('user.dashboard');
-
-    Route::get('/history', [ForensicController::class, 'history'])->name('user.history');
+    
+    // Route::get('/history', [ForensicController::class, 'history'])->name('user.history');
 
     // Rute untuk proses tombol "Mulai Analisis" di Web Dashboard
     // Ini yang memanggil script Python kamu
@@ -36,12 +33,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/audit/upload', [ForensicController::class, 'uploadImage'])->name('audit.upload');
 
     // Rute untuk melihat riwayat audit milik user sendiri
-    // Route::get('/my-audits', [ForensicController::class, 'history'])->name('user.dashboard');
+    Route::get('/my-audits', [ForensicController::class, 'history'])->name('user.my-audits');
 
     Route::get('/audit/result/{id}', [ForensicController::class, 'showResult'])->name('user.result');
 
     // Rute untuk menghapus riwayat audit
-    // Route::delete('/audit/{id}', [ForensicController::class, 'destroy'])->name('audit.destroy');
+    Route::delete('/audit/{id}', [ForensicController::class, 'destroy'])->name('audit.destroy');
 });
 
 Route::middleware(['auth'])->prefix('admin')->group(function () {

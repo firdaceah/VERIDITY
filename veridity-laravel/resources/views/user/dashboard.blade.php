@@ -1,166 +1,159 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('layouts.user')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Audit - VeriDity</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+@section('title', 'User Dashboard')
+
+@section('content')
     <style>
-        :root {
-            --primary-blue: #0d6efd;
-            --bg-light: #f8faff;
-            --sidebar-white: #ffffff;
-            --border-color: #eef2f7;
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
         }
 
-        body {
-            background-color: var(--bg-light);
-            font-family: 'Inter', sans-serif;
-        }
-
-        .sidebar {
-            height: 100vh;
-            width: 260px;
-            position: fixed;
-            background: var(--sidebar-white);
-            border-right: 1px solid var(--border-color);
-            padding-top: 25px;
-        }
-
-        .sidebar .nav-link {
-            color: #6c757d;
-            padding: 14px 25px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-        }
-
-        .sidebar .nav-link.active {
-            color: var(--primary-blue);
-            background: rgba(13, 110, 253, 0.05);
-            border-right: 4px solid var(--primary-blue);
-        }
-
-        .main-content {
-            margin-left: 260px;
-            padding: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-
-        .upload-box {
-            background: white;
-            border: 2px dashed #d1d9e6;
-            border-radius: 30px;
-            padding: 60px 40px;
-            text-align: center;
-            transition: all 0.3s;
-            max-width: 600px;
+        .scanner-line {
+            height: 2px;
+            background: #3b82f6;
+            position: absolute;
             width: 100%;
-        }
-
-        .upload-box:hover {
-            border-color: var(--primary-blue);
-            background: #f0f7ff;
-        }
-
-        .upload-icon {
-            font-size: 4rem;
-            color: var(--primary-blue);
-            opacity: 0.5;
-            margin-bottom: 20px;
-        }
-
-        #loadingOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.9);
-            z-index: 9999;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-
-        .spinner-audit {
-            width: 3rem;
-            height: 3rem;
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid var(--primary-blue);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+            box-shadow: 0 0 15px #3b82f6;
+            animation: scan 2s linear infinite;
         }
     </style>
-</head>
 
-<body>
-    <div class="sidebar">
-        <div class="px-4 mb-5"><span class="fw-bold text-primary fs-3">Veri<span class="text-dark">Dity</span></span>
+    <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold mb-4">Mulai <span class="text-blue-500 italic">Analisis Forensik</span></h1>
+            <p class="text-slate-400">Unggah foto profil atau dokumen untuk verifikasi keaslian digital.</p>
         </div>
-        <nav class="nav flex-column">
-            <a class="nav-link active" href="{{ route('user.dashboard') }}"><i class="bi bi-cloud-arrow-up-fill"></i>
-                Dashboard</a>
-            <a class="nav-link" href="{{ route('user.history') }}"><i class="bi bi-clock-history"></i> Riwayat Saya</a>
-            <div class="mt-auto" style="padding-top: 200px;">
-                <form action="{{ route('logout') }}" method="POST">@csrf
-                    <button type="submit" class="nav-link text-danger border-0 bg-transparent w-100 text-start"><i
-                            class="bi bi-box-arrow-left"></i> Keluar</button>
-                </form>
-            </div>
-        </nav>
-    </div>
 
-    <div class="main-content">
-        <div class="upload-box shadow-sm">
-            <i class="bi bi-images upload-icon"></i>
-            <h3 class="fw-bold mb-2">Mulai Analisis Baru</h3>
-            <p class="text-muted mb-4">Unggah gambar JPG/PNG untuk mendeteksi manipulasi digital.</p>
-
-            <form action="{{ route('audit.analyze') }}" method="POST" enctype="multipart/form-data"
-                id="mainUploadForm">
-                @csrf
-                <div class="mb-4 text-start">
-                    <input type="file" name="image" class="form-control form-control-lg rounded-4" accept="image/*"
-                        required>
+        {{-- Loading Modal --}}
+        <div id="loadingModal"
+            class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] hidden flex items-center justify-center">
+            <div class="text-center">
+                <div class="relative w-32 h-32 mx-auto mb-6">
+                    <div class="absolute inset-0 border-2 border-blue-500/30 rounded-2xl overflow-hidden">
+                        <div class="scanner-line"></div>
+                    </div>
+                    <i class="fa-solid fa-microscope text-5xl text-blue-500 absolute inset-0 m-auto h-fit"></i>
                 </div>
-                <button type="submit" class="btn btn-primary btn-lg w-100 rounded-4 fw-bold shadow-sm">
-                    <i class="bi bi-cpu me-2"></i> Jalankan Forensik
-                </button>
-            </form>
+                <h2 class="text-2xl font-bold italic mb-2">Analyzing <span class="text-blue-500">Evidence...</span></h2>
+                <p class="text-slate-400 text-sm animate-pulse">Menjalankan 4-Layer Forensic Engine</p>
+                <div class="mt-8 space-y-2 text-[10px] text-left max-w-xs mx-auto font-mono text-slate-500">
+                    <p id="status1" class="hidden">>> Checking ELA Levels...</p>
+                    <p id="status2" class="hidden">>> Extracting Metadata...</p>
+                    <p id="status3" class="hidden">>> Running AI Deepfake Detector...</p>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div id="loadingOverlay">
-        <div class="spinner-audit mb-3"></div>
-        <h5 class="fw-bold text-primary italic">System Processing...</h5>
-        <p class="text-muted small">Menjalankan ELA, Metadata Scan, dan Noise Detection.</p>
+        <form id="uploadForm" action="{{ route('audit.analyze') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="bg-slate-900 border-2 border-dashed border-slate-700 rounded-[2.5rem] p-12 text-center hover:border-blue-500/50 transition">
+                <input type="file" name="image" class="hidden" id="fileInput" onchange="previewImage(this)">
+
+                {{-- Image Preview Container --}}
+                <div id="previewContainer" class="hidden mb-6">
+                    <div class="relative inline-block">
+                        <img id="imagePreview" src="#"
+                            class="max-h-64 mx-auto rounded-2xl border border-slate-700 shadow-2xl">
+                        {{-- Tombol Hapus (Floating X) --}}
+                        <button type="button" onclick="removeImage()" 
+                            class="absolute -top-3 -right-3 bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <p id="fileName" class="text-xs text-blue-400 mt-2 italic font-bold"></p>
+                </div>
+
+                {{-- Default Dropzone Content --}}
+                <div id="dropzoneContent">
+                    <i class="fa-solid fa-cloud-arrow-up text-5xl text-slate-700 mb-4"></i>
+                    <h3 class="text-xl font-bold">Pilih Dokumen Foto</h3>
+                </div>
+
+                <div class="mt-6 flex flex-col gap-3 items-center">
+                    <div class="flex gap-2">
+                        {{-- Tombol Pilih/Ganti Foto --}}
+                        <button type="button" onclick="document.getElementById('fileInput').click()"
+                            class="bg-slate-800 hover:bg-slate-700 px-8 py-3 rounded-2xl font-bold transition">
+                            <span id="btnText">Pilih Foto</span>
+                        </button>
+
+                        {{-- Tombol Batal/Hapus (Secondary) --}}
+                        <button type="button" id="removeBtn" onclick="removeImage()"
+                            class="hidden bg-rose-900/30 hover:bg-rose-900/50 text-rose-500 px-6 py-3 rounded-2xl font-bold border border-rose-500/20 transition">
+                            Hapus
+                        </button>
+                    </div>
+
+                    {{-- Tombol Submit --}}
+                    <button type="submit" id="submitBtn"
+                        class="hidden bg-blue-600 hover:bg-blue-700 px-12 py-4 rounded-2xl font-bold shadow-lg shadow-blue-600/30 transition-all scale-105 active:scale-95">
+                        Mulai Analisis <i class="fa-solid fa-magnifying-glass-chart ml-2"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        {{-- Layers Info --}}
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12">
+            @php
+                $layers = [
+                    ['L1', 'Error Level Analysis'],
+                    ['L2', 'Metadata Extraction'],
+                    ['L3', 'Noise Analysis'],
+                    ['L4', 'AI Detection']
+                ];
+            @endphp
+            @foreach($layers as $index => $layer)
+                <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-2xl text-center">
+                    <div class="text-blue-500 font-bold text-[10px] uppercase tracking-widest italic">Layer {{ $index + 1 }}</div>
+                    <div class="text-[9px] text-slate-500">{{ $layer[1] }}</div>
+                </div>
+            @endforeach
+        </div>
     </div>
 
     <script>
-        document.getElementById('mainUploadForm').onsubmit = function() {
-            document.getElementById('loadingOverlay').style.display = 'flex';
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('previewContainer').classList.remove('hidden');
+                    document.getElementById('dropzoneContent').classList.add('hidden');
+                    
+                    document.getElementById('submitBtn').classList.remove('hidden');
+                    document.getElementById('removeBtn').classList.remove('hidden');
+                    
+                    document.getElementById('btnText').textContent = 'Ganti Foto';
+                    document.getElementById('fileName').textContent = 'Ready: ' + input.files[0].name;
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function removeImage() {
+            // Reset input file
+            document.getElementById('fileInput').value = "";
+            
+            // Sembunyikan preview dan tombol aksi
+            document.getElementById('previewContainer').classList.add('hidden');
+            document.getElementById('submitBtn').classList.add('hidden');
+            document.getElementById('removeBtn').classList.add('hidden');
+            
+            // Munculkan kembali dropzone asal
+            document.getElementById('dropzoneContent').classList.remove('hidden');
+            
+            // Kembalikan teks tombol
+            document.getElementById('btnText').textContent = 'Pilih Foto';
+            document.getElementById('imagePreview').src = "#";
+        }
+
+        document.getElementById('uploadForm').onsubmit = function() {
+            document.getElementById('loadingModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('status1').classList.remove('hidden'), 500);
+            setTimeout(() => document.getElementById('status2').classList.remove('hidden'), 1500);
+            setTimeout(() => document.getElementById('status3').classList.remove('hidden'), 2500);
         };
     </script>
-</body>
-
-</html>
+@endsection

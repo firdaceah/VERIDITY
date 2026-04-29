@@ -59,18 +59,6 @@ class SplashScreen2State extends State<SplashScreen2> {
                       ),
 
                       const SizedBox(height: 50),
-
-                      // 3 LINGKARAN INDIKATOR
-                      // Row(
-                      //   mainAxisAlignment: MainAxisAlignment.center,
-                      //   children: [
-                      //     _buildCircle(isActive: false),
-                      //     const SizedBox(width: 8),
-                      //     _buildCircle(isActive: true), // Tengah aktif
-                      //     const SizedBox(width: 8),
-                      //     _buildCircle(isActive: false),
-                      //   ],
-                      // ),
                       
                       const SizedBox(height: 50),
                     ],
