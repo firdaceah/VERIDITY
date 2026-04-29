@@ -1,0 +1,13 @@
+streamlit
+piexif
+opencv-python-headless
+scikit-image
+matplotlib
+numpy
+pandas
+plotly
+Pillow 
+scipy
+imagehash
+
+
