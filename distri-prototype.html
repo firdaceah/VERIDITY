@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Distri — Distribusi Aman, Transaksi Terjaga</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0D2545;
+    --navy2: #1A3A6E;
+    --navy3: #1E4A8A;
+    --accent: #2E7CF6;
+    --accent2: #4B9BFF;
+    --white: #FFFFFF;
+    --offwhite: #F0F4FA;
+    --card: #F6F9FF;
+    --border: #D8E4F4;
+    --muted: #637899;
+    --green: #15803D;
+    --green-bg: #F0FDF4;
+    --green-border: #BBF7D0;
+    --red: #991B1B;
+    --red-bg: #FEF2F2;
+    --red-border: #FECACA;
+    --yellow: #92400E;
+    --yellow-bg: #FFFBEB;
+    --yellow-border: #FDE68A;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--offwhite);
+    color: var(--navy);
+    min-height: 100vh;
+  }
+
+  /* ─── NAVBAR ─── */
+  .navbar {
+    background: var(--navy);
+    height: 60px;
+    display: flex;
+    align-items: center;
+    padding: 0 48px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    gap: 0;
+  }
+  .logo {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    margin-right: 36px;
+    letter-spacing: -0.5px;
+    cursor: pointer;
+  }
+  .logo span { color: var(--accent2); }
+  .nav-links { display: flex; gap: 2px; flex: 1; }
+  .nb {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.6);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: .15s;
+  }
+  .nb:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .nb.on { color: #fff; background: rgba(255,255,255,0.14); }
+  .nav-right { margin-left: auto; }
+  .nav-badge {
+    background: rgba(75,155,255,0.2);
+    border: 1px solid rgba(75,155,255,0.35);
+    color: #7BB8FF;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+
+  /* ─── SCREENS ─── */
+  .screen { display: none; min-height: calc(100vh - 60px); }
+  .screen.on { display: block; }
+
+  /* ══════════════════════════════
+     LANDING
+  ══════════════════════════════ */
+  .hero {
+    background: var(--navy);
+    padding: 80px 80px 72px;
+    display: flex;
+    align-items: center;
+    gap: 80px;
+  }
+  .hero-left { flex: 1; }
+  .hero-chip {
+    display: inline-block;
+    background: rgba(75,155,255,0.18);
+    border: 1px solid rgba(75,155,255,0.35);
+    color: #7BB8FF;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 52px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.12;
+    margin-bottom: 20px;
+  }
+  .hero h1 em { color: var(--accent2); font-style: italic; }
+  .hero-sub {
+    font-size: 16px;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.72;
+    margin-bottom: 36px;
+    max-width: 520px;
+  }
+  .hero-btns { display: flex; gap: 14px; }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 14px 32px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 0.2px;
+    transition: .15s;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-ghost {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 14px 32px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+    cursor: pointer;
+    font-family: inherit;
+    transition: .15s;
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.14); }
+  .hero-stats { display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; width: 260px; }
+  .hstat {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 20px 24px;
+  }
+  .hstat-n { font-size: 32px; font-weight: 800; color: var(--accent2); }
+  .hstat-l { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+  .feat-section { padding: 72px 80px; }
+  .sec-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .sec-h {
+    font-family: 'Fraunces', serif;
+    font-size: 34px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 12px;
+  }
+  .sec-sub {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 40px;
+    max-width: 560px;
+  }
+  .feat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+  .fcard {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px;
+    transition: .2s;
+  }
+  .fcard:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .ficon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    background: var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+  .ficon svg { width: 24px; height: 24px; }
+  .ftitle { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+  .fdesc { font-size: 13px; color: var(--muted); line-height: 1.65; }
+
+  .cta-strip {
+    background: var(--navy);
+    margin: 0 80px 72px;
+    border-radius: 20px;
+    padding: 44px 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+  }
+  .cta-h { font-family: 'Fraunces', serif; font-size: 26px; color: #fff; margin-bottom: 8px; }
+  .cta-sub { font-size: 14px; color: rgba(255,255,255,0.5); }
+
+  /* ══════════════════════════════
+     CATALOG
+  ══════════════════════════════ */
+  .cat-layout { display: flex; min-height: calc(100vh - 60px); }
+  .cat-sidebar {
+    width: 240px;
+    background: var(--white);
+    border-right: 1px solid var(--border);
+    padding: 32px 20px;
+    flex-shrink: 0;
+  }
+  .sidebar-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding: 0 8px;
+  }
+  .cat-item {
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    margin-bottom: 2px;
+    transition: .15s;
+  }
+  .cat-item:hover { background: var(--offwhite); color: var(--navy); }
+  .cat-item.on { background: #EEF4FF; color: var(--navy2); }
+  .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  .cat-main { flex: 1; padding: 36px 48px; }
+  .cat-top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .cat-top-left h2 { font-family: 'Fraunces', serif; font-size: 28px; color: var(--navy); }
+  .cat-top-left p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .search-wrap { display: flex; gap: 10px; align-items: center; }
+  .search-inp {
+    padding: 10px 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--navy);
+    background: var(--card);
+    outline: none;
+    width: 260px;
+    transition: .15s;
+  }
+  .search-inp:focus { border-color: var(--accent); }
+
+  .prod-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 22px; }
+  .pcard {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: .2s;
+  }
+  .pcard:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(46,124,246,0.1); }
+  .pimg {
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 52px;
+  }
+  .pbody { padding: 18px; }
+  .pname { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .punit { font-size: 12px; color: var(--muted); }
+  .pprice { font-size: 18px; font-weight: 800; color: var(--accent); margin-top: 10px; }
+  .pbtn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 11px;
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: .15s;
+  }
+  .pbtn:hover { background: var(--navy2); }
+
+  /* ══════════════════════════════
+     CHECKOUT
+  ══════════════════════════════ */
+  .co-layout { display: flex; min-height: calc(100vh - 60px); }
+  .co-main { flex: 1; padding: 40px 52px; display: flex; flex-direction: column; gap: 22px; }
+  .co-panel { width: 380px; background: var(--white); border-left: 1px solid var(--border); padding: 40px 32px; flex-shrink: 0; display: flex; flex-direction: column; gap: 22px; }
+
+  .back-bar { display: flex; align-items: center; gap: 12px; cursor: pointer; margin-bottom: 4px; }
+  .back-ico {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: var(--offwhite);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    transition: .15s;
+  }
+  .back-ico:hover { background: var(--border); }
+  .back-ico svg { width: 16px; height: 16px; }
+  .back-label { font-size: 18px; font-weight: 800; color: var(--navy); }
+
+  .co-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 28px;
+  }
+  .co-card-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+  .co-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .co-row:last-child { margin-bottom: 0; }
+  .co-k { font-size: 14px; color: var(--muted); }
+  .co-v { font-size: 14px; font-weight: 600; color: var(--navy); }
+  .co-divider { border: none; border-top: 1.5px solid var(--border); margin: 16px 0 14px; }
+  .co-total { display: flex; justify-content: space-between; align-items: center; }
+  .co-total-k { font-size: 15px; font-weight: 700; color: var(--navy); }
+  .co-total-v { font-size: 26px; font-weight: 800; color: var(--navy); }
+
+  .rek-box {
+    background: var(--navy);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  .rek-lbl { font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 8px; }
+  .rek-num { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: 3px; }
+  .rek-name { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 6px; }
+  .rek-banks { display: flex; gap: 8px; margin-top: 12px; }
+  .bchip {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.65);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 6px;
+  }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--card);
+    transition: .2s;
+  }
+  .upload-zone:hover { border-color: var(--accent); background: #EEF4FF; }
+  .upload-zone.done { border: 2px solid var(--green); background: var(--green-bg); }
+  .u-ico { font-size: 40px; margin-bottom: 14px; }
+  .u-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+  .u-sub { font-size: 13px; color: var(--muted); }
+
+  .veridity-bar {
+    background: #EEF4FF;
+    border: 1px solid #B8D0EE;
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .v-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); margin-top: 4px; flex-shrink: 0; }
+  .v-text { font-size: 13px; color: var(--navy2); line-height: 1.6; }
+
+  .panel-title { font-size: 17px; font-weight: 800; color: var(--navy); }
+  .order-summary {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .os-prod { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .os-emoji { width: 60px; height: 60px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 30px; flex-shrink: 0; }
+  .os-name { font-size: 15px; font-weight: 700; color: var(--navy); }
+  .os-unit { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .os-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .os-k { font-size: 13px; color: var(--muted); }
+  .os-v { font-size: 13px; font-weight: 600; color: var(--navy); }
+  .os-divider { border: none; border-top: 1.5px solid var(--border); margin: 14px 0; }
+  .os-total { display: flex; justify-content: space-between; align-items: center; }
+  .os-tk { font-size: 14px; font-weight: 700; color: var(--navy); }
+  .os-tv { font-size: 22px; font-weight: 800; color: var(--navy); }
+
+  .qty-ctrl { display: flex; align-items: center; gap: 12px; }
+  .qty-btn {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--navy);
+    display: flex; align-items: center; justify-content: center;
+    transition: .15s;
+    line-height: 1;
+  }
+  .qty-btn:hover { background: var(--border); }
+  .qty-val { font-size: 16px; font-weight: 800; color: var(--navy); min-width: 24px; text-align: center; }
+
+  /* ══════════════════════════════
+     TRANSACTION STATUS
+  ══════════════════════════════ */
+  .ts-layout { display: flex; min-height: calc(100vh - 60px); }
+  .ts-main { flex: 1; padding: 40px 52px; display: flex; flex-direction: column; gap: 22px; }
+  .ts-sidebar { width: 340px; background: var(--white); border-left: 1px solid var(--border); padding: 40px 28px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; }
+
+  .ts-hero-card {
+    background: var(--navy);
+    border-radius: 20px;
+    padding: 32px 36px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 32px;
+  }
+  .ts-hero-left {}
+  .ts-order-id { font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+  .ts-prod-name { font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+  .ts-amount { font-size: 34px; font-weight: 800; color: var(--accent2); }
+
+  .ts-steps { display: flex; align-items: center; }
+  .ts-step { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 72px; }
+  .ts-dot {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800;
+  }
+  .ts-dot.done { background: #15803D; color: #fff; }
+  .ts-dot.active { background: #F59E0B; color: #fff; }
+  .ts-dot.wait { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.4); font-size: 13px; }
+  .ts-dot.fail { background: #DC2626; color: #fff; }
+  .ts-slbl { font-size: 11px; color: rgba(255,255,255,0.45); text-align: center; line-height: 1.35; }
+  .ts-slbl.done { color: rgba(255,255,255,0.8); }
+  .ts-slbl.active { color: #FCD34D; }
+  .ts-slbl.fail { color: #FCA5A5; }
+  .ts-conn { height: 2px; flex: 1; background: rgba(255,255,255,0.15); margin-bottom: 20px; min-width: 40px; }
+  .ts-conn.done { background: #15803D; }
+
+  .tab-row { display: flex; gap: 10px; }
+  .tab-btn {
+    padding: 10px 22px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: .15s;
+  }
+  .tab-btn:hover { border-color: var(--navy); color: var(--navy); }
+  .tab-btn.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+  .ts-status-card {
+    border-radius: 18px;
+    padding: 32px 36px;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .ts-status-card.checking { background: var(--yellow-bg); border: 1px solid var(--yellow-border); }
+  .ts-status-card.verified { background: var(--green-bg); border: 1px solid var(--green-border); }
+  .ts-status-card.rejected { background: var(--red-bg); border: 1px solid var(--red-border); }
+  .ts-s-ico { font-size: 48px; flex-shrink: 0; }
+  .ts-s-title { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
+  .ts-s-title.checking { color: var(--yellow); }
+  .ts-s-title.verified { color: var(--green); }
+  .ts-s-title.rejected { color: var(--red); }
+  .ts-s-desc { font-size: 14px; line-height: 1.7; }
+  .ts-s-desc.checking { color: #78350F; }
+  .ts-s-desc.verified { color: #166534; }
+  .ts-s-desc.rejected { color: #7F1D1D; }
+
+  .detail-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 28px;
+  }
+  .dc-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .dc-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .dc-row:last-child { margin-bottom: 0; }
+  .dc-k { font-size: 13px; color: var(--muted); }
+  .dc-v { font-size: 13px; font-weight: 600; color: var(--navy); }
+
+  .ts-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 8px;
+  }
+  .b-check { background: #FEF3C7; color: #92400E; }
+  .b-ver { background: #DCFCE7; color: #15803D; }
+  .b-rej { background: #FEE2E2; color: #991B1B; }
+  .bdot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .bd-y { background: #F59E0B; }
+  .bd-g { background: #15803D; }
+  .bd-r { background: #DC2626; }
+
+  .sidebar-section-title { font-size: 16px; font-weight: 800; color: var(--navy); }
+  .sidebar-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .status-legend { display: flex; flex-direction: column; gap: 14px; }
+  .legend-item { display: flex; align-items: flex-start; gap: 12px; }
+  .legend-desc { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+
+  .btn-sec {
+    display: block;
+    width: 100%;
+    background: var(--white);
+    color: var(--navy);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 13px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    font-family: inherit;
+    transition: .15s;
+    text-align: center;
+  }
+  .btn-sec:hover { background: var(--offwhite); }
+  .btn-full {
+    display: block;
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 15px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: .15s;
+    text-align: center;
+  }
+  .btn-full:hover { background: var(--accent2); }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="logo" onclick="go('land')">distri<span>.</span></div>
+  <div class="nav-links">
+    <button class="nb on" id="nb-land" onclick="go('land')">Beranda</button>
+    <button class="nb" id="nb-cat" onclick="go('cat')">Katalog Produk</button>
+    <button class="nb" id="nb-ts" onclick="go('ts')">Pesanan Saya</button>
+  </div>
+  <div class="nav-right">
+    <div class="nav-badge">✦ Veridity AI Protection</div>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════
+     LANDING
+════════════════════════════════════════ -->
+<div class="screen on" id="s-land">
+  <div class="hero">
+    <div class="hero-left">
+      <div class="hero-chip">✦ Veridity Engine — AI-Powered Protection</div>
+      <h1>Distribusi Aman,<br><em>Transaksi Terjaga.</em></h1>
+      <p class="hero-sub">Platform distribusi grosir dengan validasi nota transfer berbasis kecerdasan buatan. Setiap pembayaran diverifikasi otomatis oleh Veridity Engine untuk mencegah penipuan sebelum pesanan diproses.</p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="go('cat')">Mulai Pesan Sekarang →</button>
+        <button class="btn-ghost">Pelajari Lebih Lanjut</button>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat">
+        <div class="hstat-n">2.400+</div>
+        <div class="hstat-l">Reseller Aktif Terdaftar</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-n">99.8%</div>
+        <div class="hstat-l">Nota Berhasil Terverifikasi</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-n">0</div>
+        <div class="hstat-l">Kasus Penipuan yang Lolos</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feat-section">
+    <div class="sec-eyebrow">Mengapa Memilih Distri</div>
+    <div class="sec-h">Platform distribusi paling terpercaya</div>
+    <p class="sec-sub">Grosir sembako & barang teknik dengan sistem proteksi pembayaran berbasis AI yang bekerja 24/7 — memastikan setiap transaksi aman dan terverifikasi.</p>
+    <div class="feat-grid">
+      <div class="fcard">
+        <div class="ficon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#4B9BFF" stroke-width="2.2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div class="ftitle">Veridity Engine</div>
+        <p class="fdesc">AI kami mendeteksi nota palsu & manipulasi transfer secara real-time. Setiap piksel gambar nota diperiksa sebelum pesanan disetujui oleh sistem.</p>
+      </div>
+      <div class="fcard">
+        <div class="ficon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#4B9BFF" stroke-width="2.2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        </div>
+        <div class="ftitle">Katalog Grosir Lengkap</div>
+        <p class="fdesc">Sembako, barang teknik, dan produk grosir lainnya dengan harga kompetitif per lusin / koli langsung dari pusat distribusi kami.</p>
+      </div>
+      <div class="fcard">
+        <div class="ficon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#4B9BFF" stroke-width="2.2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <div class="ftitle">Status Verifikasi Real-Time</div>
+        <p class="fdesc">Pantau status verifikasi nota pembayaran kamu secara langsung dari dashboard. Notifikasi otomatis ketika pesanan berhasil diverifikasi dan diproses.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-strip">
+    <div>
+      <div class="cta-h">Siap mulai berdistribusi dengan aman?</div>
+      <div class="cta-sub">Bergabung dengan 2.400+ reseller yang sudah mempercayai platform Distri.</div>
+    </div>
+    <button class="btn-primary" style="font-size:15px;padding:16px 36px;" onclick="go('cat')">Lihat Katalog Produk →</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     CATALOG
+════════════════════════════════════════ -->
+<div class="screen" id="s-cat">
+  <div class="cat-layout">
+    <div class="cat-sidebar">
+      <div class="sidebar-label">Kategori Produk</div>
+      <div class="cat-item on">Semua Produk</div>
+      <div class="cat-item">Sembako</div>
+      <div class="cat-item">Minuman</div>
+      <div class="cat-item">Barang Teknik</div>
+      <div class="cat-item">Kebersihan</div>
+      <div class="cat-item">Peralatan Dapur</div>
+      <hr class="sidebar-divider">
+      <div class="sidebar-label">Rentang Harga</div>
+      <div class="cat-item">Di bawah Rp 100.000</div>
+      <div class="cat-item">Rp 100.000 – 500.000</div>
+      <div class="cat-item">Di atas Rp 500.000</div>
+    </div>
+    <div class="cat-main">
+      <div class="cat-top">
+        <div class="cat-top-left">
+          <h2>Katalog Produk</h2>
+          <p>Menampilkan 6 produk · Harga grosir per lusin / koli</p>
+        </div>
+        <div class="search-wrap">
+          <input class="search-inp" type="text" placeholder="🔍  Cari produk grosir...">
+        </div>
+      </div>
+      <div class="prod-grid">
+        <div class="pcard" onclick="openCO('Beras Premium 50kg','per karung',680000,2,'#EBF4FF','🌾')">
+          <div class="pimg" style="background:#EBF4FF;">🌾</div>
+          <div class="pbody">
+            <div class="pname">Beras Premium 50kg</div>
+            <div class="punit">Min. 2 karung</div>
+            <div class="pprice">Rp 680.000</div>
+            <button class="pbtn">Pesan Sekarang</button>
+          </div>
+        </div>
+        <div class="pcard" onclick="openCO('Minyak Goreng 1L','per koli (24 pcs)',185000,1,'#FFF7EB','🫙')">
+          <div class="pimg" style="background:#FFF7EB;">🫙</div>
+          <div class="pbody">
+            <div class="pname">Minyak Goreng 1L</div>
+            <div class="punit">1 koli = 24 pcs</div>
+            <div class="pprice">Rp 185.000</div>
+            <button class="pbtn">Pesan Sekarang</button>
+          </div>
+        </div>
+        <div class="pcard" onclick="openCO('Gula Pasir 1kg','per koli (10 kg)',145000,1,'#EBFFF4','🍬')">
+          <div class="pimg" style="background:#EBFFF4;">🍬</div>
+          <div class="pbody">
+            <div class="pname">Gula Pasir 1kg</div>
+            <div class="punit">1 koli = 10 kg</div>
+            <div class="pprice">Rp 145.000</div>
+            <button class="pbtn">Pesan Sekarang</button>
+          </div>
+        </div>
+        <div class="pcard" onclick="openCO('Sabun Cuci Piring','per koli (12 pcs)',98000,1,'#FFF0F0','🧴')">
+          <div class="pimg" style="background:#FFF0F0;">🧴</div>
+          <div class="pbody">
+            <div class="pname">Sabun Cuci Piring</div>
+            <div class="punit">1 koli = 12 pcs</div>
+            <div class="pprice">Rp 98.000</div>
+            <button class="pbtn">Pesan Sekarang</button>
+          </div>
+        </div>
+        <div class="pcard" onclick="openCO('Air Mineral 600ml','per koli (24 pcs)',48000,3,'#EBF4FF','💧')">
+          <div class="pimg" style="background:#EBF4FF;">💧</div>
+          <div class="pbody">
+            <div class="pname">Air Mineral 600ml</div>
+            <div class="punit">1 koli = 24 pcs</div>
+            <div class="pprice">Rp 48.000</div>
+            <button class="pbtn">Pesan Sekarang</button>
+          </div>
+        </div>
+        <div class="pcard" onclick="openCO('Kabel NYM 2×1.5','per rol (100 m)',385000,1,'#FFF7EB','🔌')">
+          <div class="pimg" style="background:#FFF7EB;">🔌</div>
+          <div class="pbody">
+            <div class="pname">Kabel NYM 2×1.5</div>
+            <div class="punit">Min. 1 rol (100m)</div>
+            <div class="pprice">Rp 385.000</div>
+            <button class="pbtn">Pesan Sekarang</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     CHECKOUT / PAYMENT
+════════════════════════════════════════ -->
+<div class="screen" id="s-co">
+  <div class="co-layout">
+    <div class="co-main">
+      <div class="back-bar" onclick="go('cat')">
+        <div class="back-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0D2545" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </div>
+        <div class="back-label">Checkout & Pembayaran</div>
+      </div>
+
+      <div class="co-card">
+        <div class="co-card-title">Instruksi Transfer Bank</div>
+        <div class="rek-box">
+          <div class="rek-lbl">Nomor Rekening Tujuan</div>
+          <div class="rek-num">1234 5678 9012</div>
+          <div class="rek-name">PT Distri Nusantara Jaya</div>
+          <div class="rek-banks">
+            <div class="bchip">BCA</div>
+            <div class="bchip">Mandiri</div>
+            <div class="bchip">BRI</div>
+            <div class="bchip">BNI</div>
+          </div>
+        </div>
+        <div class="co-row"><span class="co-k">Konfirmasi via WhatsApp</span><span class="co-v" style="color:var(--accent);">+62 812-0000-0001</span></div>
+        <div class="co-row"><span class="co-k">Jam Operasional</span><span class="co-v">Senin – Sabtu, 08.00 – 17.00 WIB</span></div>
+      </div>
+
+      <div class="co-card">
+        <div class="co-card-title">Upload Bukti Transfer / Nota Pembayaran</div>
+        <div class="upload-zone" id="uzone" onclick="doUpload()">
+          <div class="u-ico" id="u-ico">📎</div>
+          <div class="u-title" id="u-title">Klik di sini untuk mengunggah foto nota atau struk transfer</div>
+          <div class="u-sub" id="u-sub">Format yang diterima: JPG, PNG, PDF &nbsp;·&nbsp; Ukuran maksimal 10 MB</div>
+        </div>
+        <div class="veridity-bar" style="margin-top:16px;">
+          <div class="v-dot"></div>
+          <div class="v-text"><strong>Nota Anda akan diperiksa secara otomatis oleh Veridity Engine.</strong> Sistem AI kami memverifikasi keaslian dan keabsahan setiap bukti transfer yang diunggah sebelum pesanan diproses lebih lanjut.</div>
+        </div>
+      </div>
+
+      <button class="btn-full" onclick="submitOrder()">Kirim Pesanan & Mulai Verifikasi Veridity →</button>
+    </div>
+
+    <div class="co-panel">
+      <div class="panel-title">Ringkasan Pesanan</div>
+      <div class="order-summary">
+        <div class="os-prod">
+          <div class="os-emoji" id="os-emoji" style="background:#EBF4FF;">🌾</div>
+          <div>
+            <div class="os-name" id="os-name">—</div>
+            <div class="os-unit" id="os-unit">—</div>
+          </div>
+        </div>
+        <div class="os-row"><span class="os-k">Harga Satuan</span><span class="os-v" id="os-price">—</span></div>
+        <div class="os-row">
+          <span class="os-k">Jumlah</span>
+          <div class="qty-ctrl">
+            <button class="qty-btn" onclick="changeQ(-1)">−</button>
+            <span class="qty-val" id="co-qty">1</span>
+            <button class="qty-btn" onclick="changeQ(1)">+</button>
+          </div>
+        </div>
+        <div class="os-divider"></div>
+        <div class="os-total">
+          <span class="os-tk">Total Bayar</span>
+          <span class="os-tv" id="os-total">—</span>
+        </div>
+      </div>
+
+      <div class="detail-card">
+        <div class="dc-title">Informasi Pesanan</div>
+        <div class="dc-row"><span class="dc-k">Tanggal Pesan</span><span class="dc-v">3 Mei 2026</span></div>
+        <div class="dc-row"><span class="dc-k">Metode Bayar</span><span class="dc-v">Transfer Bank</span></div>
+        <div class="dc-row"><span class="dc-k">Sistem Verifikasi</span><span class="dc-v" style="color:var(--accent);">Veridity AI Engine</span></div>
+        <div class="dc-row"><span class="dc-k">Estimasi Verifikasi</span><span class="dc-v">1 – 3 Menit</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     TRANSACTION STATUS
+════════════════════════════════════════ -->
+<div class="screen" id="s-ts">
+  <div class="ts-layout">
+    <div class="ts-main">
+      <div class="back-bar" onclick="go('cat')" style="cursor:pointer;">
+        <div class="back-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0D2545" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </div>
+        <div class="back-label">Status Transaksi</div>
+      </div>
+
+      <div class="ts-hero-card">
+        <div class="ts-hero-left">
+          <div class="ts-order-id" id="ts-id">ID PESANAN: —</div>
+          <div class="ts-prod-name" id="ts-pname">—</div>
+          <div class="ts-amount" id="ts-amt">—</div>
+        </div>
+        <div class="ts-steps">
+          <div class="ts-step">
+            <div class="ts-dot done">✓</div>
+            <div class="ts-slbl done">Pesanan<br>Dibuat</div>
+          </div>
+          <div class="ts-conn done"></div>
+          <div class="ts-step">
+            <div class="ts-dot done">✓</div>
+            <div class="ts-slbl done">Nota<br>Diunggah</div>
+          </div>
+          <div class="ts-conn" id="conn-2"></div>
+          <div class="ts-step">
+            <div class="ts-dot active" id="sd3">⏳</div>
+            <div class="ts-slbl active" id="sl3">Verifikasi<br>Veridity</div>
+          </div>
+          <div class="ts-conn" id="conn-3"></div>
+          <div class="ts-step">
+            <div class="ts-dot wait" id="sd4">4</div>
+            <div class="ts-slbl" id="sl4">Pesanan<br>Diproses</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-row">
+        <button class="tab-btn on" onclick="setStatus('checking',0)">⏳ Checking...</button>
+        <button class="tab-btn" onclick="setStatus('verified',1)">✅ Verified</button>
+        <button class="tab-btn" onclick="setStatus('rejected',2)">❌ Rejected</button>
+      </div>
+
+      <div class="ts-status-card checking" id="ts-sc">
+        <div class="ts-s-ico" id="ts-si">⏳</div>
+        <div>
+          <div class="ts-s-title checking" id="ts-st">Sedang Diverifikasi oleh Veridity Engine...</div>
+          <div class="ts-s-desc checking" id="ts-sd">Sistem AI Veridity Engine sedang menganalisis nota transfer yang kamu unggah. Setiap detail gambar diperiksa untuk memastikan keaslian dan keabsahan bukti pembayaran. Proses ini biasanya membutuhkan waktu 1–3 menit. Harap tunggu dan jangan menutup halaman ini.</div>
+        </div>
+      </div>
+
+      <div class="detail-card">
+        <div class="dc-title">Detail Transaksi</div>
+        <div class="dc-row"><span class="dc-k">ID Pesanan</span><span class="dc-v" id="tsi-id">—</span></div>
+        <div class="dc-row"><span class="dc-k">Tanggal & Waktu</span><span class="dc-v">3 Mei 2026, 14:35 WIB</span></div>
+        <div class="dc-row"><span class="dc-k">Produk</span><span class="dc-v" id="tsi-prod">—</span></div>
+        <div class="dc-row"><span class="dc-k">Nominal Transfer</span><span class="dc-v" id="tsi-amt">—</span></div>
+        <div class="dc-row"><span class="dc-k">Metode Pembayaran</span><span class="dc-v">Transfer Bank</span></div>
+        <div class="dc-row">
+          <span class="dc-k">Status Veridity</span>
+          <span class="ts-badge b-check" id="tsi-badge"><span class="bdot bd-y"></span><span id="badge-txt">Checking...</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ts-sidebar">
+      <div class="sidebar-section-title">Simulasi Status</div>
+      <p class="sidebar-desc">Klik tab di panel kiri untuk melihat tampilan masing-masing status verifikasi Veridity Engine.</p>
+
+      <div class="detail-card">
+        <div class="dc-title">Keterangan Status</div>
+        <div class="status-legend">
+          <div class="legend-item">
+            <div>
+              <span class="ts-badge b-check"><span class="bdot bd-y"></span>Checking...</span>
+              <div class="legend-desc">Veridity sedang menganalisis nota. Harap tunggu 1–3 menit.</div>
+            </div>
+          </div>
+          <div class="legend-item">
+            <div>
+              <span class="ts-badge b-ver"><span class="bdot bd-g"></span>Verified</span>
+              <div class="legend-desc">Nota dinyatakan asli dan sah. Pesanan akan langsung diproses.</div>
+            </div>
+          </div>
+          <div class="legend-item">
+            <div>
+              <span class="ts-badge b-rej"><span class="bdot bd-r"></span>Rejected</span>
+              <div class="legend-desc">Terdeteksi manipulasi atau pemalsuan. Pesanan dibatalkan otomatis.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-full" onclick="go('cat')">Pesan Produk Lain →</button>
+      <button class="btn-sec" onclick="go('land')">Kembali ke Beranda</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var prod = { name:'', unit:'', price:0, qty:1, emoji:'', bg:'' };
+  var uploaded = false;
+
+  function go(s) {
+    document.querySelectorAll('.screen').forEach(function(x){ x.classList.remove('on'); });
+    document.querySelectorAll('.nb').forEach(function(x){ x.classList.remove('on'); });
+    document.getElementById('s-' + s).classList.add('on');
+    var nb = document.getElementById('nb-' + s);
+    if (nb) nb.classList.add('on');
+    window.scrollTo(0, 0);
+  }
+
+  function openCO(name, unit, price, minqty, bg, emoji) {
+    prod = { name:name, unit:unit, price:price, qty:minqty, emoji:emoji, bg:bg };
+    uploaded = false;
+    document.getElementById('uzone').className = 'upload-zone';
+    document.getElementById('u-ico').textContent = '📎';
+    document.getElementById('u-title').textContent = 'Klik di sini untuk mengunggah foto nota atau struk transfer';
+    document.getElementById('u-sub').textContent = 'Format yang diterima: JPG, PNG, PDF · Ukuran maksimal 10 MB';
+    document.getElementById('os-emoji').textContent = emoji;
+    document.getElementById('os-emoji').style.background = bg;
+    document.getElementById('os-name').textContent = name;
+    document.getElementById('os-unit').textContent = unit;
+    renderSummary();
+    go('co');
+  }
+
+  function renderSummary() {
+    document.getElementById('co-qty').textContent = prod.qty;
+    document.getElementById('os-price').textContent = 'Rp ' + prod.price.toLocaleString('id-ID');
+    document.getElementById('os-total').textContent = 'Rp ' + (prod.price * prod.qty).toLocaleString('id-ID');
+  }
+
+  function changeQ(d) {
+    prod.qty = Math.max(1, prod.qty + d);
+    renderSummary();
+  }
+
+  function doUpload() {
+    uploaded = true;
+    document.getElementById('uzone').className = 'upload-zone done';
+    document.getElementById('u-ico').textContent = '✅';
+    document.getElementById('u-title').textContent = 'nota_transfer.jpg berhasil diunggah';
+    document.getElementById('u-sub').textContent = 'File siap — Veridity Engine akan memeriksa nota ini secara otomatis';
+  }
+
+  function rndId() { return 'TRX-' + Math.floor(1000 + Math.random() * 9000); }
+
+  function submitOrder() {
+    if (!uploaded) doUpload();
+    var id = rndId();
+    var amt = 'Rp ' + (prod.price * prod.qty).toLocaleString('id-ID');
+    document.getElementById('ts-id').textContent = 'ID PESANAN: ' + id;
+    document.getElementById('ts-pname').textContent = prod.name + ' × ' + prod.qty;
+    document.getElementById('ts-amt').textContent = amt;
+    document.getElementById('tsi-id').textContent = id;
+    document.getElementById('tsi-prod').textContent = prod.name;
+    document.getElementById('tsi-amt').textContent = amt;
+    setStatus('checking', 0);
+    go('ts');
+  }
+
+  function setStatus(s, tabIdx) {
+    var sc = document.getElementById('ts-sc');
+    var si = document.getElementById('ts-si');
+    var st = document.getElementById('ts-st');
+    var sd = document.getElementById('ts-sd');
+    var badge = document.getElementById('tsi-badge');
+    var sd3 = document.getElementById('sd3'); var sl3 = document.getElementById('sl3');
+    var sd4 = document.getElementById('sd4'); var sl4 = document.getElementById('sl4');
+    var c2 = document.getElementById('conn-2'); var c3 = document.getElementById('conn-3');
+
+    sc.className = 'ts-status-card ' + s;
+    st.className = 'ts-s-title ' + s;
+    sd.className = 'ts-s-desc ' + s;
+
+    if (s === 'checking') {
+      si.textContent = '⏳';
+      st.textContent = 'Sedang Diverifikasi oleh Veridity Engine...';
+      sd.textContent = 'Sistem AI Veridity Engine sedang menganalisis nota transfer yang kamu unggah. Setiap detail gambar diperiksa untuk memastikan keaslian dan keabsahan bukti pembayaran. Proses ini biasanya membutuhkan waktu 1–3 menit. Harap tunggu dan jangan menutup halaman ini.';
+      badge.className = 'ts-badge b-check';
+      badge.innerHTML = '<span class="bdot bd-y"></span>Checking...';
+      sd3.className='ts-dot active'; sd3.textContent='⏳'; sl3.className='ts-slbl active'; sl3.innerHTML='Verifikasi<br>Veridity';
+      sd4.className='ts-dot wait'; sd4.textContent='4'; sl4.className='ts-slbl'; sl4.innerHTML='Pesanan<br>Diproses';
+      c2.className='ts-conn done'; c3.className='ts-conn';
+    } else if (s === 'verified') {
+      si.textContent = '✅';
+      st.textContent = 'Nota Terverifikasi — Pesanan Sedang Diproses!';
+      sd.textContent = 'Veridity Engine menyatakan nota transfer kamu ASLI dan SAH. Pembayaran telah dikonfirmasi oleh sistem. Tim distribusi kami sedang memproses pesanan kamu dan akan segera menghubungi kamu untuk konfirmasi jadwal pengiriman.';
+      badge.className = 'ts-badge b-ver';
+      badge.innerHTML = '<span class="bdot bd-g"></span>Verified';
+      sd3.className='ts-dot done'; sd3.textContent='✓'; sl3.className='ts-slbl done'; sl3.innerHTML='Verifikasi<br>Veridity';
+      sd4.className='ts-dot done'; sd4.textContent='✓'; sl4.className='ts-slbl done'; sl4.innerHTML='Pesanan<br>Diproses';
+      c2.className='ts-conn done'; c3.className='ts-conn done';
+    } else {
+      si.textContent = '❌';
+      st.textContent = 'Nota Ditolak — Terdeteksi Indikasi Manipulasi';
+      sd.textContent = 'Veridity Engine mendeteksi indikasi manipulasi atau pemalsuan pada nota transfer yang kamu unggah. Pesanan tidak dapat diproses secara otomatis. Silakan hubungi admin kami via WhatsApp untuk klarifikasi lebih lanjut, atau upload ulang nota transfer yang valid dan asli.';
+      badge.className = 'ts-badge b-rej';
+      badge.innerHTML = '<span class="bdot bd-r"></span>Rejected';
+      sd3.className='ts-dot fail'; sd3.textContent='✕'; sl3.className='ts-slbl fail'; sl3.innerHTML='Ditolak<br>Veridity';
+      sd4.className='ts-dot wait'; sd4.textContent='4'; sl4.className='ts-slbl'; sl4.innerHTML='Pesanan<br>Diproses';
+      c2.className='ts-conn done'; c3.className='ts-conn';
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(function(b, i) {
+      b.classList.toggle('on', i === tabIdx);
+    });
+  }
+</script>
+</body>
+</html>

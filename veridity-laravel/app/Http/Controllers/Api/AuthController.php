@@ -104,21 +104,31 @@ class AuthController extends Controller
 
     public function adminDashboard()
     {
-        $totalAudit = ForensicAnalysis::count();
-        $totalUser = User::where('role', 'user')->count();
+        // 1. Hitung total seluruh audit gambar di database
+        $totalAudit = \App\Models\ForensicAnalysis::count();
 
-        $fraudCount = ForensicAnalysis::whereIn('final_result', ['Bahaya', 'Mencurigakan'])->count();
+        // 2. Hitung total pengguna terdaftar (selain admin)
+        $totalUser = \App\Models\User::where('role', '!=', 'admin')->count();
 
-        // $fraudCount = ForensicAnalysis::whereRaw("TO_CHAR(final_result) = 'Bahaya'")
-        //     ->orWhereRaw("TO_CHAR(final_result) = 'Mencurigakan'")
-        //     ->count();
-
-        $recentAudits = ForensicAnalysis::with('user')
+        // 3. Ambil data dengan Eager Loading 'user' dan urutkan dari yang terbaru (Limit 5 untuk Live Traffic)
+        // Kita ambil data traffic-nya dulu dari DB dengan struktur query builder yang benar
+        $recentAudits = \App\Models\ForensicAnalysis::with('user')
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
 
-        return view('admin.dashboard', compact('totalUser', 'totalAudit', 'fraudCount', 'recentAudits'));
+        // 4. AMANKAN FILTER FRAUD TERDETEKSI (SOLUSI ORACLE ORA-00932)
+        // Untuk menghitung total fraud, kita ambil semua data forensik untuk difilter di level Collection
+        $allAudits = \App\Models\ForensicAnalysis::all();
+
+        $fraudCount = $allAudits->filter(function ($audit) {
+            // Membaca array/JSON final_result dengan aman
+            $color = $audit->final_result['summary_color'] ?? '';
+            return $color === 'warning' || $color === 'danger';
+        })->count();
+
+        // 5. Lempar semua variabel ke view Blade Admin
+        return view('admin.dashboard', compact('totalAudit', 'totalUser', 'fraudCount', 'recentAudits'));
     }
 
     public function auditLogs()
@@ -129,13 +139,32 @@ class AuthController extends Controller
 
     public function blacklist()
     {
-        // Mengambil data audit yang hasilnya 'Bahaya' 
-        // Kita tampilkan detail fotonya, bukan menyalahkan user yang upload
-        $fraudCases = \App\Models\ForensicAnalysis::with('user')
-            ->where('final_result', 'Bahaya')
-            ->latest()
-            ->paginate(10);
+        // FIX ORACLE CLOB BLACKLIST: Menggunakan Collection Filter untuk memisahkan data Bahaya/Fraud
+        // 1. Ambil semua data analisis lengkap dengan relasi user, diurutkan dari yang terbaru
+        $allAnalyses = \App\Models\ForensicAnalysis::with('user')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
+        // 2. Filter data di level memory PHP (Mencari data yang summary_color-nya bernilai 'danger')
+        $filteredFraud = $allAnalyses->filter(function ($analysis) {
+            $color = $analysis->final_result['summary_color'] ?? '';
+            return $color === 'danger';
+        });
+
+        // 3. Buat Manual Pagination agar fungsi ->links() dan ->hasPages() di view blacklist.blade.php tidak error
+        $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
+        $perPage = 10;
+        $currentItems = $filteredFraud->slice(($currentPage - 1) * $perPage, $perPage)->all();
+
+        $fraudCases = new \Illuminate\Pagination\LengthAwarePaginator(
+            $currentItems,
+            $filteredFraud->count(),
+            $perPage,
+            $currentPage,
+            ['path' => \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPath()]
+        );
+
+        // 4. Kirim data fraudCases yang sudah aman dari ORA-00932 ke view blacklist
         return view('admin.blacklist', compact('fraudCases'));
     }
 

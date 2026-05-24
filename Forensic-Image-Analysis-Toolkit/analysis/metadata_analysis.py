@@ -1,21 +1,9 @@
 import piexif
 from PIL import Image
 import os
-import hashlib
-import struct
 from datetime import datetime
-import json
-import re
-
-# ============================================================
-# ---------------------- CORE METADATA ------------------------
-# ============================================================
 
 def extract_metadata(image_path):
-    """
-    Extracts and returns comprehensive metadata from an image.
-    """
-    # FIX: Tambahkan key "summary" di sini agar tidak error 'summary'
     data = {
         "basic_info": {},
         "exif": {},
@@ -24,12 +12,11 @@ def extract_metadata(image_path):
         "software": {},
         "timestamps": {},
         "thumbnail": {},
-        "summary": {"status": "No Metadata Found"}, # Inisialisasi awal
+        "summary": {"status": "Informasi Berkas Kosong"},
         "warnings": []
     }
 
     try:
-        # Basic file info
         file_stats = os.stat(image_path)
         data["basic_info"] = {
             "filename": os.path.basename(image_path),
@@ -39,7 +26,6 @@ def extract_metadata(image_path):
             "file_modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat()
         }
 
-        # PIL basic info
         img = Image.open(image_path)
         data["basic_info"].update({
             "format": img.format,
@@ -48,7 +34,6 @@ def extract_metadata(image_path):
             "megapixels": round((img.size[0] * img.size[1]) / 1_000_000, 2)
         })
 
-        # Try EXIF extraction
         exif_dict = piexif.load(image_path)
 
         def decode_tag(v):
@@ -59,7 +44,6 @@ def extract_metadata(image_path):
                     return repr(v)
             return v
 
-        # Process 0th IFD
         if "0th" in exif_dict:
             for tag, value in exif_dict["0th"].items():
                 if tag in piexif.TAGS["0th"]:
@@ -72,7 +56,6 @@ def extract_metadata(image_path):
                     elif tag_name == "DateTime":
                         data["timestamps"][tag_name] = decoded
 
-        # Process Exif IFD
         if "Exif" in exif_dict:
             for tag, value in exif_dict["Exif"].items():
                 if tag in piexif.TAGS["Exif"]:
@@ -84,13 +67,9 @@ def extract_metadata(image_path):
                         data["exif"][tag_name] = str(decoded)
 
     except Exception as e:
-        data["warnings"].append(f"Metadata extraction error: {str(e)}")
+        data["warnings"].append(f"Gagal membaca rekam jejak metadata: {str(e)}")
 
     return data
-
-# ============================================================
-# ------------------- FORENSIC CHECKS -------------------------
-# ============================================================
 
 def detect_anomalies(metadata):
     anomalies = {
@@ -99,10 +78,8 @@ def detect_anomalies(metadata):
         "info": [],
         "authenticity_score": 100
     }
-
     score = 100
 
-    # FIX LOGIKA: Cek apakah ada metadata apapun (Sony/Kamera)
     has_any_metadata = any([
         metadata["exif"], 
         metadata["camera"], 
@@ -111,37 +88,44 @@ def detect_anomalies(metadata):
     ])
 
     if not has_any_metadata:
-        anomalies["critical"].append("No EXIF data found - metadata may have been stripped")
+        anomalies["critical"].append("Informasi kamera asli hilang - File gambar diproses ulang atau sengaja diekspor tanpa membawa riwayat kamera asli (Stripped)")
         score -= 30
-        metadata["summary"]["status"] = "Stripped Metadata / No EXIF Data"
+        metadata["summary"]["status"] = "Metadata Kamera Hilang / Hasil Export"
     else:
-        # Jika ada data kamera Sony kamu, statusnya jadi Found
-        metadata["summary"]["status"] = "Metadata Found & Verified"
+        if metadata["software"]:
+            software_used = ", ".join(metadata["software"].values())
+            anomalies["warning"].append(f"Terdeteksi jejak modifikasi digital: Berkas pernah disimpan menggunakan aplikasi {software_used}")
+            score -= 20
+            metadata["summary"]["status"] = "Modifikasi via Aplikasi Editor"
+        else:
+            metadata["summary"]["status"] = "Metadata Kamera Asli Terverifikasi"
 
     anomalies["authenticity_score"] = max(0, score)
     return anomalies
 
-# --- Fungsi pendukung lainnya tetap sama seperti kodinganmu ---
 def analyze_file_structure(image_path):
     analysis = {"signature": {}, "warnings": []}
     try:
         with open(image_path, 'rb') as f:
             header = f.read(2)
             if header == b'\xff\xd8':
-                analysis["signature"]["type"] = "JPEG"
-    except: pass
+                analysis["signature"]["type"] = "JPEG (Citra Digital)"
+    except: 
+        pass
     return analysis
 
 def full_metadata_analysis(image_path):
-    """ MASTER FUNCTION """
     metadata = extract_metadata(image_path)
     anomalies = detect_anomalies(metadata)
-    file_struct = analyze_file_structure(image_path)
     
     score = anomalies["authenticity_score"]
-    if score >= 80: verdict = "LIKELY AUTHENTIC"
-    elif score >= 50: verdict = "SUSPICIOUS"
-    else: verdict = "LIKELY MANIPULATED"
+    
+    if score >= 85: 
+        verdict = "KAMERA FISIK REAL (OTENTIK)"
+    elif score >= 60: 
+        verdict = "TERINDIKASI EDITING (MENCURIGAKAN)"
+    else: 
+        verdict = "REKAYASA DIGITAL / EDITING"
 
     return {
         "metadata": metadata,
