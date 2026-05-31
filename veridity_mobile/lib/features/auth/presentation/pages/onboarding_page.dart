@@ -22,7 +22,7 @@ class SplashScreen2State extends State<SplashScreen2> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: 80),
-                      
+
                       // LOGO UTAMA (Diamond Ungu)
                       Center(
                         child: Container(
@@ -36,7 +36,7 @@ class SplashScreen2State extends State<SplashScreen2> {
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 40),
 
                       // TEXT VERIDITY
@@ -59,7 +59,7 @@ class SplashScreen2State extends State<SplashScreen2> {
                       ),
 
                       const SizedBox(height: 50),
-                      
+
                       const SizedBox(height: 50),
                     ],
                   ),
@@ -68,7 +68,10 @@ class SplashScreen2State extends State<SplashScreen2> {
 
               // TOMBOL MULAI (Paling Bawah)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 40,
+                ),
                 child: InkWell(
                   onTap: () {
                     // Berpindah ke Login
@@ -83,7 +86,7 @@ class SplashScreen2State extends State<SplashScreen2> {
                       color: const Color(0xFF5A38CA),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF5A38CA).withOpacity(0.3),
+                          color: const Color(0xFF5A38CA).withValues(alpha: 0.3),
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),
@@ -105,18 +108,6 @@ class SplashScreen2State extends State<SplashScreen2> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  // Widget bantuan untuk membuat lingkaran
-  Widget _buildCircle({required bool isActive}) {
-    return Container(
-      width: 12,
-      height: 12,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isActive ? const Color(0xFF39D2DD) : Colors.white24,
       ),
     );
   }

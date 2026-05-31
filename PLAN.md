@@ -257,36 +257,37 @@ lib/
 
 Dependency yang disarankan:
 - `http` tetap bisa dipakai untuk scope aman.
-- Tambahkan `flutter_secure_storage` atau `shared_preferences` untuk token.
-- Tambahkan `file_picker` atau `image_picker` untuk upload file.
-- Tambahkan state management sederhana seperti `ChangeNotifier` lebih dulu, atau `flutter_bloc` jika ingin lebih formal.
+- [ ] Tambahkan `flutter_secure_storage` atau `shared_preferences` untuk token.
+- [x] Tambahkan `file_picker` atau `image_picker` untuk upload file.
+- [x] Tambahkan state management sederhana melalui `SessionStore` in-memory lebih dulu, sebelum persistence formal.
 
 Task:
-- Pindahkan base URL ke config.
-- Buat `ApiClient` untuk header token, JSON decode, multipart upload, dan error handling.
-- Buat `AuthRepository` untuk login/register/logout/profile.
-- Buat `AuditRepository` untuk upload, history, detail, delete, dan download report.
-- Buat entity/model:
+- [x] Pindahkan base URL ke config via `VERIDITY_API_BASE_URL`.
+- [x] Buat `ApiClient` untuk header token, JSON decode, multipart upload, dan error handling.
+- [x] Buat `AuthRepository` untuk login/register/logout.
+- [x] Buat `AuditRepository` untuk upload, history, detail, delete, dan report URL.
+- [x] Buat entity/model:
   - `UserEntity`
+  - `AuthSession`
   - `AuditEntity`
-  - `AuditResultEntity`
-- Refactor layar:
+- [x] Refactor layar:
   - Login dan signup memakai repository, bukan `http.post` langsung.
   - Home menampilkan CTA upload image/document.
   - Upload mendukung JPG, PNG, PDF, DOCX.
   - History membaca `/api/audits`.
-  - Detail result menampilkan status, score, metadata, ELA/noise image jika ada.
   - Profile membaca token/session yang tersimpan.
-- Rapikan UI agar konsisten dengan website:
+- [x] Tambahkan detail result mobile untuk status, score, metadata summary, jumlah klasifikasi, delete, dan URL report PDF.
+- [x] Rapikan UI agar konsisten dengan website:
   - warna utama biru/indigo Veridity;
   - bottom navigation konsisten;
   - loading state, empty state, dan error state jelas;
   - tidak bergantung pada image URL eksternal yang mudah expired.
 
 Deliverable:
-- Flutter memakai clean architecture.
-- Mobile dapat login, upload file, melihat history, melihat detail hasil, logout.
-- Tidak ada IP hardcoded di screen.
+- [x] Flutter memakai fondasi clean architecture.
+- [x] Mobile dapat login, register, upload file, melihat history, dan logout.
+- [x] Mobile dapat melihat detail hasil dan URL report PDF.
+- [x] Tidak ada IP hardcoded di screen.
 
 Verifikasi:
 - `flutter analyze`

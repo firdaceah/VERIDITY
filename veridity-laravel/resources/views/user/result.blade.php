@@ -113,21 +113,21 @@
                 </div>
 
                 {{-- Mode Detail Analis Forensik (Accordion Toggle untuk Dosen/Peneliti) --}}
-                <div class="bg-slate-900 rounded-[2.5rem] border border-slate-800 overflow-hidden">
-                    <button onclick="toggleResearchPanel()" class="w-full p-6 flex items-center justify-between text-left hover:bg-slate-800/40 transition duration-200 focus:outline-none">
+                <div class="bg-slate-900 rounded-[2rem] border border-slate-800 overflow-hidden">
+                    <button onclick="toggleResearchPanel()" class="w-full p-6 flex items-start sm:items-center justify-between gap-4 text-left hover:bg-slate-800/40 transition duration-200 focus:outline-none">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                            <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
                                 <i class="fa-solid fa-microscope"></i>
                             </div>
                             <div>
-                                <h4 class="font-bold text-sm text-slate-200">Mode Detail Analis Forensik (Peneliti/Dosen)</h4>
-                                <p class="text-[11px] text-slate-500">Kalkulasi matematis, batas ambang parameter, dan verifikasi silang tiap metode ilmiah</p>
+                                <h4 class="font-bold text-sm text-slate-100">Mode Detail Analis Forensik</h4>
+                                <p class="text-[11px] text-slate-500 mt-1">Untuk peneliti/dosen: kalkulasi matematis, batas ambang parameter, dan verifikasi silang metode.</p>
                             </div>
                         </div>
-                        <i id="research-chevron" class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-300"></i>
+                        <i id="research-chevron" class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-300 mt-1 sm:mt-0"></i>
                     </button>
 
-                    <div id="research-panel" class="hidden border-t border-slate-800/60 bg-slate-950 p-6 space-y-8 text-xs text-slate-300 font-sans">
+                    <div id="research-panel" class="hidden border-t border-slate-800/60 bg-slate-950 p-5 sm:p-6 space-y-8 text-xs text-slate-300 font-sans">
                         
                         @if($isDocument)
                             {{-- ========================================================================= --}}
@@ -141,17 +141,17 @@
                                 <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800/60 font-mono text-slate-400">
                                     <p class="text-xs text-slate-300 font-bold mb-1.5">Kalkulasi Distribusi Kalimat:</p>
                                     <ul class="list-none space-y-1 pl-1">
-                                        <li>• Porsi Kalimat Orisinal Manusia : <span class="text-emerald-400 font-bold">{{ $humanP }}%</span></li>
-                                        <li>• Porsi Kalimat Sintetis AI Murni : <span class="text-red-400 font-bold">{{ $aiP }}%</span></li>
-                                        <li>• Porsi Kalimat Hasil Modifikasi/Hybrid : <span class="text-amber-400 font-bold">{{ $hybridP }}%</span></li>
+                                        <li><i class="fa-solid fa-circle-dot text-emerald-400 mr-2 text-[8px]"></i>Porsi Kalimat Orisinal Manusia : <span class="text-emerald-400 font-bold">{{ $humanP }}%</span></li>
+                                        <li><i class="fa-solid fa-circle-dot text-red-400 mr-2 text-[8px]"></i>Porsi Kalimat Sintetis AI Murni : <span class="text-red-400 font-bold">{{ $aiP }}%</span></li>
+                                        <li><i class="fa-solid fa-circle-dot text-amber-400 mr-2 text-[8px]"></i>Porsi Kalimat Hasil Modifikasi/Hybrid : <span class="text-amber-400 font-bold">{{ $hybridP }}%</span></li>
                                     </ul>
                                     <div class="pt-2 border-t border-slate-800/60 mt-2 text-white font-bold">
-                                        <p>• Model Classifier Baseline : RoBERTa-Base OpenAI Detector Pipeline</p>
-                                        <p>• Hasil Akhir Skor Orisinalitas : <span class="text-blue-400 font-bold">{{ $analysis->final_result['full_report']['final_score'] ?? 0 }}%</span></p>
+                                        <p><i class="fa-solid fa-diagram-project text-blue-400 mr-2 text-[10px]"></i>Model Classifier Baseline : RoBERTa-Base OpenAI Detector Pipeline</p>
+                                        <p><i class="fa-solid fa-gauge-high text-blue-400 mr-2 text-[10px]"></i>Hasil Akhir Skor Orisinalitas : <span class="text-blue-400 font-bold">{{ $analysis->final_result['full_report']['final_score'] ?? 0 }}%</span></p>
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-1 gap-4 text-[11px] pt-1">
-                                    <p><span class="text-amber-400 font-bold">🔬 Kesimpulan Linguistik Komputasional:</span> 
+                                    <p><span class="text-amber-400 font-bold"><i class="fa-solid fa-flask-vial mr-1.5"></i>Kesimpulan Linguistik Komputasional:</span>
                                         <span class="text-slate-300 font-semibold">{{ $analysis->final_result['full_report']['results']['document']['interpretation'] ?? 'Analisis bahasa selesai.' }}</span>
                                     </p>
                                 </div>
@@ -221,8 +221,8 @@
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] pt-1">
-                                    <p><span class="text-amber-400 font-bold">⚠️ Batas Aman Toleransi:</span> ELA Score Mentah wajib <span class="font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-slate-300">&lt;= 10.00%</span> agar struktur piksel dianggap homogen.</p>
-                                    <p><span class="text-emerald-400 font-bold">🔬 Kesimpulan Eksperimen:</span> 
+                                    <p><span class="text-amber-400 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i>Batas Aman Toleransi:</span> ELA Score Mentah wajib <span class="font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-slate-300">&lt;= 10.00%</span> agar struktur piksel dianggap homogen.</p>
+                                    <p><span class="text-emerald-400 font-bold"><i class="fa-solid fa-flask-vial mr-1.5"></i>Kesimpulan Eksperimen:</span>
                                         @if($analysis->ela_score > 10.0)
                                             <span class="text-red-400 font-bold">ANOMALI TERDETEKSI.</span> Terdapat lonjakan kontras ketebalan piksel eror yang menandakan file terindikasi mengalami manipulasi lokal (*splicing*).
                                         @else
@@ -254,8 +254,8 @@
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] pt-1">
-                                    <p><span class="text-amber-400 font-bold">⚠️ Batas Aman Toleransi:</span> Nilai probabilitas mesin idealnya wajib <span class="font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-slate-300">&lt;= 0.4500</span> agar terbebas dari jerat artifak upsampling komputer.</p>
-                                    <p><span class="text-emerald-400 font-bold">🔬 Kesimpulan Eksperimen:</span> 
+                                    <p><span class="text-amber-400 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i>Batas Aman Toleransi:</span> Nilai probabilitas mesin idealnya wajib <span class="font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-slate-300">&lt;= 0.4500</span> agar terbebas dari jerat artifak upsampling komputer.</p>
+                                    <p><span class="text-emerald-400 font-bold"><i class="fa-solid fa-flask-vial mr-1.5"></i>Kesimpulan Eksperimen:</span>
                                         @if($ganScoreRaw > 0.45)
                                             <span class="text-red-400 font-bold">POSITIF GENERATOR AI.</span> Ditemukan keselarasan simetri kuadran frekuensi yang kaku khas kecerdasan buatan, menekan tingkat keaslian alami citra menjadi **{{ number_format($aiAuthScore, 2) }}%**.
                                         @else
@@ -287,8 +287,8 @@
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] pt-1">
-                                    <p><span class="text-amber-400 font-bold">⚠️ Batas Aman Toleransi:</span> Nilai varians noise murni idealnya wajib berada di kisaran <span class="font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-slate-300">&gt;= 2.0000</span> untuk menggaransi adanya jejak buiran sensor murni asli sensor optik fisik.</p>
-                                    <p><span class="text-emerald-400 font-bold">🔬 Kesimpulan Eksperimen:</span> 
+                                    <p><span class="text-amber-400 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i>Batas Aman Toleransi:</span> Nilai varians noise murni idealnya wajib berada di kisaran <span class="font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-slate-300">&gt;= 2.0000</span> untuk menggaransi adanya jejak buiran sensor murni asli sensor optik fisik.</p>
+                                    <p><span class="text-emerald-400 font-bold"><i class="fa-solid fa-flask-vial mr-1.5"></i>Kesimpulan Eksperimen:</span>
                                         <span class="text-slate-300 font-semibold">{{ $analysis->final_result['full_report']['results']['noise']['interpretation'] ?? '' }}</span>
                                     </p>
                                 </div>
@@ -315,8 +315,8 @@
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] pt-1">
-                                    <p><span class="text-amber-400 font-bold">⚠️ Batas Aman Toleransi:</span> Minimal <span class="font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-slate-300">85 Poin</span>. Jika skor jatuh akibat deteksi riwayat editor, berkas dikategorikan rentan atau pernah mengalami pemrosesan ekspor ulang aplikasi eksternal.</p>
-                                    <p><span class="text-emerald-400 font-bold">🔬 Kesimpulan Eksperimen:</span> 
+                                    <p><span class="text-amber-400 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i>Batas Aman Toleransi:</span> Minimal <span class="font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-slate-300">85 Poin</span>. Jika skor jatuh akibat deteksi riwayat editor, berkas dikategorikan rentan atau pernah mengalami pemrosesan ekspor ulang aplikasi eksternal.</p>
+                                    <p><span class="text-emerald-400 font-bold"><i class="fa-solid fa-flask-vial mr-1.5"></i>Kesimpulan Eksperimen:</span>
                                         <span class="text-slate-300 font-semibold">{{ $analysis->metadata_details['summary']['status'] ?? 'No Status' }}.</span> Status vonis integritas riwayat tercatat sebagai berkas <span class="text-blue-400 font-bold">{{ $analysis->final_result['full_report']['results']['metadata']['summary']['verdict'] ?? 'UNKNOWN' }}</span>.
                                     </p>
                                 </div>
@@ -379,7 +379,7 @@
 
                                 <div class="pt-2 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs font-mono border-t border-slate-800/60">
                                     <span class="text-slate-500">Formulasi Total: <span class="text-slate-600">(A * 0.3) + (B * 0.3) + (C * 0.2) + (D * 0.2)</span></span>
-                                    <span class="text-blue-400 font-bold text-sm">Skor Akhir Keaslian Dokumen: {{ number_format($analysis->final_result['full_report']['final_score'] ?? 0, 2) }}%</span>
+                                    <span class="text-blue-400 font-bold text-sm">Skor Akhir Keaslian Citra: {{ number_format($analysis->final_result['full_report']['final_score'] ?? 0, 2) }}%</span>
                                 </div>
                             </div>
                         @endif
@@ -427,9 +427,9 @@
                             <div class="p-4 bg-slate-950 rounded-2xl border border-slate-800/80 space-y-2">
                                 <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Metrik AI Content Mapping</p>
                                 <div class="text-xs space-y-1 font-mono">
-                                    <p class="text-emerald-400">✔ Human Written: {{ $humanP }}%</p>
-                                    <p class="text-red-400">✘ AI Generated: {{ $aiP }}%</p>
-                                    <p class="text-amber-400">⚡ Hybrid Refined: {{ $hybridP }}%</p>
+                                    <p class="text-emerald-400"><i class="fa-solid fa-circle-check mr-1.5"></i>Human Written: {{ $humanP }}%</p>
+                                    <p class="text-red-400"><i class="fa-solid fa-circle-xmark mr-1.5"></i>AI Generated: {{ $aiP }}%</p>
+                                    <p class="text-amber-400"><i class="fa-solid fa-bolt mr-1.5"></i>Hybrid Refined: {{ $hybridP }}%</p>
                                 </div>
                             </div>
                         @else

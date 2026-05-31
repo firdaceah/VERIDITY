@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'Home.dart';
+
+import '../../../../app/app_dependencies.dart';
+import '../../../../core/network/api_exception.dart';
+import '../../../audit/presentation/pages/home_page.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -13,45 +14,54 @@ class LoginState extends State<Login> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
   bool _isObscure = true;
+  bool _isLoading = false;
 
   Future<void> loginUser() async {
-    final url = Uri.parse('http://10.253.131.198:8000/api/login');
+    setState(() => _isLoading = true);
 
     try {
-      final response = await http.post(
-        url,
-        body: {
-          'email': _emailController.text,
-          'password': _passController.text,
-        },
-        headers: {'Accept': 'application/json'},
+      final session = await AppDependencies.authRepository.login(
+        email: _emailController.text.trim(),
+        password: _passController.text,
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        Map<String, dynamic> userData = {
-          'token': data['token'], // Ambil token dari response Laravel
-          'name': data['user']['name'],
-          'email': data['user']['email'],
-        };
-
-        // Pindah ke Home sambil membawa data userData
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => Home(userData: userData)),
-          (route) => false,
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Email atau Password Salah!")),
-        );
+      if (!mounted) {
+        return;
       }
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Home(userData: session.asRouteArguments()),
+        ),
+        (route) => false,
+      );
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Server tidak merespon")));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passController.dispose();
+    super.dispose();
   }
 
   @override
@@ -64,10 +74,7 @@ class LoginState extends State<Login> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 30),
-            Image.network(
-              "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/SmbShTn1dS/u64kh6cs_expires_30_days.png",
-              width: 57,
-            ),
+            Image.asset("assets/images/logo.png", width: 57),
             const Text(
               "Login",
               style: TextStyle(
@@ -110,7 +117,7 @@ class LoginState extends State<Login> {
 
             const SizedBox(height: 20),
             InkWell(
-              onTap: loginUser,
+              onTap: _isLoading ? null : loginUser,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 15),

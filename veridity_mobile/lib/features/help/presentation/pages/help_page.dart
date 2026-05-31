@@ -8,7 +8,7 @@ class Help extends StatefulWidget {
 }
 
 class HelpState extends State<Help> {
-  int _selectedIndex = 2; // Index 2 untuk Help
+  final int _selectedIndex = 2; // Index 2 untuk Help
 
   @override
   Widget build(BuildContext context) {
@@ -22,10 +22,16 @@ class HelpState extends State<Help> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Bantuan",
-                      style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                  const Text(
+                    "Bantuan",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 25),
-                  
+
                   // Card Panduan Lengkap
                   Container(
                     width: double.infinity,
@@ -38,8 +44,14 @@ class HelpState extends State<Help> {
                     child: const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Panduan Cepat Penggunaan VeriDity",
-                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text(
+                          "Panduan Cepat Penggunaan VeriDity",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         SizedBox(height: 15),
                         Text(
                           "Selamat datang di VeriDity! Gunakan panduan ini untuk memahami cara menganalisis keaslian foto Anda.\n\n"
@@ -48,7 +60,11 @@ class HelpState extends State<Help> {
                           "• Unggah Gambar: Pilih foto dari galeri (Format: PNG/JPG, Maks. 5MB).\n"
                           "• Tunggu sistem menjalankan algoritma ELA & Noise Analysis.\n"
                           "• Hasil akan muncul otomatis di Riwayat.",
-                          style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            height: 1.5,
+                          ),
                         ),
                       ],
                     ),
@@ -66,7 +82,9 @@ class HelpState extends State<Help> {
 
   Widget _buildBottomNav() {
     return Positioned(
-      bottom: 0, left: 0, right: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
       child: Stack(
         alignment: Alignment.topCenter,
         clipBehavior: Clip.none,
@@ -75,7 +93,10 @@ class HelpState extends State<Help> {
             height: 80,
             decoration: const BoxDecoration(
               color: Color(0xFF0E0E20),
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20))
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -98,7 +119,11 @@ class HelpState extends State<Help> {
                 onPressed: () => Navigator.pushNamed(context, '/UploadFoto'),
                 backgroundColor: const Color(0xFF39D2DD),
                 shape: const CircleBorder(),
-                child: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 45),
+                child: const Icon(
+                  Icons.qr_code_scanner,
+                  color: Colors.white,
+                  size: 45,
+                ),
               ),
             ),
           ),
@@ -110,17 +135,34 @@ class HelpState extends State<Help> {
   Widget _navItem(IconData icon, String label, int index, String route) {
     bool isActive = _selectedIndex == index;
     return GestureDetector(
-      onTap: () { if (!isActive) {
-        Future.delayed(Duration.zero, () {
-            if (mounted) Navigator.pushNamedAndRemoveUntil(context, route, (route)=>false, arguments: widget.userData);
+      onTap: () {
+        if (!isActive) {
+          Future.delayed(Duration.zero, () {
+            if (mounted) {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                route,
+                (route) => false,
+                arguments: widget.userData,
+              );
+            }
           });
-      }
+        }
       },
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: isActive ? const Color(0xFF7C3AED) : Colors.white54),
-          Text(label, style: TextStyle(color: isActive ? const Color(0xFF7C3AED) : Colors.white54, fontSize: 11)),
+          Icon(
+            icon,
+            color: isActive ? const Color(0xFF7C3AED) : Colors.white54,
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              color: isActive ? const Color(0xFF7C3AED) : Colors.white54,
+              fontSize: 11,
+            ),
+          ),
         ],
       ),
     );

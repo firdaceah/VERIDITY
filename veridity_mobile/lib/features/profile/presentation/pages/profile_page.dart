@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/app_dependencies.dart';
+
 class Profil extends StatefulWidget {
   final Map<String, dynamic>? userData;
   const Profil({super.key, this.userData});
@@ -8,7 +10,7 @@ class Profil extends StatefulWidget {
 }
 
 class ProfilState extends State<Profil> {
-  int _selectedIndex = 3;
+  final int _selectedIndex = 3;
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _passController;
@@ -16,13 +18,30 @@ class ProfilState extends State<Profil> {
   @override
   void initState() {
     super.initState();
+    final profile = AppDependencies.profileRepository.currentProfile();
     _nameController = TextEditingController(
-      text: widget.userData?['name'] ?? "User",
+      text: widget.userData?['name'] ?? profile?.name ?? "User",
     );
     _emailController = TextEditingController(
-      text: widget.userData?['email'] ?? "email@example.com",
+      text: widget.userData?['email'] ?? profile?.email ?? "email@example.com",
     );
     _passController = TextEditingController(text: "********");
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _logout() async {
+    await AppDependencies.authRepository.logout();
+    if (!mounted) {
+      return;
+    }
+    Navigator.pushNamedAndRemoveUntil(context, '/Login', (r) => false);
   }
 
   @override
@@ -42,10 +61,15 @@ class ProfilState extends State<Profil> {
                       borderRadius: BorderRadius.circular(70),
                       child: Image.asset(
                         "assets/images/user.png",
-                        width: 120, 
+                        width: 120,
                         height: 120,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 150, color: Colors.white),
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
+                              Icons.person,
+                              size: 150,
+                              color: Colors.white,
+                            ),
                       ),
                     ),
                   ),
@@ -72,11 +96,7 @@ class ProfilState extends State<Profil> {
                       const SizedBox(width: 15),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            '/Login',
-                            (r) => false,
-                          ),
+                          onPressed: _logout,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFEF4444),
                             padding: const EdgeInsets.symmetric(vertical: 15),
@@ -193,13 +213,14 @@ class ProfilState extends State<Profil> {
       onTap: () {
         if (!isActive) {
           Future.delayed(Duration.zero, () {
-            if (mounted)
+            if (mounted) {
               Navigator.pushNamedAndRemoveUntil(
                 context,
                 route,
                 (route) => false,
                 arguments: widget.userData,
               );
+            }
           });
         }
       },

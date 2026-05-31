@@ -29,10 +29,18 @@ class SplashScreenState extends State<SplashScreen> {
               width: 200,
             ),
             const SizedBox(height: 20),
-            const Text("VERIDITY", 
-              style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold)),
-            const Text("A I  P h o t o  F o r e n s i c s", 
-              style: TextStyle(color: Colors.white70, fontSize: 16)),
+            const Text(
+              "VERIDITY",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 40,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Text(
+              "A I  P h o t o  F o r e n s i c s",
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+            ),
           ],
         ),
       ),
