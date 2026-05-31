@@ -22,7 +22,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [AuthController::class, 'userDashboard'])->name('user.dashboard');
 
-    
+
     // Route::get('/history', [ForensicController::class, 'history'])->name('user.history');
 
     // Rute untuk proses tombol "Mulai Analisis" di Web Dashboard
@@ -39,6 +39,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Rute untuk menghapus riwayat audit
     Route::delete('/audit/{id}', [ForensicController::class, 'destroy'])->name('audit.destroy');
+
+    // Rute untuk mengunduh berkas laporan investigasi formal PDF
+    Route::get('/audit/download-pdf/{id}', [ForensicController::class, 'downloadPDF'])->name('audit.download-pdf');
 });
 
 Route::middleware(['auth'])->prefix('admin')->group(function () {
