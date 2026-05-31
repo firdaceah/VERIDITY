@@ -146,22 +146,24 @@ Tujuan:
 - Menghindari perubahan acak yang membuat web, mobile, Python, dan distri saling tidak sinkron.
 
 Task:
-- Dokumentasikan endpoint web dan API yang sudah ada.
-- Tentukan base URL dari `.env`, bukan hardcoded:
+- [x] Dokumentasikan endpoint web dan API yang sudah ada di `docs/VERIDITY_PHASE_0_CONTRACT.md`.
+- [x] Tentukan base URL dari `.env`, bukan hardcoded:
   - `PYTHON_ENGINE_URL=http://127.0.0.1:8001`
   - `DISTRIBUTOR_API_KEY=...`
   - `APP_API_URL=...`
-- Rapikan `.env.example` untuk PostgreSQL dan Oracle tanpa menghapus konfigurasi yang sedang dipakai.
-- Buat daftar status hasil analisis yang sama untuk web, mobile, dan distri:
+- [x] Rapikan `.env.example` untuk PostgreSQL dan Oracle tanpa menghapus konfigurasi yang sedang dipakai.
+- [x] Buat daftar status hasil analisis yang sama untuk web, mobile, dan distri di `veridity-laravel/config/veridity.php`:
   - `success`: asli/aman;
   - `warning`: mencurigakan/campuran;
   - `danger`: sangat berbahaya/deepfake/AI generated kuat;
   - `error`: gagal dianalisis.
+- [x] Tambahkan kontrak awal metode pembayaran `distri` seperti transfer bank, virtual account, e-wallet, QRIS, dan COD.
 
 Deliverable:
-- Dokumentasi endpoint dan environment.
-- Laravel dapat membaca URL Python dari config.
-- Tidak ada hardcoded Python URL baru di controller.
+- [x] Dokumentasi endpoint dan environment.
+- [x] Laravel dapat membaca URL Python dari config.
+- [x] Tidak ada hardcoded Python URL baru di controller.
+- [x] Kontrak status dan metode pembayaran tersedia sebagai config Laravel.
 
 Verifikasi:
 - `php artisan route:list`
