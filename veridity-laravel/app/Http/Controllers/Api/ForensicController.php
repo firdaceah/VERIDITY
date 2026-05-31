@@ -3,15 +3,46 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Resources\ForensicResource;
 use App\Models\ForensicAnalysis;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ForensicController extends Controller
 {
+    private function pythonEngineUrl(): string
+    {
+        return rtrim((string) config('services.veridity.python_engine_url', 'http://127.0.0.1:8001'), '/');
+    }
+
+    private function userCanAccessAudit(ForensicAnalysis $analysis): bool
+    {
+        $currentUser = Auth::user();
+
+        if (! $currentUser) {
+            return false;
+        }
+
+        $isOwner = (int) $analysis->user_id === (int) $currentUser->id;
+        $isAdmin = isset($currentUser->role) && strtolower($currentUser->role) === 'admin';
+
+        return $isOwner || $isAdmin;
+    }
+
+    private function findAccessibleAudit(int|string $id): ForensicAnalysis
+    {
+        $analysis = ForensicAnalysis::findOrFail($id);
+
+        if (! $this->userCanAccessAudit($analysis)) {
+            abort(404);
+        }
+
+        return $analysis;
+    }
+
     public function uploadImage(Request $request)
     {
         $request->validate([
@@ -29,14 +60,14 @@ class ForensicController extends Controller
 
         return response()->json([
             'message' => 'Gambar berhasil diunggah dan sedang dianalisis',
-            'data' => $analysis
+            'data' => $analysis,
         ], 201);
     }
 
     public function analyze(Request $request)
     {
         // Memberikan napas waktu 5 menit untuk komputasi teks intensif model AI Hugging Face via CPU
-        set_time_limit(300); 
+        set_time_limit(300);
 
         // 1. Validasi Fleksibel: Menerima rumpun Gambar (Citra) ATAU Dokumen Teks
         $request->validate([
@@ -46,41 +77,44 @@ class ForensicController extends Controller
         try {
             $file = $request->file('image');
             $extension = strtolower($file->getClientOriginalExtension());
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = time().'_'.$file->getClientOriginalName();
 
             // Simpan file asli ke dalam storage lokal public/uploads
             $path = $file->storeAs('uploads', $filename, 'public');
-            $fullPathFile = storage_path('app/public/' . $path);
+            $fullPathFile = storage_path('app/public/'.$path);
 
             // =========================================================================
             // PERCABANGAN KONDISI CABANG A: JIKA BERKAS ADALAH DOKUMEN TEKS (PDF / DOCX)
             // =========================================================================
             if (in_array($extension, ['pdf', 'docx'])) {
-
-                // Ambil binary stream data file untuk ditembakkan langsung ke server FastAPI Python
-                $fileBytes = file_get_contents($fullPathFile);
+                // Ambil stream file agar multipart upload stabil untuk PDF/DOCX besar.
+                $fileStream = fopen($fullPathFile, 'r');
 
                 // Panggil REST API Backend Python di Port 8001 dengan proteksi timeout 5 menit
                 $response = Http::timeout(300)
-                    ->attach('file', $fileBytes, $filename)
-                    ->post('http://127.0.0.1:8001/analyze-document', [
-                        'extension' => $extension
+                    ->attach('file', $fileStream, $filename)
+                    ->post($this->pythonEngineUrl().'/analyze-document', [
+                        'extension' => $extension,
                     ]);
+
+                if (is_resource($fileStream)) {
+                    fclose($fileStream);
+                }
 
                 if ($response->failed()) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'Layanan analisis dokumen forensik sedang tidak merespons. Silakan coba sesaat lagi.'
+                        'message' => 'Layanan analisis dokumen forensik sedang tidak merespons. Silakan coba sesaat lagi.',
                     ], 500);
                 }
 
                 $result = $response->json();
 
                 // Proteksi Fail-Safe untuk Output JSON Dokumen
-                if (!isset($result['status']) || $result['status'] === 'error') {
+                if (! isset($result['status']) || $result['status'] === 'error') {
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'Analisis Dokumen Gagal: ' . ($result['message'] ?? 'Output data kosong')
+                        'message' => 'Analisis Dokumen Gagal: '.($result['message'] ?? 'Output data kosong'),
                     ], 500);
                 }
 
@@ -89,61 +123,61 @@ class ForensicController extends Controller
 
                 // Simpan Data Hasil Olahan Dokumen ke Oracle Database dengan aman masuk ke final_result
                 $analysis = ForensicAnalysis::create([
-                    'user_id'          => Auth::id(),
-                    'image_name'       => $filename, // Berfungsi ganda menyimpan nama berkas dokumen
-                    's3_path'          => $path,
-                    'ela_score'        => 0, // Fallback nilai 0 karena dokumen tidak memiliki ELA
-                    'is_deepfake'      => (($result['summary_color'] ?? '') === 'danger'),
+                    'user_id' => Auth::id(),
+                    'image_name' => $filename, // Berfungsi ganda menyimpan nama berkas dokumen
+                    's3_path' => $path,
+                    'ela_score' => 0, // Fallback nilai 0 karena dokumen tidak memiliki ELA
+                    'is_deepfake' => (($result['summary_color'] ?? '') === 'danger'),
                     'metadata_details' => [
                         'summary' => [
                             'status' => $result['summary_label'] ?? 'MIXED TEXT',
-                            'verdict' => $result['summary_label'] ?? 'MIXED TEXT'
-                        ]
+                            'verdict' => $result['summary_label'] ?? 'MIXED TEXT',
+                        ],
                     ],
-                    'noise_status'     => 'Not Applicable',
-                    'final_result'     => [
+                    'noise_status' => 'Not Applicable',
+                    'final_result' => [
                         'summary_label' => $result['summary_label'] ?? 'MIXED TEXT',
                         'summary_color' => $result['summary_color'] ?? 'warning',
-                        'full_report'   => [
+                        'full_report' => [
                             'final_score' => $result['final_score'] ?? 0,
                             'summary_label' => $result['summary_label'] ?? 'MIXED TEXT',
                             'summary_color' => $result['summary_color'] ?? 'warning',
                             'results' => $result['results'] ?? [],
-                            'classification_map' => $classificationMapData
-                        ]
-                    ]
+                            'classification_map' => $classificationMapData,
+                        ],
+                    ],
                 ]);
 
-                if (!$request->expectsJson()) {
+                if (! $request->expectsJson()) {
                     return redirect()->route('user.result', $analysis->id)->with('success', 'Analisis Dokumen Selesai!');
                 }
 
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Analisis Dokumen Berhasil Selesai!',
-                    'data' => $analysis
+                    'data' => new ForensicResource($analysis),
                 ]);
             }
 
             // =========================================================================
             // PERCABANGAN KONDISI CABANG B: JIKA BERKAS ADALAH CITRA FOTO (LOGIKA LAMA)
             // =========================================================================
-            $outputFolder = storage_path('app/public/results/' . Auth::id());
-            if (!file_exists($outputFolder)) {
+            $outputFolder = storage_path('app/public/results/'.Auth::id());
+            if (! file_exists($outputFolder)) {
                 mkdir($outputFolder, 0777, true);
             }
 
-            $pythonPath = env('PYTHON_PATH');
-            $scriptPath = env('PYTHON_TOOLKIT_SCRIPT');
+            $pythonPath = config('services.veridity.python_path');
+            $scriptPath = config('services.veridity.python_toolkit_script');
 
-            $command = "$pythonPath $scriptPath " . escapeshellarg($fullPathFile) . " " . escapeshellarg($outputFolder);
+            $command = escapeshellarg($pythonPath).' '.escapeshellarg($scriptPath).' '.escapeshellarg($fullPathFile).' '.escapeshellarg($outputFolder);
             $output = shell_exec($command);
             $result = json_decode($output, true);
 
-            if (!$result || $result['status'] === 'error') {
+            if (! $result || $result['status'] === 'error') {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Analisis gambar gagal: ' . ($result['message'] ?? 'Output Python kosong')
+                    'message' => 'Analisis gambar gagal: '.($result['message'] ?? 'Output Python kosong'),
                 ], 500);
             }
 
@@ -174,32 +208,32 @@ class ForensicController extends Controller
             }
 
             $analysis = ForensicAnalysis::create([
-                'user_id'          => Auth::id(),
-                'image_name'       => $filename,
-                's3_path'          => $path,
-                'ela_score'        => $elaScore,
-                'is_deepfake'      => ($ganScore > 0.5),
+                'user_id' => Auth::id(),
+                'image_name' => $filename,
+                's3_path' => $path,
+                'ela_score' => $elaScore,
+                'is_deepfake' => ($ganScore > 0.5),
                 'metadata_details' => $result['results']['metadata'],
-                'noise_status'     => $result['results']['noise']['warnings'][0] ?? ($isNoiseInconsistent ? 'Inconsistent Noise Detected' : 'Normal'),
-                'final_result'     => [
+                'noise_status' => $result['results']['noise']['warnings'][0] ?? ($isNoiseInconsistent ? 'Inconsistent Noise Detected' : 'Normal'),
+                'final_result' => [
                     'summary_label' => $statusLabel,
                     'summary_color' => $statusColor,
-                    'full_report'   => $result
+                    'full_report' => $result,
                 ],
             ]);
 
-            if (!$request->expectsJson()) {
+            if (! $request->expectsJson()) {
                 return redirect()->route('user.result', $analysis->id)->with('success', 'Analisis Citra Selesai!');
             }
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Analisis citra selesai!',
-                'data' => $analysis,
+                'data' => new ForensicResource($analysis),
                 'visual_results' => [
-                    'ela' => asset('storage/results/' . Auth::id() . '/' . $result['results']['ela']['image_url']),
-                    'noise' => asset('storage/results/' . Auth::id() . '/' . $result['results']['noise']['image_url']),
-                ]
+                    'ela' => asset('storage/results/'.Auth::id().'/'.$result['results']['ela']['image_url']),
+                    'noise' => asset('storage/results/'.Auth::id().'/'.$result['results']['noise']['image_url']),
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
@@ -209,7 +243,16 @@ class ForensicController extends Controller
     public function showResult($id)
     {
         $analysis = ForensicAnalysis::where('user_id', Auth::id())->findOrFail($id);
+
         return view('user.result', compact('analysis'));
+    }
+
+    public function show($id)
+    {
+        return response()->json([
+            'status' => 'success',
+            'data' => new ForensicResource($this->findAccessibleAudit($id)),
+        ]);
     }
 
     public function history()
@@ -221,7 +264,7 @@ class ForensicController extends Controller
         if (request()->expectsJson()) {
             return response()->json([
                 'status' => 'success',
-                'data' => $myAudits
+                'data' => ForensicResource::collection($myAudits),
             ], 200);
         }
 
@@ -231,15 +274,12 @@ class ForensicController extends Controller
     public function destroy($id)
     {
         $analysis = ForensicAnalysis::findOrFail($id);
-        $currentUser = Auth::user();
 
-        $isOwner = (int) $analysis->user_id === (int) $currentUser->id;
-        $isAdmin = isset($currentUser->role) && strtolower($currentUser->role) === 'admin';
-
-        if (!$isOwner && !$isAdmin) {
+        if (! $this->userCanAccessAudit($analysis)) {
             if (request()->expectsJson()) {
                 return response()->json(['status' => 'error', 'message' => 'Kamu tidak punya akses!'], 403);
             }
+
             return redirect()->back()->with('error', 'Kamu tidak punya akses!');
         }
 
@@ -253,12 +293,16 @@ class ForensicController extends Controller
             $noiseFile = $reportData['full_report']['results']['noise']['image_url'] ?? null;
 
             if ($elaFile) {
-                $elaPath = 'results/' . $analysis->user_id . '/' . $elaFile;
-                if (Storage::disk('public')->exists($elaPath)) Storage::disk('public')->delete($elaPath);
+                $elaPath = 'results/'.$analysis->user_id.'/'.$elaFile;
+                if (Storage::disk('public')->exists($elaPath)) {
+                    Storage::disk('public')->delete($elaPath);
+                }
             }
             if ($noiseFile) {
-                $noisePath = 'results/' . $analysis->user_id . '/' . $noiseFile;
-                if (Storage::disk('public')->exists($noisePath)) Storage::disk('public')->delete($noisePath);
+                $noisePath = 'results/'.$analysis->user_id.'/'.$noiseFile;
+                if (Storage::disk('public')->exists($noisePath)) {
+                    Storage::disk('public')->delete($noisePath);
+                }
             }
         }
 
@@ -267,7 +311,7 @@ class ForensicController extends Controller
         if (request()->expectsJson()) {
             return response()->json([
                 'status' => 'success',
-                'message' => 'Riwayat audit berhasil dihapus bersih!'
+                'message' => 'Riwayat audit berhasil dihapus bersih!',
             ]);
         }
 
@@ -281,27 +325,38 @@ class ForensicController extends Controller
 
         try {
             // 1. Ambil data record audit murni dari database Oracle
-            $audit = ForensicAnalysis::findOrFail($id);
+            $audit = $this->findAccessibleAudit($id);
 
             // 2. Ambil referensi nama file asli dari field database yang valid (image_name)
             $namaFile = $audit->image_name ?? $audit->s3_path ?? null;
 
             // Target folder utama tempat dokumen asli tersimpan
-            $folderStorage = storage_path('app/public/uploads/');
+            $folderStorage = storage_path('app/public/uploads'.DIRECTORY_SEPARATOR);
 
-            if (!file_exists($folderStorage)) {
-                $folderStorage = storage_path('app/public/forensics/');
+            if (! file_exists($folderStorage)) {
+                $folderStorage = storage_path('app/public/forensics'.DIRECTORY_SEPARATOR);
             }
 
-            $pdfPath = $folderStorage . $namaFile;
+            $pdfPath = $folderStorage.$namaFile;
+
+            if ($audit->s3_path && Storage::disk('public')->exists($audit->s3_path)) {
+                $pdfPath = Storage::disk('public')->path($audit->s3_path);
+            }
 
             // Jalur Pengaman Alternatif Cepat
-            if (!$namaFile || !file_exists($pdfPath)) {
-                $semuaFile = glob($folderStorage . "*.pdf");
+            if (! $namaFile || ! file_exists($pdfPath)) {
+                $semuaFile = glob($folderStorage.'*.pdf');
 
-                if (!empty($semuaFile)) {
+                if (! empty($semuaFile)) {
                     $pdfPath = $semuaFile[0];
                 } else {
+                    if (request()->expectsJson()) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => 'Berkas fisik dokumen pemeriksaan belum tersedia di server local storage. Silakan lakukan pemeriksaan ulang.',
+                        ], 404);
+                    }
+
                     return back()->with('warning', 'Berkas fisik dokumen pemeriksaan belum tersedia di server local storage. Silakan lakukan pemeriksaan ulang.');
                 }
             }
@@ -316,35 +371,56 @@ class ForensicController extends Controller
 
             // Selam ke dalam struktur array bertingkat: final_result -> full_report -> classification_map
             $classificationMap = $finalResultData['full_report']['classification_map'] ?? [];
-            
+
             // Ambil juga summary_label secara presisi dari dalam JSON final_result
             $summaryLabel = $finalResultData['summary_label'] ?? 'MIXED TEXT';
 
             // 4. Lempar data parameter secara lengkap ke REST API Python Engine Port 8001
+            $pdfStream = fopen($pdfPath, 'r');
+
             $response = Http::timeout(120)->attach(
                 'file',
-                file_get_contents($pdfPath),
+                $pdfStream,
                 'document.pdf'
-            )->post('http://127.0.0.1:8001/generate-pdf-report', [
+            )->post($this->pythonEngineUrl().'/generate-pdf-report', [
                 'classification_map_str' => json_encode($classificationMap),
-                'summary_label'          => $summaryLabel,
-                'audit_id'               => $audit->id,
-                'analyzed_at'            => $audit->created_at->setTimezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB'
+                'summary_label' => $summaryLabel,
+                'audit_id' => $audit->id,
+                'analyzed_at' => $audit->created_at->setTimezone('Asia/Jakarta')->format('d M Y, H:i').' WIB',
             ]);
 
+            if (is_resource($pdfStream)) {
+                fclose($pdfStream);
+            }
+
             if ($response->failed()) {
+                if (request()->expectsJson()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Gagal terhubung dengan Layanan Analisis Forensik (Python Engine). Pastikan service gateway aktif.',
+                    ], 502);
+                }
+
                 return back()->with('error', 'Gagal terhubung dengan Layanan Analisis Forensik (Python Engine). Pastikan service gateway aktif.');
             }
 
             // 5. Sambas data stream binary PDF dari FastAPI dan luncurkan ke browser client
             $pdfContent = $response->body();
-            $fileName = "REPORT_VERIDITY_#VRD-" . $audit->id . ".pdf";
+            $fileName = 'REPORT_VERIDITY_#VRD-'.$audit->id.'.pdf';
 
             return response($pdfContent, 200)
                 ->header('Content-Type', 'application/pdf')
-                ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+                ->header('Content-Disposition', 'attachment; filename="'.$fileName.'"');
         } catch (\Exception $e) {
-            \Log::error("Gagal mengunduh laporan PDF: " . $e->getMessage());
+            Log::error('Gagal mengunduh laporan PDF: '.$e->getMessage());
+
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Terjadi kesalahan internal sistem saat memproses layout laporan cetak.',
+                ], 500);
+            }
+
             return back()->with('error', 'Terjadi kesalahan internal sistem saat memproses layout laporan cetak.');
         }
     }
