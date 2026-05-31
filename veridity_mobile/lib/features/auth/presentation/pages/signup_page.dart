@@ -184,8 +184,14 @@ class SignUpState extends State<SignUp> {
       ),
       child: TextField(
         controller: controller,
+        style: const TextStyle(
+          color: Color(0xFF111827),
+          fontWeight: FontWeight.w600,
+        ),
+        cursorColor: const Color(0xFF4338CA),
         decoration: InputDecoration(
           hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF6B7280)),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 15,
             vertical: 15,
@@ -210,8 +216,14 @@ class SignUpState extends State<SignUp> {
       child: TextField(
         controller: controller,
         obscureText: obscure,
+        style: const TextStyle(
+          color: Color(0xFF111827),
+          fontWeight: FontWeight.w600,
+        ),
+        cursorColor: const Color(0xFF4338CA),
         decoration: InputDecoration(
           hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF6B7280)),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 15,
             vertical: 15,

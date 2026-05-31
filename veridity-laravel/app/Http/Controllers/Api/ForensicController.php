@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class ForensicController extends Controller
 {
@@ -41,6 +42,92 @@ class ForensicController extends Controller
         }
 
         return $analysis;
+    }
+
+    private function runImageAnalysisCommand(string $fullPathFile, string $outputFolder): array
+    {
+        $pythonPath = config('services.veridity.python_path');
+        $scriptPath = config('services.veridity.python_toolkit_script');
+
+        if (! $pythonPath || ! file_exists($pythonPath)) {
+            return [
+                'status' => 'error',
+                'message' => 'Konfigurasi PYTHON_PATH tidak valid. Periksa file .env Laravel.',
+            ];
+        }
+
+        if (! $scriptPath || ! file_exists($scriptPath)) {
+            return [
+                'status' => 'error',
+                'message' => 'Konfigurasi PYTHON_TOOLKIT_SCRIPT tidak valid. Periksa file .env Laravel.',
+            ];
+        }
+
+        $descriptorSpec = [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ];
+
+        $process = proc_open(
+            [
+                $pythonPath,
+                $scriptPath,
+                $fullPathFile,
+                $outputFolder,
+            ],
+            $descriptorSpec,
+            $pipes,
+            dirname($scriptPath)
+        );
+
+        if (! is_resource($process)) {
+            return [
+                'status' => 'error',
+                'message' => 'Analisis gambar gagal karena proses Python tidak dapat dijalankan.',
+            ];
+        }
+
+        fclose($pipes[0]);
+        $output = stream_get_contents($pipes[1]);
+        $errorOutput = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $exitCode = proc_close($process);
+
+        if (! is_string($output) || trim($output) === '') {
+            Log::error('Image forensic command returned empty output', [
+                'python_path' => $pythonPath,
+                'script_path' => $scriptPath,
+                'file' => $fullPathFile,
+                'output_folder' => $outputFolder,
+                'exit_code' => $exitCode,
+                'stderr' => $errorOutput,
+            ]);
+
+            return [
+                'status' => 'error',
+                'message' => 'Analisis gambar gagal karena Python tidak mengembalikan output. '.str($errorOutput ?: 'Pastikan dependency Python sudah terpasang.')->limit(180),
+            ];
+        }
+
+        $result = json_decode(trim($output), true);
+
+        if (! is_array($result)) {
+            Log::error('Image forensic command returned invalid JSON', [
+                'python_path' => $pythonPath,
+                'script_path' => $scriptPath,
+                'output' => $output,
+                'stderr' => $errorOutput,
+            ]);
+
+            return [
+                'status' => 'error',
+                'message' => 'Analisis gambar gagal karena output Python tidak valid: '.str($output)->limit(180),
+            ];
+        }
+
+        return $result;
     }
 
     public function uploadImage(Request $request)
@@ -167,17 +254,12 @@ class ForensicController extends Controller
                 mkdir($outputFolder, 0777, true);
             }
 
-            $pythonPath = config('services.veridity.python_path');
-            $scriptPath = config('services.veridity.python_toolkit_script');
-
-            $command = escapeshellarg($pythonPath).' '.escapeshellarg($scriptPath).' '.escapeshellarg($fullPathFile).' '.escapeshellarg($outputFolder);
-            $output = shell_exec($command);
-            $result = json_decode($output, true);
+            $result = $this->runImageAnalysisCommand($fullPathFile, $outputFolder);
 
             if (! $result || $result['status'] === 'error') {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Analisis gambar gagal: '.($result['message'] ?? 'Output Python kosong'),
+                    'message' => 'Analisis gambar gagal: '.($result['message'] ?? 'Output Python tidak tersedia'),
                 ], 500);
             }
 
@@ -423,5 +505,19 @@ class ForensicController extends Controller
 
             return back()->with('error', 'Terjadi kesalahan internal sistem saat memproses layout laporan cetak.');
         }
+    }
+
+    public function downloadPdfForMobile(Request $request, $id)
+    {
+        $plainTextToken = (string) $request->query('token', '');
+        $accessToken = PersonalAccessToken::findToken($plainTextToken);
+
+        if (! $accessToken || ! $accessToken->tokenable) {
+            abort(401);
+        }
+
+        Auth::setUser($accessToken->tokenable);
+
+        return $this->downloadPdf($id);
     }
 }

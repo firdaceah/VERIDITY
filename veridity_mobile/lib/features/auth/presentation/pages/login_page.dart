@@ -290,8 +290,14 @@ class LoginState extends State<Login> {
       ),
       child: TextField(
         controller: controller,
+        style: const TextStyle(
+          color: Color(0xFF111827),
+          fontWeight: FontWeight.w600,
+        ),
+        cursorColor: const Color(0xFF4338CA),
         decoration: InputDecoration(
           hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF6B7280)),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 15,
             vertical: 15,
@@ -311,8 +317,14 @@ class LoginState extends State<Login> {
       child: TextField(
         controller: controller,
         obscureText: _isObscure,
+        style: const TextStyle(
+          color: Color(0xFF111827),
+          fontWeight: FontWeight.w600,
+        ),
+        cursorColor: const Color(0xFF4338CA),
         decoration: InputDecoration(
           hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF6B7280)),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 15,
             vertical: 15,

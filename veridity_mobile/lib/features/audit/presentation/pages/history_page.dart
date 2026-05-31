@@ -78,7 +78,7 @@ class HistoryState extends State<History> {
         children: [
           Positioned.fill(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 40),
+              padding: const EdgeInsets.fromLTRB(25, 40, 25, 130),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -118,12 +118,12 @@ class HistoryState extends State<History> {
                   const SizedBox(height: 25),
 
                   // Filter Buttons
-                  Row(
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
                     children: [
                       _buildFilterChip("Semua"),
-                      const SizedBox(width: 10),
                       _buildFilterChip("Foto"),
-                      const SizedBox(width: 10),
                       _buildFilterChip("Dokumen"),
                     ],
                   ),
@@ -215,8 +215,46 @@ class HistoryState extends State<History> {
     );
   }
 
-  Widget _buildHistoryItem(AuditEntity item, String date) {
+  Widget _statusBadge(AuditEntity item) {
     final isSafe = item.isSafe;
+    final color = isSafe
+        ? Colors.green
+        : (item.isWarning ? Colors.orange : Colors.red);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        item.summaryLabel,
+        softWrap: true,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          height: 1.25,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteAudit(AuditEntity item) async {
+    await AppDependencies.auditRepository.delete(item.id);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _historyData = _historyData
+          .where((audit) => audit.id != item.id)
+          .toList();
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Riwayat berhasil dihapus")));
+  }
+
+  Widget _buildHistoryItem(AuditEntity item, String date) {
     return InkWell(
       onTap: () =>
           Navigator.pushNamed(context, '/AuditDetail', arguments: item),
@@ -229,62 +267,72 @@ class HistoryState extends State<History> {
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: Colors.white10),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(_historyIcon(item), color: _historyIconColor(item), size: 34),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.fileName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    date,
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  _historyIcon(item),
+                  color: _historyIconColor(item),
+                  size: 34,
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _fileTypeBadge(item),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSafe
-                              ? Colors.green.withValues(alpha: 0.2)
-                              : Colors.red.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          item.summaryLabel,
-                          style: TextStyle(
-                            color: isSafe ? Colors.green : Colors.red,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      Text(
+                        item.fileName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      const Text(
-                        "Detail",
-                        style: TextStyle(
-                          color: Color(0xFF7C3AED),
+                      Text(
+                        date,
+                        style: const TextStyle(
+                          color: Colors.white54,
                           fontSize: 12,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
-                ],
+                ),
+                PopupMenuButton<String>(
+                  color: const Color(0xFF1D143E),
+                  icon: const Icon(Icons.more_vert, color: Colors.white54),
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      _deleteAudit(item);
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(
+                        'Hapus Riwayat',
+                        style: TextStyle(color: Colors.redAccent),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _fileTypeBadge(item),
+            const SizedBox(height: 8),
+            _statusBadge(item),
+            const SizedBox(height: 10),
+            const Text(
+              "Lihat Detail",
+              style: TextStyle(
+                color: Color(0xFF7C3AED),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],

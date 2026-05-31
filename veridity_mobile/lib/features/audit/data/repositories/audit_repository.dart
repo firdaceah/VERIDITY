@@ -63,4 +63,10 @@ class AuditRepository {
   }
 
   Uri reportUri(int id) => _apiClient.authenticatedUri('/audits/$id/report');
+
+  Uri mobileReportUri(int id) {
+    final token = _sessionStore.token ?? '';
+    final uri = _apiClient.authenticatedUri('/audits/$id/report-mobile');
+    return uri.replace(queryParameters: {'token': token});
+  }
 }

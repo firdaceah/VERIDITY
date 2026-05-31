@@ -17,6 +17,7 @@ class UploadFoto extends StatefulWidget {
 class _UploadFotoState extends State<UploadFoto> {
   PlatformFile? _selectedFile;
   bool _isLoading = false;
+  String? _errorMessage;
 
   bool get _hasSelectedFile =>
       _selectedFile?.path != null && _selectedFile!.path!.isNotEmpty;
@@ -37,7 +38,10 @@ class _UploadFotoState extends State<UploadFoto> {
       return;
     }
 
-    setState(() => _selectedFile = result.files.single);
+    setState(() {
+      _selectedFile = result.files.single;
+      _errorMessage = null;
+    });
   }
 
   Future<void> _uploadAndAnalyze() async {
@@ -59,16 +63,12 @@ class _UploadFotoState extends State<UploadFoto> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Analisis selesai: ${audit.summaryLabel}")),
       );
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/History',
-        (route) => false,
-        arguments: AppDependencies.sessionStore.session?.asRouteArguments(),
-      );
+      Navigator.pushReplacementNamed(context, '/AuditDetail', arguments: audit);
     } on ApiException catch (e) {
       if (!mounted) {
         return;
       }
+      setState(() => _errorMessage = e.message);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.message)));
@@ -76,9 +76,10 @@ class _UploadFotoState extends State<UploadFoto> {
       if (!mounted) {
         return;
       }
+      setState(() => _errorMessage = "Gagal mengunggah file: $e");
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Gagal mengunggah file")));
+      ).showSnackBar(SnackBar(content: Text("Gagal mengunggah file: $e")));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -105,10 +106,9 @@ class _UploadFotoState extends State<UploadFoto> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 30),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(30, 0, 30, 28),
           children: [
             const Text(
               "Unggah File",
@@ -139,7 +139,23 @@ class _UploadFotoState extends State<UploadFoto> {
                 child: _hasSelectedFile ? _buildPreview() : _buildEmptyPicker(),
               ),
             ),
-            const Spacer(),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.28)),
+                ),
+                child: Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.redAccent, height: 1.4),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
             ElevatedButton(
               onPressed: !_hasSelectedFile || _isLoading
                   ? null
@@ -163,7 +179,6 @@ class _UploadFotoState extends State<UploadFoto> {
                 ),
               ),
             ),
-            const SizedBox(height: 50),
           ],
         ),
       ),
@@ -255,7 +270,10 @@ class _UploadFotoState extends State<UploadFoto> {
               ),
             ),
             IconButton(
-              onPressed: () => setState(() => _selectedFile = null),
+              onPressed: () => setState(() {
+                _selectedFile = null;
+                _errorMessage = null;
+              }),
               icon: const Icon(Icons.close, color: Colors.white54),
             ),
           ],

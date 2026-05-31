@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -159,11 +161,7 @@ class ProfilState extends State<Profil> {
                   Stack(
                     alignment: Alignment.bottomRight,
                     children: [
-                      ProfileAvatar(
-                        photoUrl: _pendingPhotoPath == null ? _photoUrl : null,
-                        radius: 60,
-                        onTap: _pickPhoto,
-                      ),
+                      _buildAvatarPreview(),
                       if (_isEditing)
                         Container(
                           decoration: const BoxDecoration(
@@ -266,6 +264,33 @@ class ProfilState extends State<Profil> {
         ],
       ),
     );
+  }
+
+  Widget _buildAvatarPreview() {
+    final pendingPath = _pendingPhotoPath;
+    if (pendingPath != null) {
+      return InkWell(
+        onTap: _pickPhoto,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 120,
+          height: 120,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFF39D2DD), width: 2),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Image.file(
+            File(pendingPath),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                const Icon(Icons.person, color: Colors.white70, size: 60),
+          ),
+        ),
+      );
+    }
+
+    return ProfileAvatar(photoUrl: _photoUrl, radius: 60, onTap: _pickPhoto);
   }
 
   Widget _buildDisplayField(String label, String value) {

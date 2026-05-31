@@ -137,16 +137,25 @@ class AuthController extends Controller
     public function updateProfilePhoto(Request $request)
     {
         $request->validate([
-            'photo' => 'required|image|mimes:jpeg,png,jpg|max:4096',
+            'photo' => 'required|file|max:4096',
         ]);
 
         $user = $request->user();
+        $file = $request->file('photo');
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        if (! in_array($extension, ['jpg', 'jpeg', 'png'], true)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Foto profil harus berupa file JPG, JPEG, atau PNG.',
+            ], 422);
+        }
 
         if ($user->profile_photo_path && Storage::disk('public')->exists($user->profile_photo_path)) {
             Storage::disk('public')->delete($user->profile_photo_path);
         }
 
-        $path = $request->file('photo')->store('profile-photos', 'public');
+        $path = $file->store('profile-photos', 'public');
         $user->update(['profile_photo_path' => $path]);
 
         return response()->json([

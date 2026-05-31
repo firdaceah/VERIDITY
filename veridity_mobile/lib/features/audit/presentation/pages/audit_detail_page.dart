@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/app_dependencies.dart';
 import '../../domain/entities/audit_entity.dart';
@@ -30,19 +31,6 @@ class _AuditDetailState extends State<AuditDetail> {
     };
   }
 
-  Future<void> _deleteAudit(AuditEntity audit) async {
-    await AppDependencies.auditRepository.delete(audit.id);
-    if (!mounted) {
-      return;
-    }
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      '/History',
-      (route) => false,
-      arguments: AppDependencies.sessionStore.session?.asRouteArguments(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,7 +52,7 @@ class _AuditDetailState extends State<AuditDetail> {
           final statusColor = _statusColor(audit.summaryColor);
 
           return ListView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
             children: [
               _HeaderCard(audit: audit, statusColor: statusColor),
               const SizedBox(height: 18),
@@ -74,33 +62,42 @@ class _AuditDetailState extends State<AuditDetail> {
                 _DocumentDetailCard(audit: audit)
               else
                 _ImageDetailCard(audit: audit),
-              const SizedBox(height: 18),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0E0E20),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: Text(
-                  "Report PDF: ${AppDependencies.auditRepository.reportUri(audit.id)}",
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-              ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: () => _deleteAudit(audit),
-                icon: const Icon(Icons.delete_outline),
-                label: const Text("Hapus Riwayat"),
+                onPressed: () => _downloadReport(context, audit),
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text("Download PDF"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+                  backgroundColor: const Color(0xFF4338CA),
                   foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
               ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _downloadReport(BuildContext context, AuditEntity audit) async {
+    final uri = AppDependencies.auditRepository.mobileReportUri(audit.id);
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!context.mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          opened
+              ? "Membuka laporan PDF..."
+              : "Tidak dapat membuka laporan PDF.",
+        ),
       ),
     );
   }
@@ -121,51 +118,77 @@ class _HeaderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: statusColor.withValues(alpha: 0.25)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: statusColor,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              audit.isDocument
-                  ? Icons.description_outlined
-                  : Icons.image_search,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  audit.isDocument
+                      ? Icons.description_outlined
+                      : Icons.image_search,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
                   audit.summaryLabel,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
+                    height: 1.25,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(
                   audit.fileName,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                '${audit.finalScore.toStringAsFixed(1)}%',
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-          Text(
-            '${audit.finalScore.toStringAsFixed(1)}%',
-            style: TextStyle(
-              color: statusColor,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              audit.isDocument ? 'Dokumen' : 'Foto',
+              style: TextStyle(
+                color: statusColor,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -365,22 +388,19 @@ class _MetricTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Color(0xFF39D2DD),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            value.isEmpty ? '-' : value,
+            softWrap: true,
+            style: const TextStyle(
+              color: Color(0xFF39D2DD),
+              fontWeight: FontWeight.bold,
+              height: 1.35,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
