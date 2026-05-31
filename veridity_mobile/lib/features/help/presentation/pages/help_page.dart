@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/app_bottom_nav.dart';
+
 class Help extends StatefulWidget {
   final Map<String, dynamic>? userData;
   const Help({super.key, this.userData});
+
   @override
   HelpState createState() => HelpState();
 }
 
 class HelpState extends State<Help> {
-  final int _selectedIndex = 2; // Index 2 untuk Help
+  final int _selectedIndex = 2;
 
   @override
   Widget build(BuildContext context) {
@@ -30,140 +33,79 @@ class HelpState extends State<Help> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 25),
-
-                  // Card Panduan Lengkap
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1D143E),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white10),
-                    ),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Panduan Cepat Penggunaan VeriDity",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 15),
-                        Text(
-                          "Selamat datang di VeriDity! Gunakan panduan ini untuk memahami cara menganalisis keaslian foto Anda.\n\n"
-                          "1. Cara Melakukan Analisis Foto\n"
-                          "• Klik ikon Scan (+) yang menonjol di tengah bottom navigation.\n"
-                          "• Unggah Gambar: Pilih foto dari galeri (Format: PNG/JPG, Maks. 5MB).\n"
-                          "• Tunggu sistem menjalankan algoritma ELA & Noise Analysis.\n"
-                          "• Hasil akan muncul otomatis di Riwayat.",
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Pertanyaan umum tentang penggunaan VERIDITY.",
+                    style: TextStyle(color: Colors.white60),
                   ),
-                  // const SizedBox(height: 120),
+                  const SizedBox(height: 25),
+                  _faq(
+                    "Bagaimana cara analisis file?",
+                    "Ketuk tombol tambah di navigasi bawah, pilih foto/PDF/DOCX, cek preview, lalu tekan Unggah & Analisis.",
+                  ),
+                  _faq(
+                    "Format apa yang didukung?",
+                    "VERIDITY mendukung JPG, JPEG, PNG untuk foto serta PDF dan DOCX untuk dokumen.",
+                  ),
+                  _faq(
+                    "Apa arti hasil Aman, Mencurigakan, dan Berbahaya?",
+                    "Aman berarti pola file cenderung natural. Mencurigakan berarti ada indikasi campuran/manipulasi. Berbahaya berarti indikasi AI, deepfake, atau rekayasa cukup kuat.",
+                  ),
+                  _faq(
+                    "Apa perbedaan analisis foto dan dokumen?",
+                    "Foto dianalisis memakai ELA, noise, metadata, dan AI/deepfake detection. Dokumen dianalisis memakai pemetaan teks manusia, AI, dan hybrid.",
+                  ),
+                  _faq(
+                    "Di mana melihat hasil sebelumnya?",
+                    "Buka halaman Riwayat. Kamu bisa mencari nama file dan memfilter Semua, Foto, atau Dokumen.",
+                  ),
+                  _faq(
+                    "Bagaimana jika lupa password?",
+                    "Tekan Lupa password di halaman login, masukkan email, lalu ikuti instruksi reset yang diberikan aplikasi.",
+                  ),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
           ),
-          _buildBottomNav(),
+          AppBottomNav(activeIndex: _selectedIndex, userData: widget.userData),
         ],
       ),
     );
   }
 
-  Widget _buildBottomNav() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Stack(
-        alignment: Alignment.topCenter,
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            height: 80,
-            decoration: const BoxDecoration(
-              color: Color(0xFF0E0E20),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _navItem(Icons.home, "Home", 0, '/Home'),
-                _navItem(Icons.history, "History", 1, '/History'),
-                const SizedBox(width: 60),
-                _navItem(Icons.help_outline, "Help", 2, '/Help'),
-                _navItem(Icons.person_outline, "Profile", 3, '/Profil'),
-              ],
-            ),
-          ),
-          Positioned(
-            top: -18,
-            child: SizedBox(
-              width: 75,
-              height: 75,
-              child: FloatingActionButton(
-                heroTag: null,
-                onPressed: () => Navigator.pushNamed(context, '/UploadFoto'),
-                backgroundColor: const Color(0xFF39D2DD),
-                shape: const CircleBorder(),
-                child: const Icon(
-                  Icons.qr_code_scanner,
-                  color: Colors.white,
-                  size: 45,
-                ),
-              ),
-            ),
-          ),
-        ],
+  Widget _faq(String title, String answer) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1D143E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
       ),
-    );
-  }
-
-  Widget _navItem(IconData icon, String label, int index, String route) {
-    bool isActive = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () {
-        if (!isActive) {
-          Future.delayed(Duration.zero, () {
-            if (mounted) {
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                route,
-                (route) => false,
-                arguments: widget.userData,
-              );
-            }
-          });
-        }
-      },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? const Color(0xFF7C3AED) : Colors.white54,
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              color: isActive ? const Color(0xFF7C3AED) : Colors.white54,
-              fontSize: 11,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          iconColor: const Color(0xFF39D2DD),
+          collapsedIconColor: Colors.white54,
+          title: Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
           ),
-        ],
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            Text(
+              answer,
+              style: const TextStyle(
+                color: Colors.white70,
+                height: 1.5,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

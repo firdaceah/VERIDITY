@@ -1,4 +1,5 @@
 import '../../features/auth/domain/entities/auth_session.dart';
+import '../../features/auth/domain/entities/user_entity.dart';
 
 class SessionStore {
   SessionStore._();
@@ -12,6 +13,14 @@ class SessionStore {
 
   void save(AuthSession session) {
     _session = session;
+  }
+
+  void updateUser(UserEntity user) {
+    final current = _session;
+    if (current == null) {
+      return;
+    }
+    _session = current.copyWith(user: user);
   }
 
   void clear() {

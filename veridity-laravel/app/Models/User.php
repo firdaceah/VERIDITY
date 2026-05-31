@@ -23,6 +23,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'profile_photo_path',
+    ];
+
+    protected $appends = [
+        'profile_photo_url',
     ];
 
     /**
@@ -51,5 +56,14 @@ class User extends Authenticatable
     public function forensicAnalyses()
     {
         return $this->hasMany(ForensicAnalysis::class);
+    }
+
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        if (! $this->profile_photo_path) {
+            return null;
+        }
+
+        return asset('storage/'.$this->profile_photo_path);
     }
 }

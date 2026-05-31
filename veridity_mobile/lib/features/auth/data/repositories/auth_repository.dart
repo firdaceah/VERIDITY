@@ -52,4 +52,29 @@ class AuthRepository {
     }
     _sessionStore.clear();
   }
+
+  Future<String?> forgotPassword(String email) async {
+    final response = await _apiClient.postForm(
+      '/forgot-password',
+      body: {'email': email},
+    );
+    return response['dev_reset_token']?.toString();
+  }
+
+  Future<void> resetPassword({
+    required String email,
+    required String token,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    await _apiClient.postForm(
+      '/reset-password',
+      body: {
+        'email': email,
+        'token': token,
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+      },
+    );
+  }
 }

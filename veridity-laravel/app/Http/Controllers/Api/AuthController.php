@@ -7,7 +7,12 @@ use App\Models\ForensicAnalysis;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
@@ -108,6 +113,136 @@ class AuthController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $request->user(),
+        ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profil berhasil diperbarui.',
+            'data' => $user->fresh(),
+        ]);
+    }
+
+    public function updateProfilePhoto(Request $request)
+    {
+        $request->validate([
+            'photo' => 'required|image|mimes:jpeg,png,jpg|max:4096',
+        ]);
+
+        $user = $request->user();
+
+        if ($user->profile_photo_path && Storage::disk('public')->exists($user->profile_photo_path)) {
+            Storage::disk('public')->delete($user->profile_photo_path);
+        }
+
+        $path = $request->file('photo')->store('profile-photos', 'public');
+        $user->update(['profile_photo_path' => $path]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Foto profil berhasil diperbarui.',
+            'data' => $user->fresh(),
+        ]);
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Password lama tidak sesuai.',
+            ], 422);
+        }
+
+        $user->update(['password' => Hash::make($validated['password'])]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password berhasil diperbarui.',
+        ]);
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'exists:users,email'],
+        ]);
+
+        $token = Str::random(64);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $validated['email']],
+            [
+                'token' => Hash::make($token),
+                'created_at' => now(),
+            ]
+        );
+
+        $response = [
+            'status' => 'success',
+            'message' => 'Instruksi reset password sudah dibuat.',
+        ];
+
+        if (app()->environment(['local', 'testing'])) {
+            $response['dev_reset_token'] = $token;
+        } else {
+            Password::sendResetLink($validated);
+        }
+
+        return response()->json($response);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'exists:users,email'],
+            'token' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $record = DB::table('password_reset_tokens')->where('email', $validated['email'])->first();
+
+        if (! $record || ! Hash::check($validated['token'], $record->token)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Token reset password tidak valid.',
+            ], 422);
+        }
+
+        if ($record->created_at && now()->diffInMinutes($record->created_at) > 60) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Token reset password sudah kedaluwarsa.',
+            ], 422);
+        }
+
+        User::where('email', $validated['email'])->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        DB::table('password_reset_tokens')->where('email', $validated['email'])->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password berhasil direset. Silakan login kembali.',
         ]);
     }
 

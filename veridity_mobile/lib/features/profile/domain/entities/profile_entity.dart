@@ -7,4 +7,5 @@ class ProfileEntity {
 
   String get name => user.name;
   String get email => user.email;
+  String? get profilePhotoUrl => user.profilePhotoUrl;
 }

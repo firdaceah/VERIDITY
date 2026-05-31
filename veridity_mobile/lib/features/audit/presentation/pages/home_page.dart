@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/app_dependencies.dart';
+import '../../../../core/widgets/app_bottom_nav.dart';
+import '../../../../core/widgets/profile_avatar.dart';
 
 class Home extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -19,6 +21,9 @@ class _HomeState extends State<Home> {
         widget.userData?['name'] ??
         AppDependencies.sessionStore.session?.user.name ??
         "User";
+    final photoUrl =
+        widget.userData?['profile_photo_url']?.toString() ??
+        AppDependencies.sessionStore.session?.user.profilePhotoUrl;
 
     return Scaffold(
       backgroundColor: const Color(0xFF111028),
@@ -55,15 +60,7 @@ class _HomeState extends State<Home> {
                           ),
                         ],
                       ),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(30),
-                        child: Image.asset(
-                          "assets/images/user.png",
-                          width: 60,
-                          height: 60,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
+                      ProfileAvatar(photoUrl: photoUrl, radius: 30),
                     ],
                   ),
                   const SizedBox(height: 35),
@@ -84,7 +81,7 @@ class _HomeState extends State<Home> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Analisis Foto",
+                                "Analisis Foto & Dokumen",
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
@@ -92,7 +89,7 @@ class _HomeState extends State<Home> {
                                 ),
                               ),
                               Text(
-                                "Deteksi manipulasi & deepfake citra digital",
+                                "Verifikasi keaslian citra, PDF, dan DOCX",
                                 style: TextStyle(
                                   color: Colors.white60,
                                   fontSize: 13,
@@ -138,8 +135,8 @@ class _HomeState extends State<Home> {
                     children: [
                       _buildMethodItem(
                         Icons.face,
-                        "AI Source",
-                        "Deteksi AI vs Asli",
+                        "Deepfake AI",
+                        "Deteksi wajah dan citra sintetis",
                       ),
                       _buildMethodItem(
                         Icons.layers,
@@ -147,13 +144,13 @@ class _HomeState extends State<Home> {
                         "Error Level Analysis",
                       ),
                       _buildMethodItem(
-                        Icons.lens_blur,
-                        "Ghost Map",
-                        "Anomali Kompresi",
+                        Icons.description_outlined,
+                        "NLP Dokumen",
+                        "Pola kalimat manusia vs AI",
                       ),
                       _buildMethodItem(
                         Icons.info_outline,
-                        "Meta Deep",
+                        "Metadata",
                         "Metadata Forensik",
                       ),
                     ],
@@ -162,7 +159,7 @@ class _HomeState extends State<Home> {
               ),
             ),
           ),
-          _buildBottomNav(),
+          AppBottomNav(activeIndex: _selectedIndex, userData: widget.userData),
         ],
       ),
     );
@@ -192,94 +189,6 @@ class _HomeState extends State<Home> {
           Text(
             desc,
             style: const TextStyle(color: Colors.white54, fontSize: 10),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Stack(
-        alignment: Alignment.topCenter,
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            height: 80,
-            decoration: const BoxDecoration(
-              color: Color(0xFF0E0E20),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _navItem(Icons.home, "Home", 0, '/Home'),
-                _navItem(Icons.history, "History", 1, '/History'),
-                const SizedBox(width: 60),
-                _navItem(Icons.help_outline, "Help", 2, '/Help'),
-                _navItem(Icons.person_outline, "Profile", 3, '/Profil'),
-              ],
-            ),
-          ),
-          Positioned(
-            top: -18,
-            child: SizedBox(
-              width: 75,
-              height: 75,
-              child: FloatingActionButton(
-                heroTag: null,
-                onPressed: () => Navigator.pushNamed(context, '/UploadFoto'),
-                backgroundColor: const Color(0xFF39D2DD),
-                shape: const CircleBorder(),
-                child: const Icon(
-                  Icons.qr_code_scanner,
-                  color: Colors.white,
-                  size: 45,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _navItem(IconData icon, String label, int index, String route) {
-    bool isActive = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () {
-        if (!isActive) {
-          Future.delayed(Duration.zero, () {
-            if (mounted) {
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                route,
-                (route) => false,
-                arguments: widget.userData,
-              );
-            }
-          });
-        }
-      },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? const Color(0xFF7C3AED) : Colors.white54,
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              color: isActive ? const Color(0xFF7C3AED) : Colors.white54,
-              fontSize: 11,
-            ),
           ),
         ],
       ),

@@ -1,10 +1,15 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/app_dependencies.dart';
+import '../../../../core/network/api_exception.dart';
+import '../../../../core/widgets/app_bottom_nav.dart';
+import '../../../../core/widgets/profile_avatar.dart';
 
 class Profil extends StatefulWidget {
   final Map<String, dynamic>? userData;
   const Profil({super.key, this.userData});
+
   @override
   ProfilState createState() => ProfilState();
 }
@@ -13,7 +18,14 @@ class ProfilState extends State<Profil> {
   final int _selectedIndex = 3;
   late TextEditingController _nameController;
   late TextEditingController _emailController;
-  late TextEditingController _passController;
+  late TextEditingController _currentPasswordController;
+  late TextEditingController _newPasswordController;
+  late TextEditingController _confirmPasswordController;
+
+  bool _isEditing = false;
+  bool _isSaving = false;
+  String? _photoUrl;
+  String? _pendingPhotoPath;
 
   @override
   void initState() {
@@ -25,15 +37,103 @@ class ProfilState extends State<Profil> {
     _emailController = TextEditingController(
       text: widget.userData?['email'] ?? profile?.email ?? "email@example.com",
     );
-    _passController = TextEditingController(text: "********");
+    _photoUrl =
+        widget.userData?['profile_photo_url']?.toString() ??
+        profile?.profilePhotoUrl;
+    _currentPasswordController = TextEditingController();
+    _newPasswordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
-    _passController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickPhoto() async {
+    if (!_isEditing) {
+      return;
+    }
+
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png'],
+      withData: false,
+    );
+
+    if (result == null || result.files.single.path == null) {
+      return;
+    }
+
+    setState(() => _pendingPhotoPath = result.files.single.path);
+  }
+
+  Future<void> _saveProfile() async {
+    setState(() => _isSaving = true);
+
+    try {
+      final user = await AppDependencies.profileRepository.updateProfile(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+      );
+
+      var latestUser = user;
+      if (_pendingPhotoPath != null) {
+        latestUser = await AppDependencies.profileRepository.updateProfilePhoto(
+          _pendingPhotoPath!,
+        );
+      }
+
+      if (_newPasswordController.text.isNotEmpty ||
+          _currentPasswordController.text.isNotEmpty ||
+          _confirmPasswordController.text.isNotEmpty) {
+        await AppDependencies.profileRepository.updatePassword(
+          currentPassword: _currentPasswordController.text,
+          password: _newPasswordController.text,
+          passwordConfirmation: _confirmPasswordController.text,
+        );
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _photoUrl = latestUser.profilePhotoUrl;
+        _pendingPhotoPath = null;
+        _isEditing = false;
+        _currentPasswordController.clear();
+        _newPasswordController.clear();
+        _confirmPasswordController.clear();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Profil berhasil diperbarui")),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Gagal memperbarui profil")));
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   Future<void> _logout() async {
@@ -56,75 +156,160 @@ class ProfilState extends State<Profil> {
               child: Column(
                 children: [
                   const SizedBox(height: 50),
-                  Center(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(70),
-                      child: Image.asset(
-                        "assets/images/user.png",
-                        width: 120,
-                        height: 120,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(
-                              Icons.person,
-                              size: 150,
+                  Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      ProfileAvatar(
+                        photoUrl: _pendingPhotoPath == null ? _photoUrl : null,
+                        radius: 60,
+                        onTap: _pickPhoto,
+                      ),
+                      if (_isEditing)
+                        Container(
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF39D2DD),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            onPressed: _pickPhoto,
+                            icon: const Icon(
+                              Icons.camera_alt,
                               color: Colors.white,
                             ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (_pendingPhotoPath != null)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 10),
+                      child: Text(
+                        "Foto baru dipilih, simpan untuk mengunggah.",
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
                       ),
                     ),
-                  ),
                   const SizedBox(height: 30),
-                  _buildProfileField("Nama Lengkap", _nameController, false),
-                  _buildProfileField("Email", _emailController, false),
-                  _buildProfileField("Password", _passController, true),
+                  _buildProfileField("Nama Lengkap", _nameController),
+                  _buildProfileField("Email", _emailController),
+                  _buildDisplayField("Password", "********"),
+                  if (_isEditing) ...[
+                    const SizedBox(height: 12),
+                    _buildProfileField(
+                      "Password Lama",
+                      _currentPasswordController,
+                      obscure: true,
+                      hint: "Isi jika ingin ganti password",
+                    ),
+                    _buildProfileField(
+                      "Password Baru",
+                      _newPasswordController,
+                      obscure: true,
+                      hint: "Minimal 8 karakter",
+                    ),
+                    _buildProfileField(
+                      "Konfirmasi Password",
+                      _confirmPasswordController,
+                      obscure: true,
+                      hint: "Ulangi password baru",
+                    ),
+                  ],
                   const SizedBox(height: 30),
                   Row(
                     children: [
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: _isSaving
+                              ? null
+                              : (_isEditing
+                                    ? _saveProfile
+                                    : () => setState(() => _isEditing = true)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4338CA),
                             padding: const EdgeInsets.symmetric(vertical: 15),
                           ),
-                          child: const Text(
-                            "Edit Data",
-                            style: TextStyle(color: Colors.white),
+                          child: Text(
+                            _isSaving
+                                ? "Menyimpan..."
+                                : (_isEditing ? "Simpan" : "Edit Data"),
+                            style: const TextStyle(color: Colors.white),
                           ),
                         ),
                       ),
                       const SizedBox(width: 15),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: _logout,
+                          onPressed: _isSaving
+                              ? null
+                              : (_isEditing
+                                    ? () => setState(() => _isEditing = false)
+                                    : _logout),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFEF4444),
+                            backgroundColor: _isEditing
+                                ? Colors.white12
+                                : const Color(0xFFEF4444),
                             padding: const EdgeInsets.symmetric(vertical: 15),
                           ),
-                          child: const Text(
-                            "Logout",
-                            style: TextStyle(color: Colors.white),
+                          child: Text(
+                            _isEditing ? "Batal" : "Logout",
+                            style: const TextStyle(color: Colors.white),
                           ),
                         ),
                       ),
                     ],
                   ),
-                  // const SizedBox(height: 120),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
           ),
-          _buildBottomNav(),
+          AppBottomNav(activeIndex: _selectedIndex, userData: widget.userData),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDisplayField(String label, String value) {
+    return _FieldShell(
+      label: label,
+      child: Text(
+        value,
+        style: const TextStyle(color: Colors.white, fontSize: 15),
       ),
     );
   }
 
   Widget _buildProfileField(
     String label,
-    TextEditingController controller,
-    bool isPass,
-  ) {
+    TextEditingController controller, {
+    bool obscure = false,
+    String? hint,
+  }) {
+    return _FieldShell(
+      label: label,
+      child: TextField(
+        controller: controller,
+        enabled: _isEditing,
+        obscureText: obscure,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Colors.white30),
+          border: InputBorder.none,
+          isDense: true,
+        ),
+      ),
+    );
+  }
+}
+
+class _FieldShell extends StatelessWidget {
+  const _FieldShell({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -136,110 +321,17 @@ class ProfilState extends State<Profil> {
           ),
         ),
         Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
             color: Colors.white10,
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white10),
           ),
-          child: TextField(
-            controller: controller,
-            obscureText: isPass,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              contentPadding: EdgeInsets.all(15),
-              border: InputBorder.none,
-            ),
-          ),
+          child: child,
         ),
         const SizedBox(height: 20),
       ],
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Stack(
-        alignment: Alignment.topCenter,
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            height: 80,
-            decoration: const BoxDecoration(
-              color: Color(0xFF0E0E20),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _navItem(Icons.home, "Home", 0, '/Home'),
-                _navItem(Icons.history, "History", 1, '/History'),
-                const SizedBox(width: 60),
-                _navItem(Icons.help_outline, "Help", 2, '/Help'),
-                _navItem(Icons.person_outline, "Profile", 3, '/Profil'),
-              ],
-            ),
-          ),
-          Positioned(
-            top: -18,
-            child: SizedBox(
-              width: 75,
-              height: 75,
-              child: FloatingActionButton(
-                heroTag: null,
-                onPressed: () => Navigator.pushNamed(context, '/UploadFoto'),
-                backgroundColor: const Color(0xFF39D2DD),
-                shape: const CircleBorder(),
-                child: const Icon(
-                  Icons.qr_code_scanner,
-                  color: Colors.white,
-                  size: 45,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _navItem(IconData icon, String label, int index, String route) {
-    bool isActive = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () {
-        if (!isActive) {
-          Future.delayed(Duration.zero, () {
-            if (mounted) {
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                route,
-                (route) => false,
-                arguments: widget.userData,
-              );
-            }
-          });
-        }
-      },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? const Color(0xFF7C3AED) : Colors.white54,
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              color: isActive ? const Color(0xFF7C3AED) : Colors.white54,
-              fontSize: 11,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

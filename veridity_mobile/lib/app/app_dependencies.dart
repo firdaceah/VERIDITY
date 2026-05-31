@@ -19,6 +19,7 @@ class AppDependencies {
     sessionStore: sessionStore,
   );
   static final ProfileRepository profileRepository = ProfileRepository(
+    apiClient: apiClient,
     sessionStore: sessionStore,
   );
 }

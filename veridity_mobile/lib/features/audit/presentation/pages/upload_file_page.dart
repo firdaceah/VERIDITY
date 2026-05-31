@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/app_dependencies.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/widgets/analysis_loading_screen.dart';
 
 class UploadFoto extends StatefulWidget {
   const UploadFoto({super.key});
@@ -14,6 +17,14 @@ class UploadFoto extends StatefulWidget {
 class _UploadFotoState extends State<UploadFoto> {
   PlatformFile? _selectedFile;
   bool _isLoading = false;
+
+  bool get _hasSelectedFile =>
+      _selectedFile?.path != null && _selectedFile!.path!.isNotEmpty;
+
+  bool get _isDocument {
+    final extension = _selectedFile?.extension?.toLowerCase();
+    return extension == 'pdf' || extension == 'docx';
+  }
 
   Future<void> _pickFile() async {
     final result = await FilePicker.pickFiles(
@@ -77,6 +88,13 @@ class _UploadFotoState extends State<UploadFoto> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return AnalysisLoadingScreen(
+        isDocument: _isDocument,
+        fileName: _selectedFile?.name ?? 'File analisis',
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF111028),
       appBar: AppBar(
@@ -105,46 +123,32 @@ class _UploadFotoState extends State<UploadFoto> {
               onTap: _isLoading ? null : _pickFile,
               child: Container(
                 width: double.infinity,
-                height: 250,
+                height: 310,
+                padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: const Color(0xFF472C86),
+                    color: _hasSelectedFile
+                        ? const Color(0xFF39D2DD)
+                        : const Color(0xFF472C86),
                     width: 2,
                     style: BorderStyle.solid,
                   ),
+                  color: const Color(0xFF0E0E20),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.cloud_upload_outlined,
-                      color: Color(0xFF39D2DD),
-                      size: 64,
-                    ),
-                    const SizedBox(height: 15),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        _selectedFile?.name ??
-                            "Ketuk untuk unggah foto atau dokumen",
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    const Text(
-                      "PNG, JPG, PDF, DOCX (max. 15MB)",
-                      style: TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                  ],
-                ),
+                child: _hasSelectedFile ? _buildPreview() : _buildEmptyPicker(),
               ),
             ),
             const Spacer(),
             ElevatedButton(
-              onPressed: _isLoading ? null : _uploadAndAnalyze,
+              onPressed: !_hasSelectedFile || _isLoading
+                  ? null
+                  : _uploadAndAnalyze,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4338CA),
+                backgroundColor: _hasSelectedFile
+                    ? const Color(0xFF4338CA)
+                    : Colors.white12,
+                disabledBackgroundColor: Colors.white12,
                 minimumSize: const Size(double.infinity, 60),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
@@ -163,6 +167,100 @@ class _UploadFotoState extends State<UploadFoto> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildEmptyPicker() {
+    return const Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.cloud_upload_outlined, color: Color(0xFF39D2DD), size: 64),
+        SizedBox(height: 15),
+        Text(
+          "Ketuk untuk memilih foto atau dokumen",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 8),
+        Text(
+          "PNG, JPG, JPEG, PDF, DOCX (max. 15MB)",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPreview() {
+    final file = _selectedFile!;
+    final extension = file.extension?.toUpperCase() ?? 'FILE';
+    final isImage = !_isDocument;
+
+    return Column(
+      children: [
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: isImage
+                ? Image.file(
+                    File(file.path!),
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  )
+                : Container(
+                    width: double.infinity,
+                    color: const Color(0xFF1D143E),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          extension == 'PDF'
+                              ? Icons.picture_as_pdf_outlined
+                              : Icons.description_outlined,
+                          color: extension == 'PDF'
+                              ? Colors.redAccent
+                              : const Color(0xFF39D2DD),
+                          size: 72,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          extension,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Icon(
+              isImage ? Icons.image_outlined : Icons.insert_drive_file_outlined,
+              color: const Color(0xFF39D2DD),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                file.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () => setState(() => _selectedFile = null),
+              icon: const Icon(Icons.close, color: Colors.white54),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

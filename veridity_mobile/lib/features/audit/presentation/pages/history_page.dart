@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/app_dependencies.dart';
+import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../domain/entities/audit_entity.dart';
 
 class History extends StatefulWidget {
@@ -12,13 +13,37 @@ class History extends StatefulWidget {
 
 class HistoryState extends State<History> {
   final int _selectedIndex = 1; // Index 1 untuk History
+  final TextEditingController _searchController = TextEditingController();
   List<AuditEntity> _historyData = [];
   bool _isLoading = true;
+  String _activeFilter = 'Semua';
+
+  List<AuditEntity> get _filteredHistory {
+    final query = _searchController.text.trim().toLowerCase();
+    return _historyData.where((item) {
+      final matchesFilter =
+          _activeFilter == 'Semua' ||
+          (_activeFilter == 'Foto' && item.isImage) ||
+          (_activeFilter == 'Dokumen' && item.isDocument);
+      final matchesSearch =
+          query.isEmpty ||
+          item.fileName.toLowerCase().contains(query) ||
+          item.summaryLabel.toLowerCase().contains(query);
+      return matchesFilter && matchesSearch;
+    }).toList();
+  }
 
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() => setState(() {}));
     _fetchHistory();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   // Fungsi untuk mengambil data dari kolom forensic_analyses di Laravel
@@ -66,8 +91,8 @@ class HistoryState extends State<History> {
                     ),
                   ),
                   Text(
-                    "${_historyData.length} foto telah dianalisis",
-                    style: TextStyle(color: Colors.white70, fontSize: 15),
+                    "${_historyData.length} file telah dianalisis",
+                    style: const TextStyle(color: Colors.white70, fontSize: 15),
                   ),
                   const SizedBox(height: 25),
 
@@ -79,9 +104,10 @@ class HistoryState extends State<History> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.white10),
                     ),
-                    child: const TextField(
-                      style: TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
+                    child: TextField(
+                      controller: _searchController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
                         icon: Icon(Icons.search, color: Colors.white54),
                         hintText: "Cari riwayat...",
                         hintStyle: TextStyle(color: Colors.white24),
@@ -94,11 +120,11 @@ class HistoryState extends State<History> {
                   // Filter Buttons
                   Row(
                     children: [
-                      _buildFilterChip("Semua", true),
+                      _buildFilterChip("Semua"),
                       const SizedBox(width: 10),
-                      _buildFilterChip("Aman", false),
+                      _buildFilterChip("Foto"),
                       const SizedBox(width: 10),
-                      _buildFilterChip("Beresiko", false),
+                      _buildFilterChip("Dokumen"),
                     ],
                   ),
                   const SizedBox(height: 30),
@@ -109,15 +135,15 @@ class HistoryState extends State<History> {
                             color: Color(0xFF39D2DD),
                           ),
                         )
-                      : _historyData.isEmpty
+                      : _filteredHistory.isEmpty
                       ? const Center(
                           child: Text(
-                            "Belum ada riwayat",
+                            "Riwayat tidak ditemukan",
                             style: TextStyle(color: Colors.white54),
                           ),
                         )
                       : Column(
-                          children: _historyData.map((item) {
+                          children: _filteredHistory.map((item) {
                             final formattedDate = item.createdAt.length >= 10
                                 ? item.createdAt.substring(0, 10)
                                 : "Unknown Date";
@@ -131,22 +157,60 @@ class HistoryState extends State<History> {
               ),
             ),
           ),
-          _buildBottomNav(),
+          AppBottomNav(activeIndex: _selectedIndex, userData: widget.userData),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, bool isActive) {
+  Widget _buildFilterChip(String label) {
+    final isActive = _activeFilter == label;
+    return InkWell(
+      onTap: () => setState(() => _activeFilter = label),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF4338CA) : const Color(0xFF0E0E20),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? Colors.transparent : Colors.white10,
+          ),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(color: Colors.white, fontSize: 13),
+        ),
+      ),
+    );
+  }
+
+  IconData _historyIcon(AuditEntity item) {
+    return switch (item.iconType) {
+      IconType.pdf => Icons.picture_as_pdf_outlined,
+      IconType.docx => Icons.description_outlined,
+      IconType.image => Icons.image_outlined,
+    };
+  }
+
+  Color _historyIconColor(AuditEntity item) {
+    return switch (item.iconType) {
+      IconType.pdf => Colors.redAccent,
+      IconType.docx => const Color(0xFF39D2DD),
+      IconType.image => Colors.white70,
+    };
+  }
+
+  Widget _fileTypeBadge(AuditEntity item) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFF4338CA) : const Color(0xFF0E0E20),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white10,
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        label,
-        style: const TextStyle(color: Colors.white, fontSize: 13),
+        item.isDocument ? 'Dokumen' : 'Foto',
+        style: const TextStyle(color: Colors.white54, fontSize: 10),
       ),
     );
   }
@@ -167,7 +231,7 @@ class HistoryState extends State<History> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.image, color: Colors.white24, size: 30),
+            Icon(_historyIcon(item), color: _historyIconColor(item), size: 34),
             const SizedBox(width: 15),
             Expanded(
               child: Column(
@@ -187,6 +251,8 @@ class HistoryState extends State<History> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
+                      _fileTypeBadge(item),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -223,94 +289,6 @@ class HistoryState extends State<History> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Stack(
-        alignment: Alignment.topCenter,
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            height: 80,
-            decoration: const BoxDecoration(
-              color: Color(0xFF0E0E20),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _navItem(Icons.home, "Home", 0, '/Home'),
-                _navItem(Icons.history, "History", 1, '/History'),
-                const SizedBox(width: 60),
-                _navItem(Icons.help_outline, "Help", 2, '/Help'),
-                _navItem(Icons.person_outline, "Profile", 3, '/Profil'),
-              ],
-            ),
-          ),
-          Positioned(
-            top: -18,
-            child: SizedBox(
-              width: 75,
-              height: 75,
-              child: FloatingActionButton(
-                heroTag: null,
-                onPressed: () => Navigator.pushNamed(context, '/UploadFoto'),
-                backgroundColor: const Color(0xFF39D2DD),
-                shape: const CircleBorder(),
-                child: const Icon(
-                  Icons.qr_code_scanner,
-                  color: Colors.white,
-                  size: 45,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _navItem(IconData icon, String label, int index, String route) {
-    bool isActive = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () {
-        if (!isActive) {
-          Future.delayed(Duration.zero, () {
-            if (mounted) {
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                route,
-                (route) => false,
-                arguments: widget.userData,
-              );
-            }
-          });
-        }
-      },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? const Color(0xFF7C3AED) : Colors.white54,
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              color: isActive ? const Color(0xFF7C3AED) : Colors.white54,
-              fontSize: 11,
-            ),
-          ),
-        ],
       ),
     );
   }

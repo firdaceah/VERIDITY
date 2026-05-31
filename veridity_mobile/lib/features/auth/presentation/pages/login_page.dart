@@ -13,6 +13,11 @@ class Login extends StatefulWidget {
 class LoginState extends State<Login> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
+  final TextEditingController _forgotEmailController = TextEditingController();
+  final TextEditingController _resetTokenController = TextEditingController();
+  final TextEditingController _resetPasswordController =
+      TextEditingController();
+  final TextEditingController _resetConfirmController = TextEditingController();
   bool _isObscure = true;
   bool _isLoading = false;
 
@@ -61,7 +66,132 @@ class LoginState extends State<Login> {
   void dispose() {
     _emailController.dispose();
     _passController.dispose();
+    _forgotEmailController.dispose();
+    _resetTokenController.dispose();
+    _resetPasswordController.dispose();
+    _resetConfirmController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showForgotPasswordDialog() async {
+    _forgotEmailController.text = _emailController.text.trim();
+    _resetTokenController.clear();
+    _resetPasswordController.clear();
+    _resetConfirmController.clear();
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        bool requesting = false;
+        bool resetting = false;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> requestReset() async {
+              setDialogState(() => requesting = true);
+              try {
+                final token = await AppDependencies.authRepository
+                    .forgotPassword(_forgotEmailController.text.trim());
+                if (token != null && token.isNotEmpty) {
+                  _resetTokenController.text = token;
+                }
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Instruksi reset password berhasil dibuat"),
+                    ),
+                  );
+                }
+              } on ApiException catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(e.message)));
+                }
+              } finally {
+                setDialogState(() => requesting = false);
+              }
+            }
+
+            Future<void> resetPassword() async {
+              setDialogState(() => resetting = true);
+              try {
+                await AppDependencies.authRepository.resetPassword(
+                  email: _forgotEmailController.text.trim(),
+                  token: _resetTokenController.text.trim(),
+                  password: _resetPasswordController.text,
+                  passwordConfirmation: _resetConfirmController.text,
+                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        "Password berhasil direset. Silakan login.",
+                      ),
+                    ),
+                  );
+                }
+              } on ApiException catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(e.message)));
+                }
+              } finally {
+                setDialogState(() => resetting = false);
+              }
+            }
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1D143E),
+              title: const Text(
+                "Lupa Password",
+                style: TextStyle(color: Colors.white),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _dialogField(_forgotEmailController, "Email"),
+                    const SizedBox(height: 10),
+                    _dialogField(_resetTokenController, "Token reset"),
+                    const SizedBox(height: 10),
+                    _dialogField(
+                      _resetPasswordController,
+                      "Password baru",
+                      obscure: true,
+                    ),
+                    const SizedBox(height: 10),
+                    _dialogField(
+                      _resetConfirmController,
+                      "Konfirmasi password",
+                      obscure: true,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: requesting || resetting
+                      ? null
+                      : () => Navigator.pop(context),
+                  child: const Text("Batal"),
+                ),
+                TextButton(
+                  onPressed: requesting ? null : requestReset,
+                  child: Text(requesting ? "Meminta..." : "Minta Token"),
+                ),
+                ElevatedButton(
+                  onPressed: resetting ? null : resetPassword,
+                  child: Text(resetting ? "Reset..." : "Reset"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -107,7 +237,7 @@ class LoginState extends State<Login> {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () {},
+                onPressed: _showForgotPasswordDialog,
                 child: const Text(
                   "Lupa password?",
                   style: TextStyle(color: Colors.white70, fontSize: 14),
@@ -199,6 +329,30 @@ class LoginState extends State<Login> {
               });
             },
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _dialogField(
+    TextEditingController controller,
+    String hint, {
+    bool obscure = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white38),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.white24),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF39D2DD)),
         ),
       ),
     );

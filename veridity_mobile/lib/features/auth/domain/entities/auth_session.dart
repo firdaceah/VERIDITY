@@ -24,6 +24,11 @@ class AuthSession {
       'name': user.name,
       'email': user.email,
       'id': user.id,
+      'profile_photo_url': user.profilePhotoUrl,
     };
+  }
+
+  AuthSession copyWith({UserEntity? user}) {
+    return AuthSession(token: token, user: user ?? this.user);
   }
 }

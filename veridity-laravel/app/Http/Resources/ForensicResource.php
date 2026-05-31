@@ -16,12 +16,23 @@ class ForensicResource extends JsonResource
     {
         $finalResult = is_array($this->final_result) ? $this->final_result : [];
         $fullReport = is_array($finalResult['full_report'] ?? null) ? $finalResult['full_report'] : [];
+        $extension = strtolower(pathinfo((string) $this->image_name, PATHINFO_EXTENSION));
+        $isDocument = in_array($extension, ['pdf', 'docx'], true);
+        $results = is_array($fullReport['results'] ?? null) ? $fullReport['results'] : [];
 
         return [
             'id' => $this->id,
             'file_name' => $this->image_name,
+            'file_extension' => $extension,
+            'file_type' => $isDocument ? 'document' : 'image',
             'file_url' => $this->s3_path ? asset('storage/'.$this->s3_path) : null,
             'image_url' => $this->s3_path ? asset('storage/'.$this->s3_path) : null,
+            'ela_image_url' => isset($results['ela']['image_url'])
+                ? asset('storage/results/'.$this->user_id.'/'.$results['ela']['image_url'])
+                : null,
+            'noise_image_url' => isset($results['noise']['image_url'])
+                ? asset('storage/results/'.$this->user_id.'/'.$results['noise']['image_url'])
+                : null,
             'summary_label' => $finalResult['summary_label'] ?? 'UNKNOWN',
             'summary_color' => $finalResult['summary_color'] ?? 'warning',
             'status' => $finalResult['summary_label'] ?? 'UNKNOWN',
