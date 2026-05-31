@@ -178,43 +178,44 @@ Tujuan:
 Endpoint target:
 
 Auth:
-- `POST /api/register`
-- `POST /api/login`
-- `POST /api/logout`
-- `GET /api/profile`
+- [x] `POST /api/register`
+- [x] `POST /api/login`
+- [x] `POST /api/logout`
+- [x] `GET /api/profile`
 
 Analysis:
-- `POST /api/audits`
-- `GET /api/audits`
-- `GET /api/audits/{id}`
-- `DELETE /api/audits/{id}`
-- `GET /api/audits/{id}/report`
+- [x] `POST /api/audits`
+- [x] `GET /api/audits`
+- [x] `GET /api/audits/{id}`
+- [x] `DELETE /api/audits/{id}`
+- [x] `GET /api/audits/{id}/report`
 
 Compatibility alias:
-- `POST /api/analyze` tetap boleh ada sebagai alias sementara ke `POST /api/audits`.
-- `GET /api/history` tetap boleh ada sebagai alias sementara ke `GET /api/audits`.
+- [x] `POST /api/analyze` tetap boleh ada sebagai alias sementara ke `POST /api/audits`.
+- [x] `GET /api/history` tetap boleh ada sebagai alias sementara ke `GET /api/audits`.
 
 Task:
-- Pisahkan concern response web dan API bila perlu:
+- [x] Pisahkan concern response web dan API bila perlu:
   - pertahankan route web yang sudah berjalan;
   - buat method/resource API yang konsisten untuk mobile.
-- Gunakan `ForensicResource` untuk response audit.
-- Tambahkan validasi file untuk image, PDF, dan DOCX.
-- Tambahkan response `visual_results` untuk citra jika ada ELA/noise output.
-- Pastikan delete audit memeriksa owner/admin untuk API dan web.
-- Tambahkan endpoint report PDF untuk API/mobile.
+- [x] Gunakan `ForensicResource` untuk response audit.
+- [x] Tambahkan validasi file untuk image, PDF, dan DOCX.
+- [x] Tambahkan response `visual_results` untuk citra jika ada ELA/noise output.
+- [x] Pastikan delete audit memeriksa owner/admin untuk API dan web.
+- [x] Tambahkan endpoint report PDF untuk API/mobile.
+- [x] Seragamkan response auth mobile dengan `status`, `message`, `data`, `access_token`, `token_type`, serta alias kompatibilitas `user` dan `token`.
 
 Deliverable:
-- API siap dikonsumsi Flutter.
-- Response JSON stabil.
-- Web route lama tetap berfungsi.
+- [x] API siap dikonsumsi Flutter.
+- [x] Response JSON stabil.
+- [x] Web route lama tetap berfungsi.
 
 Verifikasi:
-- Test auth API.
-- Test upload image API.
-- Test upload PDF/DOCX API dengan Python engine aktif.
-- Test history API hanya menampilkan data user terkait.
-- Test report PDF mengembalikan `Content-Type: application/pdf`.
+- [x] Test auth API.
+- [x] Test upload image API.
+- [x] Test upload PDF/DOCX API dengan Python engine aktif/fake.
+- [x] Test history API hanya menampilkan data user terkait.
+- [x] Test report PDF mengembalikan `Content-Type: application/pdf`.
 
 ### Fase 2 - Flutter Clean Architecture
 

@@ -6,10 +6,26 @@ use App\Http\Controllers\Controller;
 use App\Models\ForensicAnalysis;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+    private function tokenResponse(User $user, string $tokenName, string $message, int $statusCode = 200)
+    {
+        $token = $user->createToken($tokenName)->plainTextToken;
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $message,
+            'data' => $user,
+            'user' => $user,
+            'access_token' => $token,
+            'token' => $token,
+            'token_type' => 'Bearer',
+        ], $statusCode);
+    }
+
     public function register(Request $request)
     {
         $request->validate([
@@ -24,19 +40,11 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        if (!$request->expectsJson()) {
+        if (! $request->expectsJson()) {
             return redirect()->route('login')->with('success', 'Akun berhasil dibuat! Silakan masuk dengan email Anda.');
         }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Registrasi berhasil!',
-            'data' => $user,
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-        ]);
+        return $this->tokenResponse($user, 'auth_token', 'Registrasi berhasil!', 201);
     }
 
     public function login(Request $request)
@@ -46,29 +54,30 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        if (!auth()->attempt($credentials)) {
+        if (! auth()->attempt($credentials)) {
             if ($request->expectsJson()) {
-                return response()->json(['message' => 'Login Gagal'], 401);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Login Gagal',
+                ], 401);
             }
+
             return back()->withErrors(['email' => 'Email atau password salah!'])->withInput();
         }
 
         $user = auth()->user();
 
-        if (!$request->expectsJson()) {
+        if (! $request->expectsJson()) {
             $request->session()->regenerate();
 
             if ($user->role === 'admin') {
                 return redirect()->intended('/admin/dashboard');
             }
+
             return redirect()->intended('/dashboard');
         }
 
-        $token = $user->createToken('veridity_token')->plainTextToken;
-        return response()->json([
-            'token' => $token,
-            'user' => $user
-        ]);
+        return $this->tokenResponse($user, 'veridity_token', 'Login berhasil!');
     }
 
     public function logout(Request $request)
@@ -77,19 +86,19 @@ class AuthController extends Controller
             $request->user()->currentAccessToken()->delete();
         }
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Berhasil logout, token telah dihapus.',
+            ]);
+        }
+
         // 2. Logika untuk Web (Menghapus Session & Logout Guard)
         auth()->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         // 3. Response Berdasarkan Jenis Request
-        if ($request->expectsJson()) {
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Berhasil logout, token telah dihapus.'
-            ]);
-        }
-
         // Jika diakses dari Browser/Web Admin, arahkan ke login dengan pesan
         return redirect()->route('login')->with('success', 'Anda telah berhasil keluar dari sistem.');
     }
@@ -98,32 +107,33 @@ class AuthController extends Controller
     {
         return response()->json([
             'status' => 'success',
-            'data' => $request->user()
+            'data' => $request->user(),
         ]);
     }
 
     public function adminDashboard()
     {
         // 1. Hitung total seluruh audit gambar di database
-        $totalAudit = \App\Models\ForensicAnalysis::count();
+        $totalAudit = ForensicAnalysis::count();
 
         // 2. Hitung total pengguna terdaftar (selain admin)
-        $totalUser = \App\Models\User::where('role', '!=', 'admin')->count();
+        $totalUser = User::where('role', '!=', 'admin')->count();
 
         // 3. Ambil data dengan Eager Loading 'user' dan urutkan dari yang terbaru (Limit 5 untuk Live Traffic)
         // Kita ambil data traffic-nya dulu dari DB dengan struktur query builder yang benar
-        $recentAudits = \App\Models\ForensicAnalysis::with('user')
+        $recentAudits = ForensicAnalysis::with('user')
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
 
         // 4. AMANKAN FILTER FRAUD TERDETEKSI (SOLUSI ORACLE ORA-00932)
         // Untuk menghitung total fraud, kita ambil semua data forensik untuk difilter di level Collection
-        $allAudits = \App\Models\ForensicAnalysis::all();
+        $allAudits = ForensicAnalysis::all();
 
         $fraudCount = $allAudits->filter(function ($audit) {
             // Membaca array/JSON final_result dengan aman
             $color = $audit->final_result['summary_color'] ?? '';
+
             return $color === 'warning' || $color === 'danger';
         })->count();
 
@@ -133,7 +143,8 @@ class AuthController extends Controller
 
     public function auditLogs()
     {
-        $logs = \App\Models\ForensicAnalysis::with('user')->latest()->paginate(10);
+        $logs = ForensicAnalysis::with('user')->latest()->paginate(10);
+
         return view('admin.audit-logs', compact('logs'));
     }
 
@@ -141,27 +152,28 @@ class AuthController extends Controller
     {
         // FIX ORACLE CLOB BLACKLIST: Menggunakan Collection Filter untuk memisahkan data Bahaya/Fraud
         // 1. Ambil semua data analisis lengkap dengan relasi user, diurutkan dari yang terbaru
-        $allAnalyses = \App\Models\ForensicAnalysis::with('user')
+        $allAnalyses = ForensicAnalysis::with('user')
             ->orderBy('created_at', 'desc')
             ->get();
 
         // 2. Filter data di level memory PHP (Mencari data yang summary_color-nya bernilai 'danger')
         $filteredFraud = $allAnalyses->filter(function ($analysis) {
             $color = $analysis->final_result['summary_color'] ?? '';
+
             return $color === 'danger';
         });
 
         // 3. Buat Manual Pagination agar fungsi ->links() dan ->hasPages() di view blacklist.blade.php tidak error
-        $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
         $perPage = 10;
         $currentItems = $filteredFraud->slice(($currentPage - 1) * $perPage, $perPage)->all();
 
-        $fraudCases = new \Illuminate\Pagination\LengthAwarePaginator(
+        $fraudCases = new LengthAwarePaginator(
             $currentItems,
             $filteredFraud->count(),
             $perPage,
             $currentPage,
-            ['path' => \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPath()]
+            ['path' => LengthAwarePaginator::resolveCurrentPath()]
         );
 
         // 4. Kirim data fraudCases yang sudah aman dari ORA-00932 ke view blacklist
@@ -174,12 +186,13 @@ class AuthController extends Controller
         if (auth()->user()->role === 'admin') {
             return redirect()->route('admin.dashboard');
         }
+
         return view('user.dashboard');
     }
 
     public function myAudits()
     {
-        $myAudits = \App\Models\ForensicAnalysis::where('user_id', auth()->id())
+        $myAudits = ForensicAnalysis::where('user_id', auth()->id())
             ->latest()
             ->get();
 
@@ -189,13 +202,14 @@ class AuthController extends Controller
     public function showAudit($id)
     {
         $audit = ForensicAnalysis::with('user')->findOrFail($id);
+
         return view('admin.audit-detail', compact('audit'));
     }
 
     public function showResult($id)
     {
         // Mengambil data audit spesifik berdasarkan ID
-        $analysis = \App\Models\ForensicAnalysis::where('user_id', auth()->id())
+        $analysis = ForensicAnalysis::where('user_id', auth()->id())
             ->findOrFail($id);
 
         return view('user.result', compact('analysis'));

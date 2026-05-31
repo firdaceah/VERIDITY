@@ -110,6 +110,30 @@ Response sukses API Laravel:
 }
 ```
 
+Response auth API Laravel:
+
+```json
+{
+  "status": "success",
+  "message": "Login berhasil!",
+  "data": {
+    "id": 1,
+    "name": "User",
+    "email": "user@example.test"
+  },
+  "user": {
+    "id": 1,
+    "name": "User",
+    "email": "user@example.test"
+  },
+  "access_token": "plain-text-token",
+  "token": "plain-text-token",
+  "token_type": "Bearer"
+}
+```
+
+`data/access_token` adalah kontrak utama untuk clean architecture Flutter. `user/token` dipertahankan sebagai alias kompatibilitas untuk layar Flutter lama.
+
 Response error API Laravel:
 
 ```json
@@ -173,4 +197,3 @@ FastAPI health check:
 ```bash
 curl http://127.0.0.1:8001/
 ```
-
