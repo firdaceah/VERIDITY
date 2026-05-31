@@ -69,6 +69,20 @@ class ForensicController extends Controller
             2 => ['pipe', 'w'],
         ];
 
+        $scriptDirectory = dirname($scriptPath);
+        $nltkDataPaths = array_filter([
+            $scriptDirectory.DIRECTORY_SEPARATOR.'nltk_data',
+            getenv('APPDATA') ? getenv('APPDATA').DIRECTORY_SEPARATOR.'nltk_data' : null,
+            getenv('USERPROFILE') ? getenv('USERPROFILE').DIRECTORY_SEPARATOR.'nltk_data' : null,
+        ]);
+
+        $environment = array_merge($_SERVER, $_ENV, [
+            'PYTHONPATH' => $scriptDirectory,
+            'PYTHONIOENCODING' => 'utf-8',
+            'TF_CPP_MIN_LOG_LEVEL' => '3',
+            'NLTK_DATA' => implode(PATH_SEPARATOR, $nltkDataPaths),
+        ]);
+
         $process = proc_open(
             [
                 $pythonPath,
@@ -78,7 +92,8 @@ class ForensicController extends Controller
             ],
             $descriptorSpec,
             $pipes,
-            dirname($scriptPath)
+            $scriptDirectory,
+            $environment
         );
 
         if (! is_resource($process)) {

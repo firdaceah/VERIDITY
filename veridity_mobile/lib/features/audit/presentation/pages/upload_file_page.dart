@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -20,7 +18,7 @@ class _UploadFotoState extends State<UploadFoto> {
   String? _errorMessage;
 
   bool get _hasSelectedFile =>
-      _selectedFile?.path != null && _selectedFile!.path!.isNotEmpty;
+      _selectedFile?.bytes != null && _selectedFile!.bytes!.isNotEmpty;
 
   bool get _isDocument {
     final extension = _selectedFile?.extension?.toLowerCase();
@@ -31,7 +29,7 @@ class _UploadFotoState extends State<UploadFoto> {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'docx'],
-      withData: false,
+      withData: true,
     );
 
     if (result == null || result.files.isEmpty) {
@@ -45,8 +43,8 @@ class _UploadFotoState extends State<UploadFoto> {
   }
 
   Future<void> _uploadAndAnalyze() async {
-    final path = _selectedFile?.path;
-    if (path == null || path.isEmpty) {
+    final file = _selectedFile;
+    if (file == null || file.bytes == null || file.bytes!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Pilih file terlebih dahulu")),
       );
@@ -56,7 +54,7 @@ class _UploadFotoState extends State<UploadFoto> {
     setState(() => _isLoading = true);
 
     try {
-      final audit = await AppDependencies.auditRepository.uploadFile(path);
+      final audit = await AppDependencies.auditRepository.uploadFile(file);
       if (!mounted) {
         return;
       }
@@ -210,18 +208,15 @@ class _UploadFotoState extends State<UploadFoto> {
     final file = _selectedFile!;
     final extension = file.extension?.toUpperCase() ?? 'FILE';
     final isImage = !_isDocument;
+    final bytes = file.bytes;
 
     return Column(
       children: [
         Expanded(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: isImage
-                ? Image.file(
-                    File(file.path!),
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  )
+            child: isImage && bytes != null
+                ? Image.memory(bytes, width: double.infinity, fit: BoxFit.cover)
                 : Container(
                     width: double.infinity,
                     color: const Color(0xFF1D143E),

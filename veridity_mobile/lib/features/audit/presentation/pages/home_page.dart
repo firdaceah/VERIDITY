@@ -18,12 +18,12 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     String userName =
-        widget.userData?['name'] ??
         AppDependencies.sessionStore.session?.user.name ??
+        widget.userData?['name'] ??
         "User";
     final photoUrl =
-        widget.userData?['profile_photo_url']?.toString() ??
-        AppDependencies.sessionStore.session?.user.profilePhotoUrl;
+        AppDependencies.sessionStore.session?.user.profilePhotoUrl ??
+        widget.userData?['profile_photo_url']?.toString();
 
     return Scaffold(
       backgroundColor: const Color(0xFF111028),

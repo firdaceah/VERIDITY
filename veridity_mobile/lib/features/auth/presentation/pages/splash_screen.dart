@@ -24,10 +24,7 @@ class SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.network(
-              "https://storage.googleapis.com/tagjs-prod.appspot.com/v1/SmbShTn1dS/kezvh6k4_expires_30_days.png",
-              width: 200,
-            ),
+            Image.asset("assets/images/logo.png", width: 200),
             const SizedBox(height: 20),
             const Text(
               "VERIDITY",
@@ -38,7 +35,7 @@ class SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const Text(
-              "A I  P h o t o  F o r e n s i c s",
+              "A I  F i l e  F o r e n s i c s",
               style: TextStyle(color: Colors.white70, fontSize: 16),
             ),
           ],

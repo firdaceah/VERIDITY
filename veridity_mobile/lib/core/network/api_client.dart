@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -108,6 +109,26 @@ class ApiClient {
     if (fieldName != null && filePath != null && filePath.isNotEmpty) {
       request.files.add(await http.MultipartFile.fromPath(fieldName, filePath));
     }
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    return _decode(response);
+  }
+
+  Future<Map<String, dynamic>> multipartBytes(
+    String path, {
+    required String fieldName,
+    required String fileName,
+    required Uint8List bytes,
+    String? token,
+  }) async {
+    final request = http.MultipartRequest('POST', _uri(path));
+    request.headers.addAll({
+      'Accept': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    });
+    request.files.add(
+      http.MultipartFile.fromBytes(fieldName, bytes, filename: fileName),
+    );
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
     return _decode(response);

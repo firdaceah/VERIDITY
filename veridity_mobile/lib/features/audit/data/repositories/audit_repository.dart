@@ -1,3 +1,5 @@
+import 'package:file_picker/file_picker.dart';
+
 import '../../../../core/network/api_client.dart';
 import '../../../../core/storage/session_store.dart';
 import '../../domain/entities/audit_entity.dart';
@@ -28,16 +30,22 @@ class AuditRepository {
         .toList();
   }
 
-  Future<AuditEntity> uploadFile(String filePath) async {
+  Future<AuditEntity> uploadFile(PlatformFile file) async {
     final token = _sessionStore.token;
     if (token == null || token.isEmpty) {
       throw StateError('User belum login');
     }
 
-    final response = await _apiClient.multipartFile(
+    final bytes = file.bytes;
+    if (bytes == null || bytes.isEmpty) {
+      throw StateError('File tidak dapat dibaca dari perangkat');
+    }
+
+    final response = await _apiClient.multipartBytes(
       '/audits',
       fieldName: 'image',
-      filePath: filePath,
+      fileName: file.name,
+      bytes: bytes,
       token: token,
     );
     return AuditEntity.fromJson(response['data'] as Map<String, dynamic>);

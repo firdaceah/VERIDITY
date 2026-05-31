@@ -1,3 +1,5 @@
+import 'package:file_picker/file_picker.dart';
+
 import '../../../../core/network/api_client.dart';
 import '../../../../core/storage/session_store.dart';
 import '../../../auth/domain/entities/user_entity.dart';
@@ -40,17 +42,22 @@ class ProfileRepository {
     return user;
   }
 
-  Future<UserEntity> updateProfilePhoto(String filePath) async {
+  Future<UserEntity> updateProfilePhoto(PlatformFile file) async {
     final token = _sessionStore.token;
     if (token == null || token.isEmpty) {
       throw StateError('User belum login');
     }
 
-    final response = await _apiClient.multipartFields(
+    final bytes = file.bytes;
+    if (bytes == null || bytes.isEmpty) {
+      throw StateError('Foto tidak dapat dibaca dari perangkat');
+    }
+
+    final response = await _apiClient.multipartBytes(
       '/profile/photo',
-      fields: const {},
       fieldName: 'photo',
-      filePath: filePath,
+      fileName: file.name,
+      bytes: bytes,
       token: token,
     );
     final user = UserEntity.fromJson(response['data'] as Map<String, dynamic>);

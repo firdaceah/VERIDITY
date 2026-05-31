@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -27,21 +25,21 @@ class ProfilState extends State<Profil> {
   bool _isEditing = false;
   bool _isSaving = false;
   String? _photoUrl;
-  String? _pendingPhotoPath;
+  PlatformFile? _pendingPhoto;
 
   @override
   void initState() {
     super.initState();
     final profile = AppDependencies.profileRepository.currentProfile();
     _nameController = TextEditingController(
-      text: widget.userData?['name'] ?? profile?.name ?? "User",
+      text: profile?.name ?? widget.userData?['name'] ?? "User",
     );
     _emailController = TextEditingController(
-      text: widget.userData?['email'] ?? profile?.email ?? "email@example.com",
+      text: profile?.email ?? widget.userData?['email'] ?? "email@example.com",
     );
     _photoUrl =
-        widget.userData?['profile_photo_url']?.toString() ??
-        profile?.profilePhotoUrl;
+        profile?.profilePhotoUrl ??
+        widget.userData?['profile_photo_url']?.toString();
     _currentPasswordController = TextEditingController();
     _newPasswordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
@@ -65,14 +63,14 @@ class ProfilState extends State<Profil> {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['jpg', 'jpeg', 'png'],
-      withData: false,
+      withData: true,
     );
 
-    if (result == null || result.files.single.path == null) {
+    if (result == null || result.files.single.bytes == null) {
       return;
     }
 
-    setState(() => _pendingPhotoPath = result.files.single.path);
+    setState(() => _pendingPhoto = result.files.single);
   }
 
   Future<void> _saveProfile() async {
@@ -85,9 +83,9 @@ class ProfilState extends State<Profil> {
       );
 
       var latestUser = user;
-      if (_pendingPhotoPath != null) {
+      if (_pendingPhoto != null) {
         latestUser = await AppDependencies.profileRepository.updateProfilePhoto(
-          _pendingPhotoPath!,
+          _pendingPhoto!,
         );
       }
 
@@ -106,8 +104,10 @@ class ProfilState extends State<Profil> {
       }
 
       setState(() {
+        _nameController.text = latestUser.name;
+        _emailController.text = latestUser.email;
         _photoUrl = latestUser.profilePhotoUrl;
-        _pendingPhotoPath = null;
+        _pendingPhoto = null;
         _isEditing = false;
         _currentPasswordController.clear();
         _newPasswordController.clear();
@@ -178,7 +178,7 @@ class ProfilState extends State<Profil> {
                         ),
                     ],
                   ),
-                  if (_pendingPhotoPath != null)
+                  if (_pendingPhoto != null)
                     const Padding(
                       padding: EdgeInsets.only(top: 10),
                       child: Text(
@@ -267,8 +267,8 @@ class ProfilState extends State<Profil> {
   }
 
   Widget _buildAvatarPreview() {
-    final pendingPath = _pendingPhotoPath;
-    if (pendingPath != null) {
+    final pendingPhoto = _pendingPhoto;
+    if (pendingPhoto?.bytes != null) {
       return InkWell(
         onTap: _pickPhoto,
         customBorder: const CircleBorder(),
@@ -280,8 +280,8 @@ class ProfilState extends State<Profil> {
             border: Border.all(color: const Color(0xFF39D2DD), width: 2),
           ),
           clipBehavior: Clip.antiAlias,
-          child: Image.file(
-            File(pendingPath),
+          child: Image.memory(
+            pendingPhoto!.bytes!,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) =>
                 const Icon(Icons.person, color: Colors.white70, size: 60),
