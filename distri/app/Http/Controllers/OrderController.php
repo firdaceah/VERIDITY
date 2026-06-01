@@ -110,6 +110,11 @@ class OrderController extends Controller
             return redirect()->route('distri.cart')->with('error', 'Keranjang masih kosong.');
         }
 
+        $backUrl = $directCheckout
+            ? route('distri.product.show', $items->first()->product_id)
+            : route('distri.cart');
+        $backLabel = $directCheckout ? 'Kembali ke detail produk' : 'Kembali ke keranjang';
+
         return view('distri.checkout', [
             'items' => $items,
             'paymentMethods' => $paymentMethods,
@@ -117,6 +122,11 @@ class OrderController extends Controller
             'shippingFee' => 15000,
             'directCheckout' => $directCheckout,
             'selectedCartIds' => $selectedCartIds ?? [],
+            'selectedVoucherCode' => session('selected_voucher_code'),
+            'checkoutMode' => $directCheckout ? 'direct' : 'cart',
+            'checkoutProductId' => $directCheckout ? $items->first()->product_id : null,
+            'backUrl' => $backUrl,
+            'backLabel' => $backLabel,
             'addresses' => DB::table('shipping_addresses')->where('user_id', Auth::id())->orderByDesc('is_default')->get(),
             'vouchers' => DB::table('vouchers')->where('is_active', true)->orderBy('minimum_order')->get(),
         ]);
@@ -274,6 +284,7 @@ class OrderController extends Controller
             $cartDelete->delete();
             session()->forget('checkout_cart_item_ids');
         }
+        session()->forget('selected_voucher_code');
 
         return redirect()->route('distri.order.show', $order->id)->with('success', 'Pesanan berhasil dikirim! Status validasi pembayaran sudah diperbarui.');
     }
@@ -435,7 +446,33 @@ class OrderController extends Controller
 
         return view('distri.vouchers', [
             'vouchers' => DB::table('vouchers')->where('is_active', true)->orderBy('minimum_order')->get(),
+            'checkoutMode' => request('checkout'),
+            'checkoutProductId' => request('product_id'),
         ]);
+    }
+
+    public function useVoucher(Request $request, string $code)
+    {
+        $voucher = DB::table('vouchers')
+            ->where('code', strtoupper($code))
+            ->where('is_active', true)
+            ->first();
+
+        if (! $voucher) {
+            return redirect()->route('distri.vouchers')->with('error', 'Voucher tidak tersedia.');
+        }
+
+        session(['selected_voucher_code' => $voucher->code]);
+
+        if ($request->input('checkout') === 'direct' && $request->filled('product_id')) {
+            return redirect()->route('distri.checkout', $request->input('product_id'))->with('success', "Voucher {$voucher->code} dipakai di checkout.");
+        }
+
+        if ($request->input('checkout') === 'cart' || session()->has('checkout_cart_item_ids')) {
+            return redirect()->route('distri.checkout', 'cart')->with('success', "Voucher {$voucher->code} dipakai di checkout.");
+        }
+
+        return redirect()->route('distri.cart')->with('success', "Voucher {$voucher->code} dipilih. Lanjutkan checkout untuk memakai potongan.");
     }
 
     public function showOrder($id)

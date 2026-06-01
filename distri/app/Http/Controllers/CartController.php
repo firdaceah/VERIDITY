@@ -10,8 +10,12 @@ class CartController extends Controller
 {
     public function index()
     {
+        $this->ensureDefaultVouchers();
+
         return view('distri.cart', [
             'items' => $this->cartItems(),
+            'vouchers' => DB::table('vouchers')->where('is_active', true)->orderBy('minimum_order')->get(),
+            'selectedVoucherCode' => session('selected_voucher_code'),
         ]);
     }
 
@@ -81,6 +85,11 @@ class CartController extends Controller
         }
 
         session(['checkout_cart_item_ids' => $ids]);
+        if ($request->filled('voucher_code')) {
+            session(['selected_voucher_code' => strtoupper($request->input('voucher_code'))]);
+        } else {
+            session()->forget('selected_voucher_code');
+        }
 
         return redirect()->route('distri.checkout', 'cart');
     }
@@ -108,5 +117,20 @@ class CartController extends Controller
 
                 return $item;
             });
+    }
+
+    private function ensureDefaultVouchers(): void
+    {
+        $defaults = [
+            ['code' => 'HEMAT10', 'name' => 'Diskon 10% Belanja Minimarket', 'type' => 'percent', 'value' => 10, 'minimum_order' => 50000],
+            ['code' => 'ONGKIR15', 'name' => 'Potongan Rp15.000', 'type' => 'fixed', 'value' => 15000, 'minimum_order' => 100000],
+        ];
+
+        foreach ($defaults as $voucher) {
+            DB::table('vouchers')->updateOrInsert(
+                ['code' => $voucher['code']],
+                array_merge($voucher, ['is_active' => true, 'updated_at' => now(), 'created_at' => now()])
+            );
+        }
     }
 }

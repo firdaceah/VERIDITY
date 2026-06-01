@@ -38,13 +38,18 @@
 
         <div class="co-wrap">
             <div style="display:grid; gap:18px;">
-                <a href="{{ route('distri.cart') }}" style="text-decoration:none; color:var(--accent); font-weight:900; font-size:13px;">&larr; Kembali ke keranjang</a>
+                <a href="{{ $backUrl }}" style="text-decoration:none; color:var(--accent); font-weight:900; font-size:13px;">&larr; {{ $backLabel }}</a>
 
                 @if ($errors->any())
                     <div style="background:var(--red-bg); border:1px solid var(--red-border); color:var(--red); border-radius:12px; padding:14px; font-size:13px; font-weight:800;">
                         @foreach ($errors->all() as $error)
                             <div>{{ $error }}</div>
                         @endforeach
+                    </div>
+                @endif
+                @if (session('success'))
+                    <div style="background:var(--green-bg); border:1px solid var(--green-border); color:var(--green); border-radius:12px; padding:14px; font-size:13px; font-weight:800;">
+                        {{ session('success') }}
                     </div>
                 @endif
 
@@ -134,16 +139,16 @@
                     <select class="channel-select" name="voucher_code" id="voucher-code" style="margin-top:8px;">
                         <option value="">Tanpa voucher</option>
                         @foreach ($vouchers as $voucher)
-                            <option value="{{ $voucher->code }}" data-type="{{ $voucher->type }}" data-value="{{ $voucher->value }}" data-minimum="{{ $voucher->minimum_order }}">{{ $voucher->code }} - {{ $voucher->name }}</option>
+                            <option value="{{ $voucher->code }}" data-type="{{ $voucher->type }}" data-value="{{ $voucher->value }}" data-minimum="{{ $voucher->minimum_order }}" @selected(($selectedVoucherCode ?? '') === $voucher->code)>{{ $voucher->code }} - {{ $voucher->name }}</option>
                         @endforeach
                     </select>
                     <div class="voucher-grid">
-                        <button type="button" class="voucher-option active" data-code="" onclick="pickVoucher(this)">
+                        <button type="button" class="voucher-option {{ empty($selectedVoucherCode) ? 'active' : '' }}" data-code="" onclick="pickVoucher(this)">
                             <strong>Tanpa voucher</strong>
                             <div style="font-size:12px; color:var(--muted); margin-top:4px;">Tidak memakai potongan.</div>
                         </button>
                         @foreach ($vouchers as $voucher)
-                            <button type="button" class="voucher-option" data-code="{{ $voucher->code }}" onclick="pickVoucher(this)">
+                            <button type="button" class="voucher-option {{ ($selectedVoucherCode ?? '') === $voucher->code ? 'active' : '' }}" data-code="{{ $voucher->code }}" onclick="pickVoucher(this)">
                                 <strong>{{ $voucher->code }}</strong>
                                 <div style="font-size:12px; color:var(--muted); margin-top:4px;">
                                     {{ $voucher->name }} - Minimal Rp {{ number_format($voucher->minimum_order, 0, ',', '.') }}
@@ -151,7 +156,7 @@
                             </button>
                         @endforeach
                     </div>
-                    <a href="{{ route('distri.vouchers') }}" style="display:block; color:var(--accent); text-decoration:none; font-size:12px; font-weight:900; margin-top:8px;">Lihat Voucher Saya</a>
+                    <a href="{{ route('distri.vouchers', ['checkout' => $checkoutMode, 'product_id' => $checkoutProductId]) }}" style="display:block; color:var(--accent); text-decoration:none; font-size:12px; font-weight:900; margin-top:8px;">Lihat Voucher Saya</a>
                 </div>
                 <div style="margin-top:18px; border-top:1px solid var(--border); padding-top:14px;">
                     <div class="summary-item"><span>Subtotal</span><strong id="subtotal-text">Rp {{ number_format($totalAmount, 0, ',', '.') }}</strong></div>
@@ -170,6 +175,7 @@
     <script>
         const paymentMethods = @json($paymentMethods);
         const shippingFee = {{ (int) $shippingFee }};
+        const selectedVoucherCode = @json($selectedVoucherCode ?? '');
 
         function formatRupiah(value) {
             return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(value)));
@@ -210,8 +216,14 @@
             const code = button.dataset.code || '';
             const select = document.getElementById('voucher-code');
             select.value = code;
-            document.querySelectorAll('.voucher-option').forEach((item) => item.classList.toggle('active', item === button));
+            syncVoucherCards(code);
             recalcCheckout();
+        }
+
+        function syncVoucherCards(code) {
+            document.querySelectorAll('.voucher-option').forEach((item) => {
+                item.classList.toggle('active', (item.dataset.code || '') === (code || ''));
+            });
         }
 
         function selectPaymentMethod(methodKey) {
@@ -251,9 +263,14 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             selectPaymentMethod(Object.keys(paymentMethods)[0]);
+            const voucherSelect = document.getElementById('voucher-code');
+            if (selectedVoucherCode) {
+                voucherSelect.value = selectedVoucherCode;
+            }
+            syncVoucherCards(voucherSelect.value);
             document.getElementById('voucher-code').addEventListener('change', function () {
                 const code = this.value;
-                document.querySelectorAll('.voucher-option').forEach((item) => item.classList.toggle('active', item.dataset.code === code));
+                syncVoucherCards(code);
                 recalcCheckout();
             });
             const qtyInput = document.getElementById('qty-input');

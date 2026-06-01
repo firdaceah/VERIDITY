@@ -15,6 +15,12 @@
     <div class="wrap">
         <h1 style="font-family:'Fraunces',serif; font-size:34px;">Voucher Saya</h1>
         <p style="font-size:13px; color:var(--muted); margin-top:6px;">Gunakan kode voucher di halaman checkout untuk mendapat potongan pembayaran.</p>
+        @if (session('success'))
+            <div style="background:var(--green-bg); border:1px solid var(--green-border); color:var(--green); border-radius:12px; padding:12px; margin-top:16px; font-weight:800; font-size:13px;">{{ session('success') }}</div>
+        @endif
+        @if (session('error'))
+            <div style="background:var(--red-bg); border:1px solid var(--red-border); color:var(--red); border-radius:12px; padding:12px; margin-top:16px; font-weight:800; font-size:13px;">{{ session('error') }}</div>
+        @endif
 
         <div class="grid">
             @foreach ($vouchers as $voucher)
@@ -24,7 +30,7 @@
                     <p style="font-size:13px; color:var(--muted); line-height:1.7; margin-top:8px;">
                         Potongan {{ $voucher->type === 'percent' ? number_format($voucher->value, 0).'%' : 'Rp '.number_format($voucher->value, 0, ',', '.') }} untuk minimal belanja Rp {{ number_format($voucher->minimum_order, 0, ',', '.') }}.
                     </p>
-                    <a href="{{ route('distri.cart') }}" class="btn">Pakai Voucher</a>
+                    <a href="{{ route('distri.vouchers.use', ['code' => $voucher->code, 'checkout' => $checkoutMode, 'product_id' => $checkoutProductId]) }}" class="btn">Pakai Voucher</a>
                 </div>
             @endforeach
         </div>

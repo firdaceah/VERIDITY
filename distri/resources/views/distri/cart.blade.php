@@ -12,6 +12,10 @@
         .btn { border:0; border-radius:12px; padding:12px 16px; background:var(--accent); color:#fff; font-weight:800; cursor:pointer; text-decoration:none; text-align:center; }
         .qty { width:72px; border:1px solid var(--border); border-radius:10px; padding:9px; text-align:center; }
         .cart-check { width:20px; height:20px; accent-color:var(--accent); }
+        .voucher-select { width:100%; border:1px solid var(--border); border-radius:12px; padding:11px 12px; color:var(--navy); font-family:inherit; margin-top:10px; }
+        .voucher-list { display:grid; gap:8px; margin-top:10px; }
+        .voucher-option { border:1.5px solid var(--border); border-radius:12px; padding:10px; background:var(--card); color:var(--navy); font-family:inherit; text-align:left; cursor:pointer; }
+        .voucher-option.active { border-color:var(--accent); background:#EEF4FF; }
     </style>
 @endsection
 
@@ -75,12 +79,44 @@
 
         <div class="card" style="height:max-content;">
             <div style="font-size:17px; font-weight:900;">Ringkasan</div>
+            <div style="margin-top:16px;">
+                <label style="font-size:12px; color:var(--muted); font-weight:900; text-transform:uppercase;">Voucher</label>
+                <select class="voucher-select" id="cart-voucher-code" name="voucher_code" form="selected-checkout-form">
+                    <option value="">Tanpa voucher</option>
+                    @foreach ($vouchers as $voucher)
+                        <option value="{{ $voucher->code }}" data-type="{{ $voucher->type }}" data-value="{{ $voucher->value }}" data-minimum="{{ $voucher->minimum_order }}" @selected(($selectedVoucherCode ?? '') === $voucher->code)>
+                            {{ $voucher->code }} - {{ $voucher->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <div class="voucher-list">
+                    <button type="button" class="voucher-option {{ empty($selectedVoucherCode) ? 'active' : '' }}" data-code="" onclick="pickCartVoucher(this)">
+                        <strong>Tanpa voucher</strong>
+                        <div style="font-size:12px; color:var(--muted); margin-top:4px;">Checkout tanpa potongan.</div>
+                    </button>
+                    @foreach ($vouchers as $voucher)
+                        <button type="button" class="voucher-option {{ ($selectedVoucherCode ?? '') === $voucher->code ? 'active' : '' }}" data-code="{{ $voucher->code }}" onclick="pickCartVoucher(this)">
+                            <strong>{{ $voucher->code }}</strong>
+                            <div style="font-size:12px; color:var(--muted); margin-top:4px;">Minimal Rp {{ number_format($voucher->minimum_order, 0, ',', '.') }}</div>
+                        </button>
+                    @endforeach
+                </div>
+                <a href="{{ route('distri.vouchers', ['checkout' => 'cart']) }}" style="display:block; margin-top:10px; color:var(--accent); font-size:12px; font-weight:900; text-decoration:none;">Lihat Voucher Saya</a>
+            </div>
             <div style="display:flex; justify-content:space-between; margin-top:18px; font-size:14px;">
                 <span>Item dipilih</span>
                 <strong id="selected-items">{{ $items->sum('quantity') }}</strong>
             </div>
             <div style="display:flex; justify-content:space-between; margin-top:12px; font-size:14px;">
-                <span>Total bayar</span>
+                <span>Subtotal</span>
+                <strong id="selected-subtotal">Rp {{ number_format($total, 0, ',', '.') }}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:12px; font-size:14px;">
+                <span>Potongan voucher</span>
+                <strong id="selected-discount" style="color:var(--green);">- Rp 0</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:12px; font-size:14px;">
+                <span>Total setelah voucher</span>
                 <strong id="selected-total" style="color:var(--accent); font-size:22px;">Rp {{ number_format($total, 0, ',', '.') }}</strong>
             </div>
             <button class="btn" form="selected-checkout-form" type="submit" style="width:100%; margin-top:20px; display:block; {{ $items->isEmpty() ? 'pointer-events:none; opacity:.45;' : '' }}">Checkout</button>
@@ -100,10 +136,47 @@
                 total += Number(check.dataset.subtotal || 0);
                 quantity += Number(check.dataset.quantity || 0);
             });
-            document.getElementById('selected-total').textContent = formatRupiah(total);
+            const discount = selectedCartDiscount(total);
+            document.getElementById('selected-subtotal').textContent = formatRupiah(total);
+            document.getElementById('selected-discount').textContent = '- ' + formatRupiah(discount);
+            document.getElementById('selected-total').textContent = formatRupiah(total - discount);
             document.getElementById('selected-items').textContent = quantity;
         }
 
+        function selectedCartDiscount(subtotal) {
+            const select = document.getElementById('cart-voucher-code');
+            if (!select) {
+                return 0;
+            }
+
+            const selected = select.options[select.selectedIndex];
+            if (!selected || !selected.value || subtotal < Number(selected.dataset.minimum || 0)) {
+                return 0;
+            }
+
+            const value = Number(selected.dataset.value || 0);
+            const discount = selected.dataset.type === 'percent' ? subtotal * (value / 100) : value;
+            return Math.min(discount, subtotal);
+        }
+
+        function syncCartVoucherCards(code) {
+            document.querySelectorAll('.voucher-option').forEach((item) => {
+                item.classList.toggle('active', (item.dataset.code || '') === (code || ''));
+            });
+        }
+
+        function pickCartVoucher(button) {
+            const code = button.dataset.code || '';
+            document.getElementById('cart-voucher-code').value = code;
+            syncCartVoucherCards(code);
+            updateSelectedCart();
+        }
+
         document.querySelectorAll('.cart-check').forEach((check) => check.addEventListener('change', updateSelectedCart));
+        document.getElementById('cart-voucher-code')?.addEventListener('change', function () {
+            syncCartVoucherCards(this.value);
+            updateSelectedCart();
+        });
+        updateSelectedCart();
     </script>
 @endsection

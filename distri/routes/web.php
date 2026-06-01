@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/profile', [OrderController::class, 'updateProfile'])->name('distri.profile.update');
         Route::post('/profile/addresses', [OrderController::class, 'storeAddress'])->name('distri.addresses.store');
         Route::get('/voucher-saya', [OrderController::class, 'vouchers'])->name('distri.vouchers');
+        Route::get('/voucher-saya/{code}/pakai', [OrderController::class, 'useVoucher'])->name('distri.vouchers.use');
         Route::get('/keranjang', [CartController::class, 'index'])->name('distri.cart');
         Route::post('/keranjang', [CartController::class, 'add'])->name('distri.cart.add');
         Route::post('/keranjang/checkout-selected', [CartController::class, 'checkoutSelected'])->name('distri.cart.checkout-selected');
