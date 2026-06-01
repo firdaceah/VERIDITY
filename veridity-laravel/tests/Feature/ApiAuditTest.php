@@ -163,3 +163,78 @@ test('authenticated user can download a document audit report as pdf through api
         ->assertOk()
         ->assertHeader('Content-Type', 'application/pdf');
 });
+
+test('mobile report download accepts sanctum token query for external browser', function () {
+    config()->set('services.veridity.python_engine_url', 'http://python-engine.test');
+    Http::fake([
+        'http://python-engine.test/generate-pdf-report' => Http::response('%PDF-1.4 fake report', 200, [
+            'Content-Type' => 'application/pdf',
+        ]),
+    ]);
+
+    $user = User::factory()->create();
+    Storage::disk('public')->put('uploads/mobile-document.pdf', '%PDF-1.4 source');
+
+    $audit = ForensicAnalysis::create([
+        'user_id' => $user->id,
+        'image_name' => 'mobile-document.pdf',
+        's3_path' => 'uploads/mobile-document.pdf',
+        'ela_score' => 0,
+        'is_deepfake' => false,
+        'metadata_details' => ['summary' => ['verdict' => 'MIXED TEXT']],
+        'noise_status' => 'Not Applicable',
+        'final_result' => [
+            'summary_label' => 'MIXED TEXT',
+            'summary_color' => 'warning',
+            'full_report' => [
+                'final_score' => 62.5,
+                'classification_map' => [
+                    'Kalimat ini kemungkinan dibantu AI.' => 'AI-generated',
+                ],
+            ],
+        ],
+    ]);
+
+    $token = $user->createToken('mobile')->plainTextToken;
+
+    $this
+        ->get("/api/audits/{$audit->id}/report-mobile?token=".urlencode($token))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
+});
+
+test('image audit can download summary pdf without python document report endpoint', function () {
+    Http::fake();
+
+    $user = User::factory()->create();
+
+    $audit = ForensicAnalysis::create([
+        'user_id' => $user->id,
+        'image_name' => 'photo.jpg',
+        's3_path' => 'uploads/photo.jpg',
+        'ela_score' => 12.5,
+        'is_deepfake' => false,
+        'metadata_details' => ['summary' => ['verdict' => 'KAMERA FISIK REAL']],
+        'noise_status' => 'Normal',
+        'final_result' => [
+            'summary_label' => 'AUTHENTIC',
+            'summary_color' => 'success',
+            'full_report' => [
+                'final_score' => 82.5,
+                'results' => [
+                    'ai_detection' => ['metrics' => ['gan_score' => 0.1]],
+                    'metadata' => ['summary' => ['verdict' => 'KAMERA FISIK REAL', 'authenticity_score' => 90]],
+                    'noise' => ['interpretation' => 'Normal.'],
+                ],
+            ],
+        ],
+    ]);
+
+    $this
+        ->actingAs($user, 'sanctum')
+        ->get("/api/audits/{$audit->id}/report")
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
+
+    Http::assertNothingSent();
+});

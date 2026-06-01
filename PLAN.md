@@ -322,22 +322,27 @@ Strategi perbaikan:
   - daftar sentence yang gagal ditemukan untuk debugging.
 
 Task:
-- Tambah unit test untuk `document_pdf_utils`.
-- Buat PDF sample kecil di test fixture.
-- Test bahwa label non-human menghasilkan annotation.
-- Test bahwa `Human-written` tidak di-highlight.
-- Perbaiki warna dan legenda agar sama dengan label Python.
-- Pastikan hasil PDF tetap punya halaman kop di awal.
+- [x] Tambah unit test untuk `document_pdf_utils`.
+- [x] Buat PDF sample kecil di test fixture.
+- [x] Test bahwa label non-human menghasilkan annotation.
+- [x] Test bahwa `Human-written` tidak di-highlight.
+- [x] Perbaiki warna dan legenda agar sama dengan label Python.
+- [x] Pastikan hasil PDF tetap punya halaman kop di awal.
+- [x] Perbaiki route unduh PDF mobile agar bisa dibuka dari browser eksternal memakai token query.
+- [x] Tambahkan fallback PDF ringkasan untuk hasil analisis foto dan DOCX lewat Laravel DomPDF.
 
 Deliverable:
-- Download PDF dokumen memiliki arsiran lebih detail.
-- Laravel tetap memanggil endpoint yang sama.
-- Tidak merusak hasil analisis dokumen.
+- [x] Download PDF dokumen memiliki arsiran lebih detail.
+- [x] Laravel tetap memanggil endpoint yang sama.
+- [x] Tidak merusak hasil analisis dokumen.
+- [x] Tombol download PDF di Flutter dapat memakai endpoint mobile tanpa header Authorization.
 
 Verifikasi:
-- `pytest`
-- Manual call `POST /generate-pdf-report`
-- Buka PDF hasil dan cek highlight per kalimat/line.
+- [x] `php artisan test`
+- [x] Compile check modul Python PDF.
+- [x] Test langsung `document_pdf_utils` karena `pytest` belum terpasang di Python global lokal.
+- [ ] Manual call `POST /generate-pdf-report`
+- [ ] Buka PDF hasil dan cek highlight per kalimat/line.
 
 ### Fase 4 - Integrasi `distri` ke VERIDITY dan Metode Pembayaran
 

@@ -5,8 +5,17 @@ import nltk
 from nltk.tokenize import word_tokenize
 from docx import Document  
 import os
+import re
+import unicodedata
 
-nltk.download('punkt', quiet=True)
+for nltk_path in [
+    *os.environ.get("NLTK_DATA", "").split(os.pathsep),
+    os.path.join(os.environ.get("APPDATA", ""), "nltk_data"),
+    os.path.join(os.environ.get("USERPROFILE", ""), "nltk_data"),
+    os.path.join(os.getcwd(), "nltk_data"),
+]:
+    if nltk_path and os.path.isdir(nltk_path) and nltk_path not in nltk.data.path:
+        nltk.data.path.append(nltk_path)
 
 def extract_text_from_pdf(pdf_bytes):
     """Extract text from all pages of a PDF."""
@@ -39,7 +48,90 @@ def extract_any_document(file_bytes, file_extension):
         raise ValueError(f"Format dokumen '{ext}' tidak didukung oleh sistem Veridity!")
 
 def word_count(text):
-    return len(word_tokenize(text))
+    try:
+        return len(word_tokenize(text))
+    except LookupError:
+        return len(re.findall(r"\b\w+\b", text))
+
+def _normalize_token(value):
+    normalized = unicodedata.normalize("NFKD", str(value).lower())
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    return re.sub(r"[^a-z0-9]+", "", normalized)
+
+def _page_tokens(page):
+    tokens = []
+
+    for item in page.get_text("words"):
+        x0, y0, x1, y1, text, block_no, line_no, word_no = item[:8]
+        normalized = _normalize_token(text)
+
+        if not normalized:
+            continue
+
+        tokens.append({
+            "text": str(text),
+            "normalized": normalized,
+            "rect": fitz.Rect(x0, y0, x1, y1),
+            "line_key": (int(block_no), int(line_no)),
+            "word_no": int(word_no),
+        })
+
+    return tokens
+
+def _sentence_tokens(sentence):
+    return [
+        token
+        for token in (_normalize_token(part) for part in str(sentence).split())
+        if token
+    ]
+
+def _find_token_matches(tokens, pattern):
+    matches = []
+    pattern_length = len(pattern)
+
+    if not tokens or pattern_length == 0 or pattern_length > len(tokens):
+        return matches
+
+    for index in range(0, len(tokens) - pattern_length + 1):
+        window = tokens[index:index + pattern_length]
+        if [token["normalized"] for token in window] == pattern:
+            matches.append(window)
+
+    return matches
+
+def _merge_line_rects(match_tokens):
+    lines = {}
+
+    for token in match_tokens:
+        key = token["line_key"]
+        if key not in lines:
+            lines[key] = token["rect"]
+        else:
+            lines[key].include_rect(token["rect"])
+
+    return list(lines.values())
+
+def _highlight_sentence(doc, sentence, color):
+    pattern = _sentence_tokens(sentence)
+
+    if len(pattern) < 2:
+        return 0
+
+    total_annotations = 0
+
+    for page_num in range(1, len(doc)):
+        page = doc[page_num]
+        tokens = _page_tokens(page)
+        matches = _find_token_matches(tokens, pattern)
+
+        for match in matches:
+            for rect in _merge_line_rects(match):
+                annot = page.add_highlight_annot(rect)
+                annot.set_colors(stroke=color)
+                annot.update()
+                total_annotations += 1
+
+    return total_annotations
 
 def generate_annotated_pdf(pdf_bytes, classification_map, metadata_summary="MIXED TEXT (AI ASSISTED)", audit_id="61", analyzed_at=None):
     """
@@ -110,6 +202,13 @@ def generate_annotated_pdf(pdf_bytes, classification_map, metadata_summary="MIXE
     if not classification_map or not isinstance(classification_map, dict):
         classification_map = {}
 
+    highlight_stats = {
+        "classified_sentences": len(classification_map),
+        "matched_sentences": 0,
+        "highlight_annotations": 0,
+        "unmatched_sentences": [],
+    }
+
     for sentence, label in classification_map.items():
         if label == "Human-written":
             continue
@@ -118,31 +217,19 @@ def generate_annotated_pdf(pdf_bytes, classification_map, metadata_summary="MIXE
         if not color_hex:
             continue
         color = hex_to_rgb_float(color_hex)
-        
-        # 1. Bersihkan kalimat dari spasi ganda dan newline tersembunyi
-        cleaned_sentence = " ".join(sentence.split()).strip()
-        if len(cleaned_sentence) < 10:
-            continue
-            
-        # 2. Potong kalimat panjang menjadi fragmen kecil berisi 4 kata (Strategi Agresif)
-        words = cleaned_sentence.split()
-        chunk_size = 4
-        
-        for i in range(0, len(words), chunk_size):
-            chunk = " ".join(words[i:i+chunk_size])
-            
-            if len(chunk.strip()) < 8:
-                continue
-                
-            # 3. Cari dan beri warna stabilo di halaman dokumen asli (skip halaman 0 kop surat)
-            for page_num in range(1, len(doc)):
-                page = doc[page_num]
-                rects = page.search_for(chunk)
-                
-                for rect in rects:
-                    annot = page.add_highlight_annot(rect)
-                    annot.set_colors(stroke=color)
-                    annot.update()
+
+        annotation_count = _highlight_sentence(doc, sentence, color)
+        highlight_stats["highlight_annotations"] += annotation_count
+
+        if annotation_count > 0:
+            highlight_stats["matched_sentences"] += 1
+        else:
+            highlight_stats["unmatched_sentences"].append(" ".join(str(sentence).split()))
+
+    doc.set_metadata({
+        **doc.metadata,
+        "subject": f"Veridity highlight stats: {highlight_stats}",
+    })
 
     out_bytes = doc.write()
     doc.close()

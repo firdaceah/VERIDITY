@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\PersonalAccessToken;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ForensicController extends Controller
 {
@@ -423,6 +424,17 @@ class ForensicController extends Controller
         try {
             // 1. Ambil data record audit murni dari database Oracle
             $audit = $this->findAccessibleAudit($id);
+            $finalResultData = $audit->final_result;
+
+            if (is_string($finalResultData)) {
+                $finalResultData = json_decode($finalResultData, true) ?: [];
+            }
+
+            $fileExtension = strtolower(pathinfo((string) ($audit->image_name ?? $audit->s3_path), PATHINFO_EXTENSION));
+
+            if ($fileExtension !== 'pdf') {
+                return $this->downloadSummaryPdf($audit, $fileExtension);
+            }
 
             // 2. Ambil referensi nama file asli dari field database yang valid (image_name)
             $namaFile = $audit->image_name ?? $audit->s3_path ?? null;
@@ -456,14 +468,6 @@ class ForensicController extends Controller
 
                     return back()->with('warning', 'Berkas fisik dokumen pemeriksaan belum tersedia di server local storage. Silakan lakukan pemeriksaan ulang.');
                 }
-            }
-
-            // 3. SEKSION PEMBONGKARAN JSON BERTIINGKAT KHUSUS DARI KOLOM final_result
-            $finalResultData = $audit->final_result;
-
-            // Jika properti di model belum di-cast array murni (masih berbentuk string JSON), lakukan decode
-            if (is_string($finalResultData)) {
-                $finalResultData = json_decode($finalResultData, true);
             }
 
             // Selam ke dalam struktur array bertingkat: final_result -> full_report -> classification_map
@@ -534,5 +538,25 @@ class ForensicController extends Controller
         Auth::setUser($accessToken->tokenable);
 
         return $this->downloadPdf($id);
+    }
+
+    private function downloadSummaryPdf(ForensicAnalysis $analysis, string $fileExtension)
+    {
+        $isDocument = in_array($fileExtension, ['pdf', 'docx'], true);
+        $waktuAnalisis = $analysis->created_at
+            ? $analysis->created_at->setTimezone('Asia/Jakarta')->format('d M Y, H:i').' WIB'
+            : now('Asia/Jakarta')->format('d M Y, H:i').' WIB';
+
+        $pdf = Pdf::loadView('user.pdf-report', [
+            'analysis' => $analysis,
+            'isDocument' => $isDocument,
+            'fileExtension' => $fileExtension ?: 'unknown',
+            'waktuAnalisis' => $waktuAnalisis,
+            'generatedAt' => now('Asia/Jakarta')->format('d M Y, H:i').' WIB',
+        ])->setPaper('a4');
+
+        $fileName = 'REPORT_VERIDITY_#VRD-'.$analysis->id.'.pdf';
+
+        return $pdf->download($fileName);
     }
 }
