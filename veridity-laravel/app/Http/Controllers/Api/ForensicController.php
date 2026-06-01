@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ForensicResource;
 use App\Models\ForensicAnalysis;
+use App\Models\User;
 use App\Services\AuditReportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -48,6 +49,17 @@ class ForensicController extends Controller
     private function reportService(): AuditReportService
     {
         return app(AuditReportService::class);
+    }
+
+    private function integrationUserId(): ?int
+    {
+        $configuredUserId = config('services.veridity.integration_user_id');
+
+        if ($configuredUserId && User::whereKey($configuredUserId)->exists()) {
+            return (int) $configuredUserId;
+        }
+
+        return User::orderBy('id')->value('id');
     }
 
     private function runImageAnalysisCommand(string $fullPathFile, string $outputFolder): array
@@ -170,6 +182,123 @@ class ForensicController extends Controller
             'message' => 'Gambar berhasil diunggah dan sedang dianalisis',
             'data' => $analysis,
         ], 201);
+    }
+
+    public function analyzeDistriProof(Request $request)
+    {
+        set_time_limit(300);
+
+        $expectedKey = (string) config('services.veridity.distri_integration_key');
+        $providedKey = (string) $request->header('X-Veridity-Integration-Key');
+
+        if ($expectedKey === '' || ! hash_equals($expectedKey, $providedKey)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Integration key tidak valid.',
+            ], 401);
+        }
+
+        $request->validate([
+            'proof' => 'required|image|mimes:jpeg,png,jpg|max:15000',
+            'order_id' => 'required|string|max:80',
+            'payment_method' => 'required|string|max:80',
+            'payment_channel' => 'required|string|max:120',
+            'source' => 'nullable|string|max:40',
+        ]);
+
+        $userId = $this->integrationUserId();
+        if (! $userId) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User integrasi VERIDITY belum tersedia.',
+            ], 500);
+        }
+
+        try {
+            $file = $request->file('proof');
+            $filename = time().'_distri_'.$request->input('order_id').'_'.str_replace(' ', '_', $file->getClientOriginalName());
+            $path = $file->storeAs('uploads/distri', $filename, 'public');
+            $fullPathFile = storage_path('app/public/'.$path);
+
+            $outputFolder = storage_path('app/public/results/distri');
+            if (! file_exists($outputFolder)) {
+                mkdir($outputFolder, 0777, true);
+            }
+
+            $result = $this->runImageAnalysisCommand($fullPathFile, $outputFolder);
+
+            if (! $result || ($result['status'] ?? null) === 'error') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Analisis bukti pembayaran gagal: '.($result['message'] ?? 'Output Python tidak tersedia'),
+                ], 500);
+            }
+
+            $elaScore = $result['results']['ela']['metrics']['anomaly_score'] ?? 0;
+            $ganScore = $result['results']['ai_detection']['metrics']['gan_score'] ?? 0;
+            $metaVerdict = $result['results']['metadata']['summary']['verdict'] ?? 'UNKNOWN';
+            $noiseInterpretation = $result['results']['noise']['interpretation'] ?? '';
+            $finalScore = $result['final_score'] ?? 0;
+
+            $isNoiseInconsistent = str_contains($noiseInterpretation, 'tidak rata') || str_contains($noiseInterpretation, 'keanehan');
+            $isMetaManipulated = $metaVerdict === 'REKAYASA DIGITAL / EDITING' || str_contains($metaVerdict, 'EDITING');
+
+            $statusLabel = 'BUKTI PEMBAYARAN AMAN';
+            $statusColor = 'success';
+
+            if ($ganScore > 0.5 || ($result['verdict'] ?? '') === 'DEEPFAKE / AI GENERATED') {
+                $statusLabel = 'BUKTI PEMBAYARAN BERBAHAYA';
+                $statusColor = 'danger';
+            } elseif ($finalScore < 45 || $elaScore > 45 || $ganScore > 0.85 || ($result['verdict'] ?? '') === 'MANIPULATED') {
+                $statusLabel = 'BUKTI PEMBAYARAN BERBAHAYA';
+                $statusColor = 'danger';
+            } elseif ($elaScore > 15 || $ganScore > 0.4 || ($isNoiseInconsistent && $elaScore > 8.0) || $isMetaManipulated) {
+                $statusLabel = 'BUKTI PEMBAYARAN MENCURIGAKAN';
+                $statusColor = 'warning';
+            }
+
+            if ($statusColor === 'success' && isset($result['results']['noise'])) {
+                $result['results']['noise']['warnings'] = [];
+                $result['results']['noise']['interpretation'] = 'Noise bukti pembayaran masih berada dalam toleransi hasil akhir dan tidak cukup kuat untuk menyimpulkan manipulasi.';
+            }
+
+            $analysis = ForensicAnalysis::create([
+                'user_id' => $userId,
+                'image_name' => $filename,
+                's3_path' => $path,
+                'ela_score' => $elaScore,
+                'is_deepfake' => ($ganScore > 0.5),
+                'metadata_details' => array_merge($result['results']['metadata'] ?? [], [
+                    'integration' => [
+                        'source' => $request->input('source', 'distri'),
+                        'order_id' => $request->input('order_id'),
+                        'payment_method' => $request->input('payment_method'),
+                        'payment_channel' => $request->input('payment_channel'),
+                    ],
+                ]),
+                'noise_status' => $result['results']['noise']['warnings'][0] ?? ($isNoiseInconsistent ? 'Inconsistent Noise Detected' : 'Normal'),
+                'final_result' => [
+                    'summary_label' => $statusLabel,
+                    'summary_color' => $statusColor,
+                    'full_report' => $result,
+                ],
+            ]);
+
+            $this->reportService()->ensureReport($analysis);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Nota berhasil dianalisis',
+                'data' => [
+                    'audit_id' => $analysis->id,
+                    'summary_label' => $statusLabel,
+                    'summary_color' => $statusColor,
+                    'final_score' => $finalScore,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function analyze(Request $request)

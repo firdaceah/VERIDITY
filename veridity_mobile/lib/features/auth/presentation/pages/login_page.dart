@@ -340,7 +340,7 @@ class LoginState extends State<Login> {
           border: InputBorder.none,
           suffixIcon: IconButton(
             icon: Icon(
-              _isObscure ? Icons.visibility_off : Icons.visibility,
+              _isObscure ? Icons.visibility : Icons.visibility_off,
               color: Colors.grey,
             ),
             onPressed: () {
@@ -394,7 +394,7 @@ class LoginState extends State<Login> {
         suffixIcon: IconButton(
           onPressed: onToggle,
           icon: Icon(
-            hidden ? Icons.visibility_off : Icons.visibility,
+            hidden ? Icons.visibility : Icons.visibility_off,
             color: Colors.white54,
           ),
         ),

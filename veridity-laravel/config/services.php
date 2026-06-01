@@ -39,7 +39,8 @@ return [
         'python_engine_url' => env('PYTHON_ENGINE_URL', 'http://127.0.0.1:8001'),
         'python_path' => env('PYTHON_PATH'),
         'python_toolkit_script' => env('PYTHON_TOOLKIT_SCRIPT'),
-        'distri_integration_key' => env('DISTRIBUTOR_API_KEY'),
+        'distri_integration_key' => env('DISTRIBUTOR_API_KEY', env('VERIDITY_INTEGRATION_KEY')),
+        'integration_user_id' => env('VERIDITY_INTEGRATION_USER_ID'),
     ],
 
 ];

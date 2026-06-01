@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'veridity' => [
+        'base_url' => env('VERIDITY_BASE_URL', 'http://127.0.0.1:8000'),
+        'integration_key' => env('VERIDITY_INTEGRATION_KEY', env('DISTRIBUTOR_API_KEY')),
+    ],
+
 ];

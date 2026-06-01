@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\VeridityProofService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -140,5 +141,31 @@ class ProductController extends Controller
             ->get();
 
         return view('admin.products.veridity', compact('orders'));
+    }
+
+    public function retryVeridity($id, VeridityProofService $veridityProofService)
+    {
+        $order = DB::table('orders')->where('id', $id)->first();
+
+        if (! $order) {
+            abort(404);
+        }
+
+        if (! $order->proof_of_transfer) {
+            return back()->with('error', 'Order ini tidak memiliki bukti pembayaran untuk dianalisis ulang.');
+        }
+
+        $result = $veridityProofService->analyze(
+            $order->proof_of_transfer,
+            $order->order_id_string,
+            $order->payment_method ?? 'unknown',
+            $order->payment_channel ?? 'unknown'
+        );
+
+        DB::table('orders')->where('id', $id)->update(array_merge($result, [
+            'updated_at' => now(),
+        ]));
+
+        return back()->with('success', 'Analisis VERIDITY berhasil dijalankan ulang.');
     }
 }

@@ -231,7 +231,7 @@ class SignUpState extends State<SignUp> {
           border: InputBorder.none,
           suffixIcon: IconButton(
             icon: Icon(
-              obscure ? Icons.visibility_off : Icons.visibility,
+              obscure ? Icons.visibility : Icons.visibility_off,
               color: Colors.grey,
             ),
             onPressed: toggle,

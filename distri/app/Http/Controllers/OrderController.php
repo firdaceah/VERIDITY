@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\VeridityProofService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http; // Disiapkan untuk jembatan integrasi API nanti
 
 class OrderController extends Controller
 {
@@ -27,19 +27,33 @@ class OrderController extends Controller
     {
         $product = DB::table('products')->where('id', $id)->first();
         if (!$product) abort(404);
+        $paymentMethods = config('payment_methods');
 
-        return view('distri.checkout', compact('product'));
+        return view('distri.checkout', compact('product', 'paymentMethods'));
     }
 
     // 4. STORE ORDER: Memproses pesanan + Upload Nota Langsung ke Folder Public Terluar
-    public function storeOrder(Request $request)
+    public function storeOrder(Request $request, VeridityProofService $veridityProofService)
     {
+        $paymentMethods = config('payment_methods');
+        $methodKey = (string) $request->input('payment_method');
+        $channelKey = (string) $request->input('payment_channel');
+        $selectedMethod = $paymentMethods[$methodKey] ?? null;
+        $selectedChannel = $selectedMethod['channels'][$channelKey] ?? null;
+        $requiresProof = (bool) ($selectedMethod['requires_proof'] ?? true);
+
         $request->validate([
             'product_id' => 'required',
             'quantity' => 'required|numeric|min:1',
             'total_amount' => 'required|numeric',
-            'proof_of_transfer' => 'required|image|mimes:jpg,jpeg,png|max:10120'
+            'payment_method' => 'required|string',
+            'payment_channel' => 'required|string',
+            'proof_of_transfer' => ($requiresProof ? 'required' : 'nullable').'|image|mimes:jpg,jpeg,png|max:10120',
         ]);
+
+        if (! $selectedMethod || ! $selectedChannel) {
+            return back()->withErrors(['payment_method' => 'Metode pembayaran tidak valid.'])->withInput();
+        }
 
         // --- SOLUSI AMAN GAMBAR: Dipindahkan langsung ke public/proofs ---
         $fileName = null;
@@ -53,6 +67,23 @@ class OrderController extends Controller
 
         // Format Invoice sesuai bawaan kode awalmu
         $orderId = 'TRX-' . rand(1000, 9999);
+        $veridityData = [
+            'veridity_status' => $requiresProof ? 'checking' : 'not_required',
+            'payment_status' => $requiresProof ? 'checking' : 'pending_cod',
+            'veridity_message' => $requiresProof
+                ? 'Bukti pembayaran sedang dikirim ke VERIDITY.'
+                : 'Metode pembayaran tidak membutuhkan unggah bukti.',
+            'veridity_checked_at' => $requiresProof ? null : now(),
+        ];
+
+        if ($requiresProof && $fileName) {
+            $veridityData = array_merge($veridityData, $veridityProofService->analyze(
+                $fileName,
+                $orderId,
+                $methodKey,
+                $channelKey
+            ));
+        }
 
         // Simpan Data rill ke tabel ORDERS skema Oracle
         DB::table('orders')->insert([
@@ -62,20 +93,20 @@ class OrderController extends Controller
             'quantity' => $request->quantity,
             'total_amount' => $request->total_amount,
             'proof_of_transfer' => $fileName,
-            'veridity_status' => 'checking', // Status awal mengambang sebelum diproses engine AI
+            'payment_method' => $methodKey,
+            'payment_channel' => $channelKey,
+            'payment_status' => $veridityData['payment_status'],
+            'payment_instruction' => $selectedChannel['instruction'],
+            'veridity_status' => $veridityData['veridity_status'],
+            'veridity_audit_id' => $veridityData['veridity_audit_id'] ?? null,
+            'veridity_score' => $veridityData['veridity_score'] ?? null,
+            'veridity_message' => $veridityData['veridity_message'] ?? null,
+            'veridity_checked_at' => $veridityData['veridity_checked_at'] ?? null,
             'created_at' => now(),
             'updated_at' => now()
         ]);
 
-        /* |--------------------------------------------------------------------------
-        | POS INTEGRASI API VERIDITY ENGINE
-        |--------------------------------------------------------------------------
-        | Nanti di titik ini kita selipkan Http::attach() buat ngelempar file 
-        | public_path('proofs/' . $fileName) ke endpoint backend veridity-laravel.
-        |
-        */
-
-        return redirect()->route('distri.orders')->with('success', 'Pesanan berhasil dikirim! Nota transfer Anda sedang dianalisis oleh Veridity AI Engine.');
+        return redirect()->route('distri.orders')->with('success', 'Pesanan berhasil dikirim! Status validasi pembayaran sudah diperbarui.');
     }
 
     // 5. Menampilkan Riwayat Pesanan Reseller (Join Table)

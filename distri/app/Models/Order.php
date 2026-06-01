@@ -15,7 +15,15 @@ class Order extends Model
         'quantity',
         'total_amount',
         'proof_of_transfer',
-        'veridity_status'
+        'payment_method',
+        'payment_channel',
+        'payment_status',
+        'payment_instruction',
+        'veridity_status',
+        'veridity_audit_id',
+        'veridity_score',
+        'veridity_message',
+        'veridity_checked_at',
     ];
 
     // Relasi balik ke User

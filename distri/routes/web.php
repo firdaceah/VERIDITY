@@ -63,6 +63,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/products/{id}/update', [AdminProductController::class, 'update'])->name('products.update');
         Route::delete('/products/{id}/delete', [AdminProductController::class, 'destroy'])->name('products.destroy');
         Route::get('/veridity-validation', [AdminProductController::class, 'veridityOrders'])->name('products.veridity');
+        Route::post('/veridity-validation/{id}/retry', [AdminProductController::class, 'retryVeridity'])->name('products.veridity.retry');
     });
 });
 

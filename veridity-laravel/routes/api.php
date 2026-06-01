@@ -9,6 +9,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/audits/{id}/report-mobile', [ForensicController::class, 'downloadPdfForMobile']);
+Route::post('/integrations/distri/analyze-proof', [ForensicController::class, 'analyzeDistriProof']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/audits', [ForensicController::class, 'analyze']);
