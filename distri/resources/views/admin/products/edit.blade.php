@@ -94,6 +94,26 @@
                 <input type="text" name="name" class="form-control" value="{{ old('name', $product->name) }}" placeholder="Contoh: Beras Lopo Ijo Premium" required>
             </div>
 
+            <div class="form-group">
+                <label>Kategori Produk</label>
+                <select name="category_id" class="form-control">
+                    <option value="">Tanpa kategori</option>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category->id }}" @selected(old('category_id', $product->category_id) == $category->id)>{{ $category->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Brand</label>
+                <input type="text" name="brand" class="form-control" value="{{ old('brand', $product->brand) }}" placeholder="Contoh: Distri Mart">
+            </div>
+
+            <div class="form-group">
+                <label>Deskripsi</label>
+                <textarea name="description" class="form-control" rows="3" placeholder="Deskripsi produk">{{ old('description', $product->description) }}</textarea>
+            </div>
+
             <div style="display: flex; gap: 16px;">
                 <div class="form-group" style="flex: 1;">
                     <label>Satuan Unit Grosir</label>
@@ -110,6 +130,17 @@
                 <input type="number" name="price" class="form-control" value="{{ old('price', $product->price) }}" placeholder="Contoh: 145000" min="0" required>
             </div>
 
+            <div style="display: flex; gap: 16px;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Stok</label>
+                    <input type="number" name="stock" class="form-control" value="{{ old('stock', $product->stock ?? 0) }}" min="0">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Diskon (%)</label>
+                    <input type="number" name="discount_percentage" class="form-control" value="{{ old('discount_percentage', $product->discount_percentage ?? 0) }}" min="0" max="100">
+                </div>
+            </div>
+
             <div class="form-group">
                 <label>Foto Produk Komoditas</label>
                 <input type="file" name="image" class="form-control" accept="image/*" onchange="previewImage(this)">
@@ -118,7 +149,7 @@
                 {{-- Preview Foto Lama vs Baru --}}
                 <div class="img-preview-box">
                     @if($product->image)
-                        <img src="{{ asset('storage/products/' . $product->image) }}" id="img-display" class="current-img">
+                        <img src="{{ asset('products/' . $product->image) }}" id="img-display" class="current-img">
                     @else
                         <div id="img-display" style="width: 60px; height: 60px; border-radius: 8px; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 20px;">📦</div>
                     @endif

@@ -9,11 +9,19 @@ class Product extends Model
     protected $table = 'PRODUCTS';
 
     protected $fillable = [
+        'category_id',
+        'external_id',
         'name',
+        'brand',
+        'description',
         'unit',
         'min_qty',
         'price',
-        'image'
+        'stock',
+        'rating',
+        'discount_percentage',
+        'image',
+        'image_url',
     ];
 
     // Relasi: Satu produk bisa dibeli di banyak order

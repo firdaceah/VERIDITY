@@ -28,6 +28,20 @@
             <p style="font-size: 13px; color: var(--muted);">Pantau hasil analisis bukti pembayaran yang dikirim otomatis ke VERIDITY.</p>
         </div>
 
+        <form method="GET" action="{{ route('admin.products.veridity') }}" style="background:#fff; border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:20px; display:flex; gap:12px; align-items:end;">
+            <div style="flex:1;">
+                <label style="font-size:11px; color:var(--muted); font-weight:900; text-transform:uppercase;">Filter Toko</label>
+                <select name="store_id" class="form-control" style="margin-top:6px;">
+                    <option value="">Semua toko</option>
+                    @foreach ($stores as $store)
+                        <option value="{{ $store->id }}" @selected((string) request('store_id') === (string) $store->id)>{{ $store->name }} - {{ $store->email }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <button type="submit" class="btn-action btn-retry">Terapkan</button>
+            <a href="{{ route('admin.products.veridity') }}" class="btn-action" style="text-decoration:none; background:var(--card); color:var(--navy);">Reset</a>
+        </form>
+
         @foreach (['success' => 'green', 'error' => 'red'] as $key => $color)
             @if (session($key))
                 <div style="background: var(--{{ $color }}-bg); color: var(--{{ $color }}); border: 1px solid var(--{{ $color }}-border); padding: 14px; border-radius: 12px; margin-bottom: 20px; font-weight: 700; font-size: 14px;">

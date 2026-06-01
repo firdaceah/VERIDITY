@@ -81,7 +81,13 @@
                 <p style="font-size: 13px; color: var(--muted);">POV Admin Database: Operasi CRUD Tabel PRODUCTS Skema
                     Oracle.</p>
             </div>
-            <a href="{{ route('admin.products.create') }}" class="add-btn">+ Tambah Produk Baru</a>
+            <div style="display:flex; gap:10px;">
+                <form method="POST" action="{{ route('admin.products.sync-dummy') }}">
+                    @csrf
+                    <button class="add-btn" style="border:0; cursor:pointer;" type="submit">Sync DummyJSON</button>
+                </form>
+                <a href="{{ route('admin.products.create') }}" class="add-btn">+ Tambah Produk Baru</a>
+            </div>
         </div>
 
         @if (session('success'))
@@ -96,7 +102,8 @@
                 <tr>
                     <th>Foto</th>
                     <th>Nama Produk</th>
-                    <th>Satuan Grosir</th>
+                    <th>Kategori</th>
+                    <th>Stok</th>
                     <th>Harga</th>
                     <th>Aksi</th>
                 </tr>
@@ -116,7 +123,8 @@
                             </div>
                         </td>
                         <td style="font-weight: 700;">{{ $p->name }}</td>
-                        <td>Min. {{ $p->min_qty }} {{ $p->unit }}</td>
+                        <td>{{ $p->category_name ?? '-' }}</td>
+                        <td>{{ $p->stock ?? 0 }}</td>
                         <td style="font-weight: 700; color: var(--accent);">Rp {{ number_format($p->price, 0, ',', '.') }}
                         </td>
                         <td>

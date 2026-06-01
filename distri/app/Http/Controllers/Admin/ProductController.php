@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\DummyProductSyncService;
 use App\Services\VeridityProofService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,14 +12,26 @@ class ProductController extends Controller
 {
     public function index()
     {
-        $products = DB::table('products')->orderBy('id', 'desc')->get();
+        $products = DB::table('products')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+            ->select('products.*', 'categories.name as category_name')
+            ->orderBy('products.id', 'desc')
+            ->get();
         return view('admin.products.index', compact('products'));
+    }
+
+    public function syncDummyProducts(DummyProductSyncService $syncService)
+    {
+        $count = $syncService->sync();
+
+        return back()->with('success', "{$count} produk dummy minimarket berhasil disinkronkan.");
     }
 
     // 2. CREATE: Menampilkan form tambah produk
     public function create()
     {
-        return view('admin.products.create');
+        $categories = DB::table('categories')->orderBy('name')->get();
+        return view('admin.products.create', compact('categories'));
     }
 
     // 3. STORE: Menyimpan produk baru + upload foto langsung ke folder public terluar
@@ -26,10 +39,15 @@ class ProductController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'category_id' => 'nullable|exists:categories,id',
+            'brand' => 'nullable|string|max:120',
+            'description' => 'nullable|string',
             'unit' => 'required|string|max:100',
             'min_qty' => 'required|numeric|min:1',
             'price' => 'required|numeric|min:0',
-            'image' => 'required|image|mimes:jpeg,png,jpg|max:5120', // Maks 5MB
+            'stock' => 'nullable|numeric|min:0',
+            'discount_percentage' => 'nullable|numeric|min:0|max:100',
+            'image' => 'required|image|mimes:jpeg,png,jpg|max:5120',
         ]);
 
         // Handle upload file foto produk langsung ke public/products
@@ -43,10 +61,16 @@ class ProductController extends Controller
         }
 
         DB::table('products')->insert([
+            'category_id' => $request->category_id,
             'name' => $request->name,
+            'brand' => $request->brand,
+            'description' => $request->description,
             'unit' => $request->unit,
             'min_qty' => $request->min_qty,
             'price' => $request->price,
+            'stock' => $request->stock ?? 50,
+            'discount_percentage' => $request->discount_percentage ?? 0,
+            'rating' => 4.5,
             'image' => $fileName,
             'created_at' => now(),
             'updated_at' => now(),
@@ -60,8 +84,9 @@ class ProductController extends Controller
     {
         $product = DB::table('products')->where('id', $id)->first();
         if (!$product) abort(404);
+        $categories = DB::table('categories')->orderBy('name')->get();
 
-        return view('admin.products.edit', compact('product'));
+        return view('admin.products.edit', compact('product', 'categories'));
     }
 
     // 5. UPDATE: Memperbarui data produk dan mengganti file di folder public terluar
@@ -69,9 +94,14 @@ class ProductController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'category_id' => 'nullable|exists:categories,id',
+            'brand' => 'nullable|string|max:120',
+            'description' => 'nullable|string',
             'unit' => 'required|string|max:100',
             'min_qty' => 'required|numeric|min:1',
             'price' => 'required|numeric|min:0',
+            'stock' => 'nullable|numeric|min:0',
+            'discount_percentage' => 'nullable|numeric|min:0|max:100',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
         ]);
 
@@ -98,10 +128,15 @@ class ProductController extends Controller
         }
 
         DB::table('products')->where('id', $id)->update([
+            'category_id' => $request->category_id,
             'name' => $request->name,
+            'brand' => $request->brand,
+            'description' => $request->description,
             'unit' => $request->unit,
             'min_qty' => $request->min_qty,
             'price' => $request->price,
+            'stock' => $request->stock ?? 0,
+            'discount_percentage' => $request->discount_percentage ?? 0,
             'image' => $fileName,
             'updated_at' => now(),
         ]);
@@ -133,14 +168,39 @@ class ProductController extends Controller
     public function veridityOrders()
     {
         // Mengambil data pesanan, join dengan tabel users dan products
-        $orders = DB::table('orders')
+        $query = DB::table('orders')
             ->join('users', 'orders.user_id', '=', 'users.id')
             ->join('products', 'orders.product_id', '=', 'products.id')
-            ->select('orders.*', 'users.name as reseller_name', 'products.name as product_name')
-            ->orderBy('orders.created_at', 'desc')
+            ->select('orders.*', 'users.name as reseller_name', 'products.name as product_name');
+
+        if (request('store_id')) {
+            $query->where('orders.user_id', request('store_id'));
+        }
+
+        $orders = $query->orderBy('orders.created_at', 'desc')->get();
+        $stores = DB::table('users')
+            ->where('role', 'reseller')
+            ->orderBy('name')
             ->get();
 
-        return view('admin.products.veridity', compact('orders'));
+        return view('admin.products.veridity', compact('orders', 'stores'));
+    }
+
+    public function stores()
+    {
+        $stores = DB::table('users')
+            ->where('role', 'reseller')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($store) {
+                $store->orders_count = DB::table('orders')->where('user_id', $store->id)->count();
+                $store->paid_count = DB::table('orders')->where('user_id', $store->id)->where('payment_status', 'paid')->count();
+                $store->rejected_count = DB::table('orders')->where('user_id', $store->id)->where('payment_status', 'rejected')->count();
+
+                return $store;
+            });
+
+        return view('admin.products.stores', compact('stores'));
     }
 
     public function retryVeridity($id, VeridityProofService $veridityProofService)

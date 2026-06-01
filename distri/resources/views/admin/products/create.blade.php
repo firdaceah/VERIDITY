@@ -12,6 +12,23 @@
                 <input type="text" name="name" class="form-control" placeholder="Contoh: Beras Premium 50kg" required>
             </div>
             <div class="form-group">
+                <label>Kategori</label>
+                <select name="category_id" class="form-control">
+                    <option value="">Tanpa kategori</option>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Brand</label>
+                <input type="text" name="brand" class="form-control" placeholder="Contoh: Distri Mart">
+            </div>
+            <div class="form-group">
+                <label>Deskripsi</label>
+                <textarea name="description" class="form-control" rows="3" placeholder="Deskripsi produk"></textarea>
+            </div>
+            <div class="form-group">
                 <label>Satuan Jual</label>
                 <input type="text" name="unit" class="form-control" placeholder="Contoh: per karung / koli" required>
             </div>
@@ -22,6 +39,16 @@
             <div class="form-group">
                 <label>Harga Satuan (Rp)</label>
                 <input type="number" name="price" class="form-control" placeholder="Contoh: 650000" required>
+            </div>
+            <div style="display:flex; gap:12px;">
+                <div class="form-group" style="flex:1;">
+                    <label>Stok</label>
+                    <input type="number" name="stock" class="form-control" value="50" min="0">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>Diskon (%)</label>
+                    <input type="number" name="discount_percentage" class="form-control" value="0" min="0" max="100">
+                </div>
             </div>
             <div class="form-group">
                 <label>Foto Produk (Rill Gambar)</label>

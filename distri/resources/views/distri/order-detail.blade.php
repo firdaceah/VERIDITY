@@ -44,6 +44,21 @@
         </div>
 
         <div class="detail-card">
+            <div style="font-size:11px; color:var(--muted); font-weight:800; letter-spacing:1px; text-transform:uppercase;">Item Pesanan</div>
+            <div style="margin-top:12px;">
+                @foreach ($items as $item)
+                    <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px;">
+                        <div>
+                            <strong>{{ $item->product_name }}</strong>
+                            <div style="color:var(--muted); margin-top:3px;">{{ $item->quantity }} x Rp {{ number_format($item->price, 0, ',', '.') }}</div>
+                        </div>
+                        <strong>Rp {{ number_format($item->subtotal, 0, ',', '.') }}</strong>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="detail-card">
             <div style="font-size:11px; color:var(--muted); font-weight:800; letter-spacing:1px; text-transform:uppercase;">Ringkasan VERIDITY</div>
             <p style="font-size:14px; color:var(--navy2); line-height:1.7; margin-top:10px;">{{ $order->veridity_message ?? 'Menunggu analisis.' }}</p>
             @if ($order->veridity_score !== null)
