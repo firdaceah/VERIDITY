@@ -10,12 +10,17 @@
         .b-rejected { background:var(--red-bg); color:var(--red); border:1px solid var(--red-border); }
         .b-review_required, .b-checking, .b-error { background:var(--yellow-bg); color:var(--yellow); border:1px solid var(--yellow-border); }
         .btn-retry { background:var(--accent); color:#fff; border:0; padding:11px 18px; border-radius:10px; font-weight:800; cursor:pointer; }
+        .btn-accept { background:var(--green-bg); color:var(--green); border:1px solid var(--green-border); padding:11px 18px; border-radius:10px; font-weight:800; cursor:pointer; }
+        .btn-reject { background:var(--red-bg); color:var(--red); border:1px solid var(--red-border); padding:11px 18px; border-radius:10px; font-weight:800; cursor:pointer; }
+        button:disabled { opacity:.45; cursor:not-allowed; }
     </style>
 @endsection
 
 @section('content')
     @php
         $status = $order->veridity_status ?? 'checking';
+        $orderLocked = in_array($order->payment_status ?? '', ['paid', 'rejected'], true)
+            || in_array($order->veridity_status ?? '', ['verified', 'rejected', 'not_required'], true);
         $methodLabel = config("payment_methods.{$order->payment_method}.label", $order->payment_method ?? '-');
         $channelLabel = config("payment_methods.{$order->payment_method}.channels.{$order->payment_channel}.label", $order->payment_channel ?? '-');
     @endphp
@@ -57,16 +62,26 @@
                     @if ($order->veridity_audit_id)
                         <p style="font-size:13px; margin-top:8px;">ID audit VERIDITY: <strong>#VRD-{{ $order->veridity_audit_id }}</strong></p>
                     @endif
-                    @if ($order->proof_of_transfer)
-                        <form method="POST" action="{{ route('admin.products.veridity.retry', $order->id) }}" style="margin-top:16px;">
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;">
+                        @if ($order->proof_of_transfer)
+                            <form method="POST" action="{{ route('admin.products.veridity.retry', $order->id) }}">
+                                @csrf
+                                <button class="btn-retry" type="submit">Retry Analisis VERIDITY</button>
+                            </form>
+                        @endif
+                        <form method="POST" action="{{ route('admin.products.veridity.manual-accept', $order->id) }}">
                             @csrf
-                            <button class="btn-retry" type="submit">Retry Analisis VERIDITY</button>
+                            <button class="btn-accept" type="submit" @disabled($orderLocked)>Terima Manual</button>
                         </form>
-                    @endif
+                        <form method="POST" action="{{ route('admin.products.veridity.manual-reject', $order->id) }}">
+                            @csrf
+                            <button class="btn-reject" type="submit" @disabled($orderLocked)>Tolak Manual</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
 
-        @include('partials.veridity-validation-checks', ['validation' => $validation])
+        @include('partials.veridity-validation-checks', ['validation' => $validation, 'showOcr' => true])
     </div>
 @endsection

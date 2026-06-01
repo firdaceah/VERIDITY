@@ -12,6 +12,28 @@
         #menu-toggle:checked~#mobile-menu {
             display: block;
         }
+
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+
+            .grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            h1 {
+                font-size: 2.5rem !important;
+                line-height: 1.1 !important;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
     </style>
 </head>
 

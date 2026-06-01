@@ -69,6 +69,7 @@ class VeridityProofService
         return [
             'veridity_status' => $veridityStatus,
             'payment_status' => $paymentStatus,
+            'order_status' => $paymentStatus === 'paid' ? 'packing' : 'checking',
             'veridity_audit_id' => $data['audit_id'] ?? null,
             'veridity_score' => $data['final_score'] ?? null,
             'veridity_message' => $data['summary_label'] ?? ($response->json('message') ?? 'Analisis selesai.'),

@@ -70,6 +70,7 @@
             border: 1px solid #FCA5A5;
             margin-left: 6px;
         }
+        .search-form { background:#fff; border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:18px; display:flex; gap:10px; }
     </style>
 @endsection
 
@@ -96,6 +97,14 @@
                 {{ session('success') }}
             </div>
         @endif
+
+        <form method="GET" action="{{ route('admin.products.index') }}" class="search-form">
+            <input class="form-control" type="search" name="q" value="{{ request('q') }}" placeholder="Cari produk, brand, atau kategori...">
+            <button class="add-btn" type="submit" style="border:0; cursor:pointer;">Cari</button>
+            @if (request('q'))
+                <a class="add-btn" href="{{ route('admin.products.index') }}" style="background:var(--card); color:var(--navy);">Reset</a>
+            @endif
+        </form>
 
         <table class="prod-table">
             <thead>

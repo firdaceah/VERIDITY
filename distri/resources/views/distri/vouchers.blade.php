@@ -24,7 +24,7 @@
                     <p style="font-size:13px; color:var(--muted); line-height:1.7; margin-top:8px;">
                         Potongan {{ $voucher->type === 'percent' ? number_format($voucher->value, 0).'%' : 'Rp '.number_format($voucher->value, 0, ',', '.') }} untuk minimal belanja Rp {{ number_format($voucher->minimum_order, 0, ',', '.') }}.
                     </p>
-                    <a href="{{ route('distri.cart') }}" class="btn">Pakai di Checkout</a>
+                    <a href="{{ route('distri.cart') }}" class="btn">Pakai Voucher</a>
                 </div>
             @endforeach
         </div>

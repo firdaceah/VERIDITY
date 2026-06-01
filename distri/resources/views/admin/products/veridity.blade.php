@@ -17,6 +17,9 @@
         .btn-action { padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; transition: 0.15s; }
         .btn-retry { background: var(--accent); color: #fff; }
         .btn-retry:hover { background: var(--navy3); }
+        .btn-accept { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+        .btn-reject { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+        .btn-action:disabled { opacity:.45; cursor:not-allowed; }
     </style>
 @endsection
 
@@ -36,6 +39,15 @@
                     @foreach ($stores as $store)
                         <option value="{{ $store->id }}" @selected((string) request('store_id') === (string) $store->id)>{{ $store->name }} - {{ $store->email }}</option>
                     @endforeach
+                </select>
+            </div>
+            <div style="width:180px;">
+                <label style="font-size:11px; color:var(--muted); font-weight:900; text-transform:uppercase;">Status</label>
+                <select name="status" class="form-control" style="margin-top:6px;">
+                    <option value="">Semua</option>
+                    <option value="accepted" @selected(request('status') === 'accepted')>Accepted</option>
+                    <option value="rejected" @selected(request('status') === 'rejected')>Rejected</option>
+                    <option value="cod" @selected(request('status') === 'cod')>Proses COD</option>
                 </select>
             </div>
             <button type="submit" class="btn-action btn-retry">Terapkan</button>
@@ -59,6 +71,8 @@
             @foreach ($orders as $order)
                 @php
                     $status = $order->veridity_status ?? 'checking';
+                    $orderLocked = in_array($order->payment_status ?? '', ['paid', 'rejected'], true)
+                        || in_array($order->veridity_status ?? '', ['verified', 'rejected', 'not_required'], true);
                     $methodLabel = config("payment_methods.{$order->payment_method}.label", $order->payment_method ?? '-');
                     $channelLabel = config("payment_methods.{$order->payment_method}.channels.{$order->payment_channel}.label", $order->payment_channel ?? '-');
                 @endphp
@@ -104,10 +118,25 @@
                         </div>
 
                         @if (in_array($status, ['checking', 'error'], true) && $order->proof_of_transfer)
-                            <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+                            <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap:10px; flex-wrap:wrap;">
                                 <form method="POST" action="{{ route('admin.products.veridity.retry', $order->id) }}">
                                     @csrf
                                     <button class="btn-action btn-retry" type="submit">Retry Analisis VERIDITY</button>
+                                </form>
+                                <form method="POST" action="{{ route('admin.products.veridity.manual-accept', $order->id) }}">
+                                    @csrf
+                                    <button class="btn-action btn-accept" type="submit" @disabled($orderLocked)>Terima Manual</button>
+                                </form>
+                                <form method="POST" action="{{ route('admin.products.veridity.manual-reject', $order->id) }}">
+                                    @csrf
+                                    <button class="btn-action btn-reject" type="submit" @disabled($orderLocked)>Tolak Manual</button>
+                                </form>
+                            </div>
+                        @elseif (($order->payment_method ?? '') === 'cod')
+                            <div style="margin-top: 16px; display: flex; justify-content: flex-end; gap:10px; flex-wrap:wrap;">
+                                <form method="POST" action="{{ route('admin.products.veridity.manual-accept', $order->id) }}">
+                                    @csrf
+                                    <button class="btn-action btn-accept" type="submit" @disabled($orderLocked)>Proses COD</button>
                                 </form>
                             </div>
                         @endif

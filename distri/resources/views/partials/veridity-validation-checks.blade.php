@@ -34,7 +34,7 @@
         @endforelse
     </div>
 
-    @if (!empty($validation['ocr_text']))
+    @if (($showOcr ?? false) && !empty($validation['ocr_text']))
         <details style="margin-top:18px;">
             <summary style="cursor:pointer; font-size:12px; font-weight:800; color:var(--accent);">Lihat teks OCR</summary>
             <pre style="white-space:pre-wrap; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px; margin-top:10px; font-size:12px; color:var(--navy2);">{{ $validation['ocr_text'] }}</pre>

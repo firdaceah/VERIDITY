@@ -62,6 +62,29 @@ class CartController extends Controller
         return back();
     }
 
+    public function checkoutSelected(Request $request)
+    {
+        $validated = $request->validate([
+            'cart_item_ids' => 'required|array|min:1',
+            'cart_item_ids.*' => 'integer',
+        ]);
+
+        $ids = DB::table('cart_items')
+            ->where('user_id', Auth::id())
+            ->whereIn('id', $validated['cart_item_ids'])
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if (empty($ids)) {
+            return back()->with('error', 'Pilih minimal satu produk untuk checkout.');
+        }
+
+        session(['checkout_cart_item_ids' => $ids]);
+
+        return redirect()->route('distri.checkout', 'cart');
+    }
+
     public function destroy($id)
     {
         DB::table('cart_items')->where('id', $id)->where('user_id', Auth::id())->delete();
@@ -75,8 +98,15 @@ class CartController extends Controller
             ->join('products', 'cart_items.product_id', '=', 'products.id')
             ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->where('cart_items.user_id', Auth::id())
-            ->select('cart_items.*', 'products.name', 'products.price', 'products.image', 'products.image_url', 'products.stock', 'categories.name as category_name')
+            ->select('cart_items.*', 'products.name', 'products.price as original_price', 'products.discount_percentage', 'products.image', 'products.image_url', 'products.stock', 'categories.name as category_name')
             ->orderBy('cart_items.created_at', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                $price = (float) ($item->original_price ?? 0);
+                $discount = max(0, min(100, (float) ($item->discount_percentage ?? 0)));
+                $item->price = (int) round($price - ($price * $discount / 100));
+
+                return $item;
+            });
     }
 }

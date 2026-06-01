@@ -90,7 +90,9 @@
                             <form method="POST" action="{{ route('distri.cart.add') }}">
                                 @csrf
                                 <input type="hidden" name="product_id" value="{{ $product->id }}">
-                                <button class="cart-btn" type="submit" title="Tambah ke keranjang">🛒</button>
+                                <button class="cart-btn" type="submit" title="Tambah ke keranjang" aria-label="Tambah ke keranjang">
+                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h8.96a2 2 0 0 0 1.95-1.57l1.35-6.43H5.12"/></svg>
+                                </button>
                             </form>
                         </div>
                     </div>

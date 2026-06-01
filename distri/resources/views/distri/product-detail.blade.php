@@ -37,7 +37,7 @@
                 <p style="font-size:14px; color:var(--muted); margin-top:10px;">{{ $product->brand ?? 'Distri Mart' }} · Stok {{ $product->stock ?? 0 }} · Rating {{ number_format($product->rating ?? 0, 1) }}</p>
                 <div style="font-size:32px; color:var(--accent); font-weight:900; margin-top:18px;">Rp {{ number_format($product->price, 0, ',', '.') }}</div>
                 @if (($product->discount_percentage ?? 0) > 0)
-                    <div style="margin-top:8px; color:var(--red); font-weight:900;">Diskon {{ number_format($product->discount_percentage, 0) }}%</div>
+                    <div style="margin-top:8px; color:var(--red); font-weight:900;">Diskon {{ number_format($product->discount_percentage, 0) }}% saat checkout</div>
                 @endif
                 <p style="line-height:1.8; color:var(--navy2); margin-top:18px;">{{ $product->description ?? 'Produk minimarket untuk kebutuhan reseller dan stok toko harian.' }}</p>
 
@@ -49,12 +49,7 @@
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h8.96a2 2 0 0 0 1.95-1.57l1.35-6.43H5.12"/></svg>
                         </button>
                     </form>
-                    <form method="POST" action="{{ route('distri.cart.add') }}" style="flex:1;">
-                        @csrf
-                        <input type="hidden" name="product_id" value="{{ $product->id }}">
-                        <input type="hidden" name="quantity" value="1">
-                        <button class="btn btn-buy" type="submit" name="redirect_checkout" value="1">Langsung Checkout</button>
-                    </form>
+                    <a class="btn btn-buy" href="{{ route('distri.checkout', $product->id) }}">Checkout</a>
                 </div>
             </div>
         </div>
@@ -94,3 +89,4 @@
         @endif
     </div>
 @endsection
+

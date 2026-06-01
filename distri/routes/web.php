@@ -50,11 +50,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/pesanan-saya/{id}', [OrderController::class, 'showOrder'])->name('distri.order.show');
         Route::delete('/order/delete/{id}', [OrderController::class, 'destroyOrder'])->name('distri.order.delete');
         Route::get('/profile', [OrderController::class, 'profile'])->name('distri.profile');
+        Route::get('/profile/edit', [OrderController::class, 'editProfile'])->name('distri.profile.edit');
         Route::put('/profile', [OrderController::class, 'updateProfile'])->name('distri.profile.update');
         Route::post('/profile/addresses', [OrderController::class, 'storeAddress'])->name('distri.addresses.store');
         Route::get('/voucher-saya', [OrderController::class, 'vouchers'])->name('distri.vouchers');
         Route::get('/keranjang', [CartController::class, 'index'])->name('distri.cart');
         Route::post('/keranjang', [CartController::class, 'add'])->name('distri.cart.add');
+        Route::post('/keranjang/checkout-selected', [CartController::class, 'checkoutSelected'])->name('distri.cart.checkout-selected');
         Route::patch('/keranjang/{id}', [CartController::class, 'update'])->name('distri.cart.update');
         Route::delete('/keranjang/{id}', [CartController::class, 'destroy'])->name('distri.cart.delete');
     });
@@ -79,9 +81,13 @@ Route::middleware('auth')->group(function () {
         Route::put('/products/{id}/update', [AdminProductController::class, 'update'])->name('products.update');
         Route::delete('/products/{id}/delete', [AdminProductController::class, 'destroy'])->name('products.destroy');
         Route::get('/stores', [AdminProductController::class, 'stores'])->name('stores.index');
+        Route::get('/orders', [AdminProductController::class, 'orders'])->name('orders.index');
+        Route::patch('/orders/{id}/status', [AdminProductController::class, 'updateOrderStatus'])->name('orders.update-status');
         Route::get('/veridity-validation', [AdminProductController::class, 'veridityOrders'])->name('products.veridity');
         Route::get('/veridity-validation/{id}', [AdminProductController::class, 'showVeridityOrder'])->name('products.veridity.show');
         Route::post('/veridity-validation/{id}/retry', [AdminProductController::class, 'retryVeridity'])->name('products.veridity.retry');
+        Route::post('/veridity-validation/{id}/manual-accept', [AdminProductController::class, 'manualAccept'])->name('products.veridity.manual-accept');
+        Route::post('/veridity-validation/{id}/manual-reject', [AdminProductController::class, 'manualReject'])->name('products.veridity.manual-reject');
     });
 });
 

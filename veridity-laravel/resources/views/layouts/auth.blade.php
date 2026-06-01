@@ -8,6 +8,21 @@
     <title>VeriDity - @yield('title')</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @media (max-width: 1024px) {
+            body {
+                align-items: flex-start !important;
+                padding-top: 5rem !important;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+        }
+    </style>
 </head>
 
 <body class="bg-slate-900 text-white font-sans min-h-screen flex items-center justify-center px-6 py-12">

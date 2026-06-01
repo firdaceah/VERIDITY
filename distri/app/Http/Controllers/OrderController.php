@@ -30,10 +30,10 @@ class OrderController extends Controller
             ->select('products.*', 'categories.name as category_name', 'categories.slug as category_slug');
 
         if (request('q')) {
-            $search = '%'.request('q').'%';
+            $search = '%'.strtolower(request('q')).'%';
             $query->where(function ($q) use ($search) {
-                $q->where('products.name', 'like', $search)
-                    ->orWhere('products.brand', 'like', $search);
+                $q->whereRaw('LOWER(products.name) LIKE ?', [$search])
+                    ->orWhereRaw('LOWER(products.brand) LIKE ?', [$search]);
             });
         }
 
@@ -79,22 +79,31 @@ class OrderController extends Controller
     {
         $this->ensureDefaultVouchers();
         $paymentMethods = config('payment_methods');
-        $items = $this->cartItems();
-
-        if ($items->isEmpty() && $id !== 'cart') {
+        if ($id !== 'cart') {
             $product = DB::table('products')->where('id', $id)->first();
             if (!$product) abort(404);
 
             $items = collect([(object) [
                 'product_id' => $product->id,
                 'name' => $product->name,
-                'price' => $product->price,
+                'price' => $this->discountedPrice($product),
+                'original_price' => $product->price,
+                'discount_percentage' => $product->discount_percentage ?? 0,
                 'quantity' => max(1, (int) $product->min_qty),
                 'image' => $product->image,
                 'image_url' => $product->image_url ?? null,
                 'stock' => $product->stock ?? 50,
                 'category_name' => null,
             ]]);
+            $directCheckout = true;
+        } else {
+            $selectedCartIds = collect(session('checkout_cart_item_ids', []))
+                ->map(fn ($id) => (int) $id)
+                ->filter()
+                ->values()
+                ->all();
+            $items = $this->cartItems($selectedCartIds);
+            $directCheckout = false;
         }
 
         if ($items->isEmpty()) {
@@ -105,6 +114,9 @@ class OrderController extends Controller
             'items' => $items,
             'paymentMethods' => $paymentMethods,
             'totalAmount' => $this->cartTotal($items),
+            'shippingFee' => 15000,
+            'directCheckout' => $directCheckout,
+            'selectedCartIds' => $selectedCartIds ?? [],
             'addresses' => DB::table('shipping_addresses')->where('user_id', Auth::id())->orderByDesc('is_default')->get(),
             'vouchers' => DB::table('vouchers')->where('is_active', true)->orderBy('minimum_order')->get(),
         ]);
@@ -128,6 +140,7 @@ class OrderController extends Controller
             'payment_channel' => 'required|string',
             'shipping_address_id' => 'required|exists:shipping_addresses,id',
             'voucher_code' => 'nullable|string|max:40',
+            'direct_checkout' => 'nullable|boolean',
             'proof_of_transfer' => ($requiresProof ? 'required' : 'nullable').'|image|mimes:jpg,jpeg,png|max:10120',
         ]);
 
@@ -135,7 +148,12 @@ class OrderController extends Controller
             return back()->withErrors(['payment_method' => 'Metode pembayaran tidak valid.'])->withInput();
         }
 
-        $items = $this->cartItems();
+        $selectedCartIds = collect($request->input('cart_item_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->values()
+            ->all();
+        $items = $request->boolean('direct_checkout') ? collect() : $this->cartItems($selectedCartIds);
         if ($items->isEmpty()) {
             $product = DB::table('products')->where('id', $request->product_id)->first();
             if (! $product) {
@@ -144,7 +162,9 @@ class OrderController extends Controller
             $items = collect([(object) [
                 'product_id' => $product->id,
                 'name' => $product->name,
-                'price' => $product->price,
+                'price' => $this->discountedPrice($product),
+                'original_price' => $product->price,
+                'discount_percentage' => $product->discount_percentage ?? 0,
                 'quantity' => max(1, (int) $request->quantity),
             ]]);
         }
@@ -152,7 +172,8 @@ class OrderController extends Controller
         $grossAmount = $this->cartTotal($items);
         $voucher = $this->findVoucher($request->voucher_code, $grossAmount);
         $discountAmount = $voucher ? $this->voucherDiscount($voucher, $grossAmount) : 0;
-        $totalAmount = max(0, $grossAmount - $discountAmount);
+        $shippingFee = 15000;
+        $totalAmount = max(0, $grossAmount - $discountAmount) + $shippingFee;
         $address = DB::table('shipping_addresses')
             ->where('id', $request->shipping_address_id)
             ->where('user_id', Auth::id())
@@ -172,10 +193,11 @@ class OrderController extends Controller
         $orderId = 'TRX-' . rand(1000, 9999);
         $veridityData = [
             'veridity_status' => $requiresProof ? 'checking' : 'not_required',
-            'payment_status' => $requiresProof ? 'checking' : 'pending_cod',
+            'payment_status' => $requiresProof ? 'checking' : 'cod_on_delivery',
+            'order_status' => $requiresProof ? 'checking' : 'packing',
             'veridity_message' => $requiresProof
                 ? 'Bukti pembayaran sedang dikirim ke VERIDITY.'
-                : 'Metode pembayaran tidak membutuhkan unggah bukti.',
+                : 'COD tidak membutuhkan validasi nota. Pesanan langsung masuk tahap dikemas dan dibayar saat diterima.',
             'veridity_validation_details' => null,
             'veridity_checked_at' => $requiresProof ? null : now(),
         ];
@@ -195,6 +217,13 @@ class OrderController extends Controller
             ));
         }
 
+        $veridityData['order_status'] = match ($veridityData['payment_status'] ?? null) {
+            'paid' => 'packing',
+            'rejected' => 'rejected',
+            'cod_on_delivery' => 'packing',
+            default => 'checking',
+        };
+
         // Simpan Data rill ke tabel ORDERS skema Oracle
         DB::table('orders')->insert([
             'order_id_string' => $orderId,
@@ -206,10 +235,12 @@ class OrderController extends Controller
             'payment_method' => $methodKey,
             'payment_channel' => $channelKey,
             'payment_status' => $veridityData['payment_status'],
+            'order_status' => $veridityData['order_status'] ?? (($veridityData['payment_status'] ?? '') === 'paid' ? 'packing' : 'checking'),
             'payment_instruction' => $selectedChannel['instruction'],
             'shipping_address' => $address ? json_encode($address) : null,
             'voucher_code' => $voucher->code ?? null,
             'discount_amount' => $discountAmount,
+            'shipping_fee' => $shippingFee,
             'veridity_status' => $veridityData['veridity_status'],
             'veridity_audit_id' => $veridityData['veridity_audit_id'] ?? null,
             'veridity_score' => $veridityData['veridity_score'] ?? null,
@@ -235,7 +266,14 @@ class OrderController extends Controller
             ]);
         }
 
-        DB::table('cart_items')->where('user_id', Auth::id())->delete();
+        if (! $request->boolean('direct_checkout')) {
+            $cartDelete = DB::table('cart_items')->where('user_id', Auth::id());
+            if (! empty($selectedCartIds)) {
+                $cartDelete->whereIn('id', $selectedCartIds);
+            }
+            $cartDelete->delete();
+            session()->forget('checkout_cart_item_ids');
+        }
 
         return redirect()->route('distri.order.show', $order->id)->with('success', 'Pesanan berhasil dikirim! Status validasi pembayaran sudah diperbarui.');
     }
@@ -243,19 +281,68 @@ class OrderController extends Controller
     // 5. Menampilkan Riwayat Pesanan Reseller (Join Table)
     public function orderHistory()
     {
-        $orders = DB::table('orders')
+        $status = request('status', 'packing');
+        $query = DB::table('orders')
             ->join('products', 'orders.product_id', '=', 'products.id')
             ->where('orders.user_id', Auth::id())
-            // Pastikan products.unit dimasukkan ke dalam select di bawah ini
-            ->select('orders.*', 'products.name as product_name', 'products.image as product_image', 'products.unit')
-            ->orderBy('orders.created_at', 'desc')
-            ->get();
+            ->select('orders.*', 'products.name as product_name', 'products.image as product_image', 'products.unit');
 
-        return view('distri.orders', compact('orders'));
+        match ($status) {
+            'shipped' => $query->where('orders.order_status', 'shipped'),
+            'received' => $query->where('orders.order_status', 'received'),
+            'canceled' => $query->where(function ($q) {
+                $q->where('orders.order_status', 'rejected')
+                    ->orWhere('orders.payment_status', 'rejected');
+            }),
+            default => $query->whereIn('orders.order_status', ['checking', 'packing'])
+                ->where('orders.payment_status', '!=', 'rejected')
+                ->where('orders.veridity_status', '!=', 'rejected'),
+        };
+
+        if (request('q')) {
+            $search = '%' . strtolower(request('q')) . '%';
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(orders.order_id_string) LIKE ?', [$search])
+                    ->orWhereRaw('LOWER(products.name) LIKE ?', [$search])
+                    ->orWhereRaw('LOWER(orders.payment_method) LIKE ?', [$search]);
+            });
+        }
+
+        $orders = $query->orderBy('orders.created_at', 'desc')->get();
+        $counts = [
+            'packing' => DB::table('orders')->where('user_id', Auth::id())
+                ->whereIn('order_status', ['checking', 'packing'])
+                ->where('payment_status', '!=', 'rejected')
+                ->where('veridity_status', '!=', 'rejected')
+                ->count(),
+            'shipped' => DB::table('orders')->where('user_id', Auth::id())->where('order_status', 'shipped')->count(),
+            'received' => DB::table('orders')->where('user_id', Auth::id())->where('order_status', 'received')->count(),
+            'canceled' => DB::table('orders')->where('user_id', Auth::id())->where(function ($q) {
+                $q->where('order_status', 'rejected')->orWhere('payment_status', 'rejected');
+            })->count(),
+        ];
+
+        return view('distri.orders', compact('orders', 'status', 'counts'));
     }
 
     public function profile()
     {
+        $user = Auth::user();
+        if ($user->role === 'admin') {
+            return view('distri.profile', [
+                'user' => $user,
+                'adminSummary' => [
+                    'products' => DB::table('products')->count(),
+                    'stores' => DB::table('users')->where('role', 'reseller')->count(),
+                    'orders_active' => DB::table('orders')->whereIn('order_status', ['checking', 'packing', 'shipped'])->count(),
+                    'need_validation' => DB::table('orders')->whereIn('veridity_status', ['checking', 'review_required', 'error'])->count(),
+                ],
+                'summary' => null,
+                'orders' => collect(),
+                'addresses' => collect(),
+            ]);
+        }
+
         $summary = [
             'orders' => DB::table('orders')
                 ->where('user_id', Auth::id())
@@ -308,7 +395,12 @@ class OrderController extends Controller
 
         DB::table('users')->where('id', $user->id)->update($payload);
 
-        return back()->with('success', 'Profile toko berhasil diperbarui.');
+        return redirect()->route('distri.profile')->with('success', 'Profile toko berhasil diperbarui.');
+    }
+
+    public function editProfile()
+    {
+        return view('distri.profile-edit', ['user' => Auth::user()]);
     }
 
     public function storeAddress(Request $request)
@@ -366,20 +458,36 @@ class OrderController extends Controller
         ]);
     }
 
-    private function cartItems()
+    private function cartItems(array $onlyCartItemIds = [])
     {
-        return DB::table('cart_items')
+        $query = DB::table('cart_items')
             ->join('products', 'cart_items.product_id', '=', 'products.id')
             ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
             ->where('cart_items.user_id', Auth::id())
-            ->select('cart_items.*', 'products.id as product_id', 'products.name', 'products.price', 'products.image', 'products.image_url', 'products.stock', 'categories.name as category_name')
-            ->orderBy('cart_items.created_at', 'desc')
-            ->get();
+            ->select('cart_items.*', 'products.id as product_id', 'products.name', 'products.price as original_price', 'products.discount_percentage', 'products.image', 'products.image_url', 'products.stock', 'categories.name as category_name')
+            ->orderBy('cart_items.created_at', 'desc');
+
+        if (! empty($onlyCartItemIds)) {
+            $query->whereIn('cart_items.id', $onlyCartItemIds);
+        }
+
+        return $query->get()->map(function ($item) {
+            $item->price = $this->discountedPrice($item);
+            return $item;
+        });
     }
 
     private function cartTotal($items): int
     {
         return (int) $items->sum(fn ($item) => $item->price * $item->quantity);
+    }
+
+    private function discountedPrice(object $item): int
+    {
+        $price = (float) ($item->original_price ?? $item->price ?? 0);
+        $discount = max(0, min(100, (float) ($item->discount_percentage ?? 0)));
+
+        return (int) round($price - ($price * $discount / 100));
     }
 
     private function findVoucher(?string $code, int $total): ?object

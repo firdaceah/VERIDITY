@@ -9,12 +9,16 @@
         .b-verified, .b-not_required { background:var(--green-bg); color:var(--green); border:1px solid var(--green-border); }
         .b-rejected { background:var(--red-bg); color:var(--red); border:1px solid var(--red-border); }
         .b-review_required, .b-checking, .b-error { background:var(--yellow-bg); color:var(--yellow); border:1px solid var(--yellow-border); }
+        .ship-step { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; padding:8px 12px; border-radius:999px; background:var(--card); color:var(--muted); border:1px solid var(--border); }
+        .ship-step.on { background:var(--green-bg); color:var(--green); border-color:var(--green-border); }
     </style>
 @endsection
 
 @section('content')
     @php
         $status = $order->veridity_status ?? 'checking';
+        $orderStatus = $order->order_status ?? 'checking';
+        $statusLevel = ['packing' => 1, 'shipped' => 2, 'received' => 3][$orderStatus] ?? 0;
         $methodLabel = config("payment_methods.{$order->payment_method}.label", $order->payment_method ?? '-');
         $channelLabel = config("payment_methods.{$order->payment_method}.channels.{$order->payment_channel}.label", $order->payment_channel ?? '-');
     @endphp
@@ -59,6 +63,15 @@
         </div>
 
         <div class="detail-card">
+            <div style="font-size:11px; color:var(--muted); font-weight:800; letter-spacing:1px; text-transform:uppercase;">Status Pengiriman</div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+                <span class="ship-step {{ $statusLevel >= 1 ? 'on' : '' }}">Dikemas</span>
+                <span class="ship-step {{ $statusLevel >= 2 ? 'on' : '' }}">Dikirim</span>
+                <span class="ship-step {{ $statusLevel >= 3 ? 'on' : '' }}">Diterima</span>
+            </div>
+        </div>
+
+        <div class="detail-card">
             <div style="font-size:11px; color:var(--muted); font-weight:800; letter-spacing:1px; text-transform:uppercase;">Ringkasan VERIDITY</div>
             <p style="font-size:14px; color:var(--navy2); line-height:1.7; margin-top:10px;">{{ $order->veridity_message ?? 'Menunggu analisis.' }}</p>
             @if ($order->veridity_score !== null)
@@ -66,6 +79,6 @@
             @endif
         </div>
 
-        @include('partials.veridity-validation-checks', ['validation' => $validation])
+        @include('partials.veridity-validation-checks', ['validation' => $validation, 'showOcr' => false])
     </div>
 @endsection

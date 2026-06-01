@@ -15,6 +15,11 @@
         .btn { width:100%; background:var(--accent); color:#fff; font-size:14px; font-weight:800; padding:15px; border-radius:12px; border:none; cursor:pointer; text-align:center; }
         .summary-item { display:flex; justify-content:space-between; gap:14px; padding:12px 0; border-bottom:1px solid var(--border); font-size:13px; }
         .summary-item:last-child { border-bottom:0; }
+        .qty-input { width: 86px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 10px; font-family: inherit; color: var(--navy); }
+        .payment-note { display:none; background:#EEF4FF; border:1px solid #B8D0EE; color:var(--navy2); border-radius:12px; padding:12px; font-size:12px; line-height:1.6; margin-top:12px; }
+        .voucher-grid { display:grid; gap:10px; margin-top:10px; }
+        .voucher-option { border:1.5px solid var(--border); border-radius:12px; padding:12px; background:var(--card); cursor:pointer; text-align:left; font-family:inherit; color:var(--navy); }
+        .voucher-option.active { border-color:var(--accent); background:#EEF4FF; }
     </style>
 @endsection
 
@@ -22,7 +27,12 @@
     <form action="{{ route('distri.order.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <input type="hidden" name="product_id" value="{{ $items->first()->product_id }}">
-        <input type="hidden" name="total_amount" value="{{ $totalAmount }}">
+        <input type="hidden" name="quantity" id="checkout-quantity" value="{{ $items->first()->quantity }}">
+        <input type="hidden" name="direct_checkout" value="{{ $directCheckout ? 1 : 0 }}">
+        <input type="hidden" name="total_amount" id="total-amount-input" value="{{ $totalAmount + $shippingFee }}">
+        @foreach (($selectedCartIds ?? []) as $cartItemId)
+            <input type="hidden" name="cart_item_ids[]" value="{{ $cartItemId }}">
+        @endforeach
         <input type="hidden" name="payment_method" id="payment-method">
         <input type="hidden" name="payment_channel" id="payment-channel">
 
@@ -73,6 +83,12 @@
                         <div style="font-size:10px; opacity:.55; margin-bottom:8px;">INSTRUKSI PEMBAYARAN</div>
                         <div id="payment-instruction" style="font-size:14px; font-weight:800; line-height:1.7;"></div>
                     </div>
+                    <div id="qris-note" class="payment-note">
+                        QRIS di demo ini masih simulasi. Agar benar-benar bisa dibayar, sistem perlu payment gateway seperti Midtrans, Xendit, Duitku, atau penyedia QRIS resmi lain untuk membuat kode QR dinamis dan menerima webhook status pembayaran otomatis.
+                    </div>
+                    <div id="va-note" class="payment-note">
+                        Virtual Account di demo ini juga masih simulasi. Agar nomor VA benar-benar aktif, sistem perlu integrasi payment gateway/bank aggregator yang membuat nomor VA unik per transaksi dan mengirim webhook ketika pembayaran berhasil.
+                    </div>
                 </div>
 
                 <div class="card" id="proof-card">
@@ -92,28 +108,59 @@
                 <h3 style="font-size:18px; font-weight:900;">Ringkasan Belanja</h3>
                 <div style="margin-top:14px;">
                     @foreach ($items as $item)
-                        <div class="summary-item">
+                        <div class="summary-item checkout-item" data-price="{{ $item->price }}">
                             <div>
                                 <strong>{{ $item->name }}</strong>
-                                <div style="color:var(--muted); margin-top:3px;">{{ $item->quantity }} x Rp {{ number_format($item->price, 0, ',', '.') }}</div>
+                                @if (($item->discount_percentage ?? 0) > 0)
+                                    <div style="color:var(--red); font-size:12px; font-weight:800; margin-top:3px;">
+                                        Diskon produk {{ number_format($item->discount_percentage, 0) }}% dari Rp {{ number_format($item->original_price ?? $item->price, 0, ',', '.') }}
+                                    </div>
+                                @endif
+                                <div style="color:var(--muted); margin-top:3px;">
+                                    @if ($directCheckout)
+                                        <input class="qty-input" id="qty-input" type="number" min="1" max="{{ $item->stock ?? 99 }}" value="{{ $item->quantity }}">
+                                        x Rp {{ number_format($item->price, 0, ',', '.') }}
+                                    @else
+                                        {{ $item->quantity }} x Rp {{ number_format($item->price, 0, ',', '.') }}
+                                    @endif
+                                </div>
                             </div>
-                            <strong>Rp {{ number_format($item->price * $item->quantity, 0, ',', '.') }}</strong>
+                            <strong class="item-subtotal">Rp {{ number_format($item->price * $item->quantity, 0, ',', '.') }}</strong>
                         </div>
                     @endforeach
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px;">
-                    <span style="font-weight:900;">Total Bayar</span>
-                    <span style="font-size:24px; font-weight:900; color:var(--accent);">Rp {{ number_format($totalAmount, 0, ',', '.') }}</span>
-                </div>
                 <div style="margin-top:18px;">
                     <label style="font-size:12px; color:var(--muted); font-weight:900; text-transform:uppercase;">Gunakan Voucher</label>
-                    <select class="channel-select" name="voucher_code" style="margin-top:8px;">
+                    <select class="channel-select" name="voucher_code" id="voucher-code" style="margin-top:8px;">
                         <option value="">Tanpa voucher</option>
                         @foreach ($vouchers as $voucher)
-                            <option value="{{ $voucher->code }}">{{ $voucher->code }} - {{ $voucher->name }}</option>
+                            <option value="{{ $voucher->code }}" data-type="{{ $voucher->type }}" data-value="{{ $voucher->value }}" data-minimum="{{ $voucher->minimum_order }}">{{ $voucher->code }} - {{ $voucher->name }}</option>
                         @endforeach
                     </select>
+                    <div class="voucher-grid">
+                        <button type="button" class="voucher-option active" data-code="" onclick="pickVoucher(this)">
+                            <strong>Tanpa voucher</strong>
+                            <div style="font-size:12px; color:var(--muted); margin-top:4px;">Tidak memakai potongan.</div>
+                        </button>
+                        @foreach ($vouchers as $voucher)
+                            <button type="button" class="voucher-option" data-code="{{ $voucher->code }}" onclick="pickVoucher(this)">
+                                <strong>{{ $voucher->code }}</strong>
+                                <div style="font-size:12px; color:var(--muted); margin-top:4px;">
+                                    {{ $voucher->name }} - Minimal Rp {{ number_format($voucher->minimum_order, 0, ',', '.') }}
+                                </div>
+                            </button>
+                        @endforeach
+                    </div>
                     <a href="{{ route('distri.vouchers') }}" style="display:block; color:var(--accent); text-decoration:none; font-size:12px; font-weight:900; margin-top:8px;">Lihat Voucher Saya</a>
+                </div>
+                <div style="margin-top:18px; border-top:1px solid var(--border); padding-top:14px;">
+                    <div class="summary-item"><span>Subtotal</span><strong id="subtotal-text">Rp {{ number_format($totalAmount, 0, ',', '.') }}</strong></div>
+                    <div class="summary-item"><span>Voucher</span><strong id="discount-text" style="color:var(--green);">- Rp 0</strong></div>
+                    <div class="summary-item"><span>Ongkir</span><strong>Rp {{ number_format($shippingFee, 0, ',', '.') }}</strong></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px;">
+                    <span style="font-weight:900;">Total Bayar</span>
+                    <span id="total-text" style="font-size:24px; font-weight:900; color:var(--accent);">Rp {{ number_format($totalAmount + $shippingFee, 0, ',', '.') }}</span>
                 </div>
                 <p style="font-size:12px; color:var(--muted); line-height:1.6; margin-top:16px;">Bukti pembayaran akan dianalisis oleh VERIDITY untuk memeriksa manipulasi gambar dan kecocokan nominal/rekening.</p>
             </div>
@@ -122,6 +169,50 @@
 
     <script>
         const paymentMethods = @json($paymentMethods);
+        const shippingFee = {{ (int) $shippingFee }};
+
+        function formatRupiah(value) {
+            return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.max(0, Math.round(value)));
+        }
+
+        function recalcCheckout() {
+            const item = document.querySelector('.checkout-item');
+            const price = Number(item.dataset.price || 0);
+            const qtyInput = document.getElementById('qty-input');
+            const quantity = qtyInput ? Math.max(1, Number(qtyInput.value || 1)) : {{ (int) $items->sum('quantity') }};
+            const subtotal = {{ $directCheckout ? 'price * quantity' : (int) $totalAmount }};
+            const voucherSelect = document.getElementById('voucher-code');
+            const selected = voucherSelect.options[voucherSelect.selectedIndex];
+            let discount = 0;
+
+            if (selected && selected.value && subtotal >= Number(selected.dataset.minimum || 0)) {
+                if (selected.dataset.type === 'percent') {
+                    discount = subtotal * (Number(selected.dataset.value || 0) / 100);
+                } else {
+                    discount = Number(selected.dataset.value || 0);
+                }
+                discount = Math.min(discount, subtotal);
+            }
+
+            const total = subtotal - discount + shippingFee;
+            document.getElementById('subtotal-text').textContent = formatRupiah(subtotal);
+            document.getElementById('discount-text').textContent = '- ' + formatRupiah(discount);
+            document.getElementById('total-text').textContent = formatRupiah(total);
+            document.getElementById('total-amount-input').value = Math.round(total);
+
+            if (qtyInput) {
+                document.getElementById('checkout-quantity').value = quantity;
+                document.querySelector('.item-subtotal').textContent = formatRupiah(price * quantity);
+            }
+        }
+
+        function pickVoucher(button) {
+            const code = button.dataset.code || '';
+            const select = document.getElementById('voucher-code');
+            select.value = code;
+            document.querySelectorAll('.voucher-option').forEach((item) => item.classList.toggle('active', item === button));
+            recalcCheckout();
+        }
 
         function selectPaymentMethod(methodKey) {
             const method = paymentMethods[methodKey];
@@ -147,6 +238,8 @@
             document.getElementById('payment-channel').value = channelKey;
             document.getElementById('payment-instruction').textContent = channel.instruction;
             document.getElementById('proof-card').style.display = method.requires_proof ? 'block' : 'none';
+            document.getElementById('qris-note').style.display = methodKey === 'qris' ? 'block' : 'none';
+            document.getElementById('va-note').style.display = methodKey === 'virtual_account' ? 'block' : 'none';
             proofInput.required = method.requires_proof;
         }
 
@@ -158,6 +251,16 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             selectPaymentMethod(Object.keys(paymentMethods)[0]);
+            document.getElementById('voucher-code').addEventListener('change', function () {
+                const code = this.value;
+                document.querySelectorAll('.voucher-option').forEach((item) => item.classList.toggle('active', item.dataset.code === code));
+                recalcCheckout();
+            });
+            const qtyInput = document.getElementById('qty-input');
+            if (qtyInput) {
+                qtyInput.addEventListener('input', recalcCheckout);
+            }
+            recalcCheckout();
         });
     </script>
 @endsection

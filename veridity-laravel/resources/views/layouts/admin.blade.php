@@ -8,9 +8,46 @@
     <title>VeriDity Admin - @yield('title')</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @media (max-width: 1023px) {
+            body {
+                display: block !important;
+            }
+
+            main {
+                padding: 1rem !important;
+            }
+
+            .grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
+    </style>
 </head>
 
 <body class="bg-slate-950 text-white font-sans flex min-h-screen">
+    <header class="lg:hidden sticky top-0 z-50 bg-slate-900 border-b border-slate-800 px-4 py-3">
+        <div class="flex items-center justify-between gap-3">
+            <a href="{{ route('admin.dashboard') }}" class="text-xl font-bold tracking-tighter text-blue-500">
+                <i class="fa-solid fa-shield-halved"></i> VeriDity.
+            </a>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button class="text-red-400 text-sm font-bold">Logout</button>
+            </form>
+        </div>
+        <nav class="mt-3 flex gap-2 overflow-x-auto pb-1">
+            <a href="{{ route('admin.dashboard') }}" class="shrink-0 px-3 py-2 rounded-lg text-sm {{ request()->routeIs('admin.dashboard') ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300' }}">Dashboard</a>
+            <a href="{{ route('admin.audit-logs') }}" class="shrink-0 px-3 py-2 rounded-lg text-sm {{ request()->routeIs('admin.audit-logs') ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300' }}">Audit Logs</a>
+            <a href="{{ route('admin.blacklist') }}" class="shrink-0 px-3 py-2 rounded-lg text-sm {{ request()->routeIs('admin.blacklist') ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300' }}">Blacklist</a>
+        </nav>
+    </header>
 
     <aside class="w-64 bg-slate-900 border-r border-slate-800 hidden lg:flex flex-col sticky top-0 h-screen">
         <div class="p-6">
