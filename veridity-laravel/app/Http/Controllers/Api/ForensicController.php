@@ -7,6 +7,7 @@ use App\Http\Resources\ForensicResource;
 use App\Models\ForensicAnalysis;
 use App\Models\User;
 use App\Services\AuditReportService;
+use App\Services\PaymentProofContentValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -49,6 +50,11 @@ class ForensicController extends Controller
     private function reportService(): AuditReportService
     {
         return app(AuditReportService::class);
+    }
+
+    private function paymentProofValidator(): PaymentProofContentValidator
+    {
+        return app(PaymentProofContentValidator::class);
     }
 
     private function integrationUserId(): ?int
@@ -203,6 +209,10 @@ class ForensicController extends Controller
             'order_id' => 'required|string|max:80',
             'payment_method' => 'required|string|max:80',
             'payment_channel' => 'required|string|max:120',
+            'expected_amount' => 'required|numeric|min:0',
+            'recipient_name' => 'nullable|string|max:160',
+            'recipient_account' => 'nullable|string|max:120',
+            'payment_instruction' => 'nullable|string|max:1000',
             'source' => 'nullable|string|max:40',
         ]);
 
@@ -262,6 +272,24 @@ class ForensicController extends Controller
                 $result['results']['noise']['interpretation'] = 'Noise bukti pembayaran masih berada dalam toleransi hasil akhir dan tidak cukup kuat untuk menyimpulkan manipulasi.';
             }
 
+            $paymentValidation = $this->paymentProofValidator()->validate($fullPathFile, [
+                'amount' => $request->input('expected_amount'),
+                'recipient_name' => $request->input('recipient_name'),
+                'recipient_account' => $request->input('recipient_account'),
+                'payment_channel' => $request->input('payment_channel'),
+                'payment_instruction' => $request->input('payment_instruction'),
+            ]);
+
+            if ($paymentValidation['status'] === 'failed') {
+                $statusLabel = 'BUKTI PEMBAYARAN TIDAK SESUAI';
+                $statusColor = 'danger';
+            } elseif ($statusColor === 'success' && $paymentValidation['status'] === 'review_required') {
+                $statusLabel = 'BUKTI PEMBAYARAN PERLU REVIEW MANUAL';
+                $statusColor = 'warning';
+            }
+
+            $result['results']['payment_validation'] = $paymentValidation;
+
             $analysis = ForensicAnalysis::create([
                 'user_id' => $userId,
                 'image_name' => $filename,
@@ -274,6 +302,10 @@ class ForensicController extends Controller
                         'order_id' => $request->input('order_id'),
                         'payment_method' => $request->input('payment_method'),
                         'payment_channel' => $request->input('payment_channel'),
+                        'expected_amount' => $request->input('expected_amount'),
+                        'recipient_name' => $request->input('recipient_name'),
+                        'recipient_account' => $request->input('recipient_account'),
+                        'payment_validation' => $paymentValidation,
                     ],
                 ]),
                 'noise_status' => $result['results']['noise']['warnings'][0] ?? ($isNoiseInconsistent ? 'Inconsistent Noise Detected' : 'Normal'),
@@ -294,6 +326,7 @@ class ForensicController extends Controller
                     'summary_label' => $statusLabel,
                     'summary_color' => $statusColor,
                     'final_score' => $finalScore,
+                    'payment_validation' => $paymentValidation,
                 ],
             ]);
         } catch (\Exception $e) {

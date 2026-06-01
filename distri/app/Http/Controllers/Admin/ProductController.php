@@ -158,8 +158,14 @@ class ProductController extends Controller
         $result = $veridityProofService->analyze(
             $order->proof_of_transfer,
             $order->order_id_string,
-            $order->payment_method ?? 'unknown',
-            $order->payment_channel ?? 'unknown'
+            [
+                'method' => $order->payment_method ?? 'unknown',
+                'channel' => $order->payment_channel ?? 'unknown',
+                'amount' => $order->total_amount ?? 0,
+                'recipient_name' => config("payment_methods.{$order->payment_method}.channels.{$order->payment_channel}.recipient_name", ''),
+                'recipient_account' => config("payment_methods.{$order->payment_method}.channels.{$order->payment_channel}.recipient_account", ''),
+                'instruction' => $order->payment_instruction ?? '',
+            ]
         );
 
         DB::table('orders')->where('id', $id)->update(array_merge($result, [
@@ -167,5 +173,26 @@ class ProductController extends Controller
         ]));
 
         return back()->with('success', 'Analisis VERIDITY berhasil dijalankan ulang.');
+    }
+
+    public function showVeridityOrder($id)
+    {
+        $order = DB::table('orders')
+            ->join('users', 'orders.user_id', '=', 'users.id')
+            ->join('products', 'orders.product_id', '=', 'products.id')
+            ->where('orders.id', $id)
+            ->select('orders.*', 'users.name as reseller_name', 'products.name as product_name')
+            ->first();
+
+        if (! $order) {
+            abort(404);
+        }
+
+        $validation = json_decode($order->veridity_validation_details ?? '', true);
+
+        return view('admin.products.veridity-detail', [
+            'order' => $order,
+            'validation' => is_array($validation) ? $validation : ['status' => 'empty', 'summary' => 'Belum ada detail validasi.', 'checks' => []],
+        ]);
     }
 }

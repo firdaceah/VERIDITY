@@ -23,6 +23,7 @@ class Order extends Model
         'veridity_audit_id',
         'veridity_score',
         'veridity_message',
+        'veridity_validation_details',
         'veridity_checked_at',
     ];
 

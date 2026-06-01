@@ -41,6 +41,7 @@ return [
         'python_toolkit_script' => env('PYTHON_TOOLKIT_SCRIPT'),
         'distri_integration_key' => env('DISTRIBUTOR_API_KEY', env('VERIDITY_INTEGRATION_KEY')),
         'integration_user_id' => env('VERIDITY_INTEGRATION_USER_ID'),
+        'tesseract_path' => env('TESSERACT_PATH', 'tesseract'),
     ],
 
 ];

@@ -7,7 +7,7 @@ use Throwable;
 
 class VeridityProofService
 {
-    public function analyze(string $proofFileName, string $orderId, string $paymentMethod, string $paymentChannel): array
+    public function analyze(string $proofFileName, string $orderId, array $paymentContext): array
     {
         $baseUrl = rtrim((string) config('services.veridity.base_url'), '/');
         $integrationKey = (string) config('services.veridity.integration_key');
@@ -28,8 +28,12 @@ class VeridityProofService
                 ->attach('proof', $fileStream, $proofFileName)
                 ->post($baseUrl.'/api/integrations/distri/analyze-proof', [
                     'order_id' => $orderId,
-                    'payment_method' => $paymentMethod,
-                    'payment_channel' => $paymentChannel,
+                    'payment_method' => $paymentContext['method'] ?? '',
+                    'payment_channel' => $paymentContext['channel'] ?? '',
+                    'expected_amount' => $paymentContext['amount'] ?? 0,
+                    'recipient_name' => $paymentContext['recipient_name'] ?? '',
+                    'recipient_account' => $paymentContext['recipient_account'] ?? '',
+                    'payment_instruction' => $paymentContext['instruction'] ?? '',
                     'source' => 'distri',
                 ]);
 
@@ -50,13 +54,25 @@ class VeridityProofService
 
         $data = $response->json('data') ?? [];
         $summaryColor = $data['summary_color'] ?? 'warning';
+        $paymentValidation = $data['payment_validation'] ?? null;
+        $veridityStatus = match ($summaryColor) {
+            'success' => 'verified',
+            'danger' => 'rejected',
+            default => 'review_required',
+        };
+        $paymentStatus = match ($veridityStatus) {
+            'verified' => 'paid',
+            'rejected' => 'rejected',
+            default => 'review_required',
+        };
 
         return [
-            'veridity_status' => $summaryColor === 'success' ? 'verified' : 'rejected',
-            'payment_status' => $summaryColor === 'success' ? 'paid' : 'review_required',
+            'veridity_status' => $veridityStatus,
+            'payment_status' => $paymentStatus,
             'veridity_audit_id' => $data['audit_id'] ?? null,
             'veridity_score' => $data['final_score'] ?? null,
             'veridity_message' => $data['summary_label'] ?? ($response->json('message') ?? 'Analisis selesai.'),
+            'veridity_validation_details' => $paymentValidation ? json_encode($paymentValidation) : null,
             'veridity_checked_at' => now(),
         ];
     }
@@ -67,6 +83,11 @@ class VeridityProofService
             'veridity_status' => 'error',
             'payment_status' => 'checking',
             'veridity_message' => $message,
+            'veridity_validation_details' => json_encode([
+                'status' => 'error',
+                'summary' => $message,
+                'checks' => [],
+            ]),
             'veridity_checked_at' => now(),
         ];
     }

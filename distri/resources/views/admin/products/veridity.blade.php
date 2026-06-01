@@ -84,6 +84,7 @@
                                     @if ($order->veridity_audit_id)
                                         <br>ID audit VERIDITY: <strong>#VRD-{{ $order->veridity_audit_id }}</strong>
                                     @endif
+                                    <br><a href="{{ route('admin.products.veridity.show', $order->id) }}" style="color:var(--accent); font-weight:800; text-decoration:none;">Lihat detail validasi nota</a>
                                 </p>
                             </div>
                         </div>

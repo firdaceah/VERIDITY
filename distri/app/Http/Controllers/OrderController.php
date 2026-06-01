@@ -73,6 +73,7 @@ class OrderController extends Controller
             'veridity_message' => $requiresProof
                 ? 'Bukti pembayaran sedang dikirim ke VERIDITY.'
                 : 'Metode pembayaran tidak membutuhkan unggah bukti.',
+            'veridity_validation_details' => null,
             'veridity_checked_at' => $requiresProof ? null : now(),
         ];
 
@@ -80,8 +81,14 @@ class OrderController extends Controller
             $veridityData = array_merge($veridityData, $veridityProofService->analyze(
                 $fileName,
                 $orderId,
-                $methodKey,
-                $channelKey
+                [
+                    'method' => $methodKey,
+                    'channel' => $channelKey,
+                    'amount' => $request->total_amount,
+                    'recipient_name' => $selectedChannel['recipient_name'] ?? '',
+                    'recipient_account' => $selectedChannel['recipient_account'] ?? '',
+                    'instruction' => $selectedChannel['instruction'],
+                ]
             ));
         }
 
@@ -101,12 +108,15 @@ class OrderController extends Controller
             'veridity_audit_id' => $veridityData['veridity_audit_id'] ?? null,
             'veridity_score' => $veridityData['veridity_score'] ?? null,
             'veridity_message' => $veridityData['veridity_message'] ?? null,
+            'veridity_validation_details' => $veridityData['veridity_validation_details'] ?? null,
             'veridity_checked_at' => $veridityData['veridity_checked_at'] ?? null,
             'created_at' => now(),
             'updated_at' => now()
         ]);
 
-        return redirect()->route('distri.orders')->with('success', 'Pesanan berhasil dikirim! Status validasi pembayaran sudah diperbarui.');
+        $order = DB::table('orders')->where('order_id_string', $orderId)->where('user_id', Auth::id())->first();
+
+        return redirect()->route('distri.order.show', $order->id)->with('success', 'Pesanan berhasil dikirim! Status validasi pembayaran sudah diperbarui.');
     }
 
     // 5. Menampilkan Riwayat Pesanan Reseller (Join Table)
@@ -121,6 +131,36 @@ class OrderController extends Controller
             ->get();
 
         return view('distri.orders', compact('orders'));
+    }
+
+    public function showOrder($id)
+    {
+        $order = DB::table('orders')
+            ->join('products', 'orders.product_id', '=', 'products.id')
+            ->where('orders.id', $id)
+            ->where('orders.user_id', Auth::id())
+            ->select('orders.*', 'products.name as product_name', 'products.image as product_image', 'products.unit')
+            ->first();
+
+        if (! $order) {
+            abort(404);
+        }
+
+        return view('distri.order-detail', [
+            'order' => $order,
+            'validation' => $this->decodeValidationDetails($order->veridity_validation_details ?? null),
+        ]);
+    }
+
+    private function decodeValidationDetails(?string $payload): array
+    {
+        if (! $payload) {
+            return ['status' => 'empty', 'summary' => 'Belum ada detail validasi.', 'checks' => []];
+        }
+
+        $decoded = json_decode($payload, true);
+
+        return is_array($decoded) ? $decoded : ['status' => 'error', 'summary' => 'Detail validasi tidak dapat dibaca.', 'checks' => []];
     }
 
     // 6. CRUD DELETE: Membatalkan/Menghapus Transaksi Grosir sekaligus membersihkan file fisiknya

@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
         // Form aksi transaksi grosir
         Route::post('/order/store', [OrderController::class, 'storeOrder'])->name('distri.order.store');
         Route::get('/pesanan-saya', [OrderController::class, 'orderHistory'])->name('distri.orders');
+        Route::get('/pesanan-saya/{id}', [OrderController::class, 'showOrder'])->name('distri.order.show');
         Route::delete('/order/delete/{id}', [OrderController::class, 'destroyOrder'])->name('distri.order.delete');
     });
 
@@ -63,6 +64,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/products/{id}/update', [AdminProductController::class, 'update'])->name('products.update');
         Route::delete('/products/{id}/delete', [AdminProductController::class, 'destroy'])->name('products.destroy');
         Route::get('/veridity-validation', [AdminProductController::class, 'veridityOrders'])->name('products.veridity');
+        Route::get('/veridity-validation/{id}', [AdminProductController::class, 'showVeridityOrder'])->name('products.veridity.show');
         Route::post('/veridity-validation/{id}/retry', [AdminProductController::class, 'retryVeridity'])->name('products.veridity.retry');
     });
 });

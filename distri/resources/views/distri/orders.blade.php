@@ -65,6 +65,7 @@
                                 @if ($order->veridity_score !== null)
                                     <br>Skor: <strong>{{ number_format($order->veridity_score, 2) }}%</strong>
                                 @endif
+                                <br><a href="{{ route('distri.order.show', $order->id) }}" style="color:var(--accent); font-weight:800; text-decoration:none;">Lihat detail validasi</a>
                             </div>
                         </div>
                     </div>
