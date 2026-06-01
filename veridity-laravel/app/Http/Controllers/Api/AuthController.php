@@ -116,6 +116,102 @@ class AuthController extends Controller
         ]);
     }
 
+    public function webProfile(Request $request)
+    {
+        return view('user.profile', ['user' => $request->user()]);
+    }
+
+    public function webUpdateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+        ]);
+
+        $user->update($validated);
+
+        if ($request->hasFile('photo')) {
+            $file = $request->file('photo');
+            $extension = strtolower($file->getClientOriginalExtension());
+
+            if (! in_array($extension, ['jpg', 'jpeg', 'png'], true)) {
+                return back()->withErrors(['photo' => 'Foto profil harus berupa JPG, JPEG, atau PNG.']);
+            }
+
+            if ($user->profile_photo_path && Storage::disk('public')->exists($user->profile_photo_path)) {
+                Storage::disk('public')->delete($user->profile_photo_path);
+            }
+
+            $user->update(['profile_photo_path' => $file->store('profile-photos', 'public')]);
+        }
+
+        return back()->with('success', 'Profil berhasil diperbarui.');
+    }
+
+    public function webForgotPassword()
+    {
+        return view('auth.forgot-password');
+    }
+
+    public function webSendResetToken(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'exists:users,email'],
+        ]);
+
+        $token = Str::random(64);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $validated['email']],
+            [
+                'token' => Hash::make($token),
+                'created_at' => now(),
+            ]
+        );
+
+        $message = 'Token reset password berhasil dibuat.';
+
+        return redirect()
+            ->route('password.reset.form')
+            ->with('success', $message)
+            ->with('reset_email', $validated['email'])
+            ->with('dev_reset_token', $token);
+    }
+
+    public function webResetPasswordForm()
+    {
+        return view('auth.reset-password');
+    }
+
+    public function webResetPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'exists:users,email'],
+            'token' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $record = DB::table('password_reset_tokens')->where('email', $validated['email'])->first();
+
+        if (! $record || ! Hash::check($validated['token'], $record->token)) {
+            return back()->withErrors(['token' => 'Token reset password tidak valid.'])->withInput();
+        }
+
+        if ($record->created_at && now()->diffInMinutes($record->created_at) > 60) {
+            return back()->withErrors(['token' => 'Token reset password sudah kedaluwarsa.'])->withInput();
+        }
+
+        User::where('email', $validated['email'])->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        DB::table('password_reset_tokens')->where('email', $validated['email'])->delete();
+
+        return redirect()->route('login')->with('success', 'Password berhasil direset. Silakan login kembali.');
+    }
+
     public function updateProfile(Request $request)
     {
         $user = $request->user();

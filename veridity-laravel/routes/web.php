@@ -18,9 +18,15 @@ Route::get('/login', function () {
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/forgot-password', [AuthController::class, 'webForgotPassword'])->name('password.request');
+Route::post('/forgot-password', [AuthController::class, 'webSendResetToken'])->name('password.email');
+Route::get('/reset-password', [AuthController::class, 'webResetPasswordForm'])->name('password.reset.form');
+Route::post('/reset-password', [AuthController::class, 'webResetPassword'])->name('password.update');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [AuthController::class, 'userDashboard'])->name('user.dashboard');
+    Route::get('/profile', [AuthController::class, 'webProfile'])->name('user.profile');
+    Route::post('/profile', [AuthController::class, 'webUpdateProfile'])->name('user.profile.update');
 
 
     // Route::get('/history', [ForensicController::class, 'history'])->name('user.history');

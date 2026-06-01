@@ -154,6 +154,21 @@ def _highlight_sentence(doc, sentence, color):
 
     return total_annotations
 
+ADMINISTRATIVE_PATTERNS = [
+    r"\bnama\s+(dosen|mahasiswa|anggota|penyusun|kampus)\b",
+    r"\b(dosen|mahasiswa|kampus|universitas|politeknik|institut|sekolah tinggi)\b",
+    r"\b(nim|nrp|nip|kelas|program studi|prodi|jurusan|fakultas)\b",
+    r"\b(disusun oleh|diajukan kepada|mata kuliah|lembar pengesahan|cover)\b",
+]
+
+def _is_administrative_sentence(sentence):
+    normalized = normalize_document_text(sentence).lower()
+
+    if len(normalized.split()) <= 8 and re.search(r"\b(nama|nim|nrp|kelas|prodi|jurusan)\b", normalized):
+        return True
+
+    return any(re.search(pattern, normalized) for pattern in ADMINISTRATIVE_PATTERNS)
+
 def _pdf_from_text(text):
     doc = fitz.open()
     lines = []
@@ -219,6 +234,19 @@ def _draw_nlp_metrics(page, metrics, interpretation):
             color=(71/255, 85/255, 105/255),
         )
 
+    page.draw_rect(fitz.Rect(55, 650, 540, 720), color=(226/255, 232/255, 240/255), fill=(255/255, 247/255, 237/255))
+    formula = (
+        "Rumus keputusan: Human Score = persentase kalimat Human-written. "
+        ">= 80%: Aman, 60-79%: Mixed AI Assisted, < 60%: Mayoritas AI Generated."
+    )
+    page.insert_textbox(
+        fitz.Rect(65, 662, 530, 710),
+        formula,
+        fontsize=9,
+        fontname="helvetica",
+        color=(124/255, 45/255, 18/255),
+    )
+
 def generate_annotated_pdf(
     pdf_bytes,
     classification_map,
@@ -262,11 +290,10 @@ def generate_annotated_pdf(
     status_upper = str(metadata_summary).upper()
     badge_color = (22/255, 163/255, 74/255) # Default: Hijau
     
-    if "AI" in status_upper or "MIXED" in status_upper:
-        badge_color = (234/255, 88/255, 12/255) # Orange
-        
-    if "FULL" in status_upper or "FORGED" in status_upper:
+    if "MAYORITAS" in status_upper or "FULL" in status_upper or "FORGED" in status_upper:
         badge_color = (220/255, 38/255, 38/255) # Red
+    elif "AI" in status_upper or "MIXED" in status_upper:
+        badge_color = (234/255, 88/255, 12/255) # Orange
 
     kop_page.draw_rect(fitz.Rect(175, 224, 380, 246), color=badge_color, fill=badge_color, radius=None)
     kop_page.insert_text(fitz.Point(185, 240), metadata_summary, fontsize=10, fontname="helvetica-bold", color=(1,1,1))
@@ -310,6 +337,9 @@ def generate_annotated_pdf(
 
     for sentence, label in classification_map.items():
         if label == "Human-written":
+            continue
+        if _is_administrative_sentence(sentence):
+            highlight_stats.setdefault("skipped_administrative", []).append(" ".join(str(sentence).split()))
             continue
             
         color_hex = COLOR_MAPPING.get(label)

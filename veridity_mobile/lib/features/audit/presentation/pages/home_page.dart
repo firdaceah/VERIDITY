@@ -137,21 +137,25 @@ class _HomeState extends State<Home> {
                         Icons.face,
                         "Deepfake AI",
                         "Deteksi wajah dan citra sintetis",
+                        "Menganalisis pola frekuensi dan ciri visual yang sering muncul pada gambar sintetis atau hasil generator AI.",
                       ),
                       _buildMethodItem(
                         Icons.layers,
                         "ELA Visual",
                         "Error Level Analysis",
+                        "Membandingkan level kompresi piksel untuk menemukan area yang punya jejak penyuntingan berbeda dari bagian lain.",
                       ),
                       _buildMethodItem(
                         Icons.description_outlined,
                         "NLP Dokumen",
                         "Pola kalimat manusia vs AI",
+                        "Mengukur distribusi kalimat human-written, AI-generated, dan hybrid pada dokumen PDF.",
                       ),
                       _buildMethodItem(
                         Icons.info_outline,
                         "Metadata",
                         "Metadata Forensik",
+                        "Membaca jejak EXIF, perangkat, software, waktu, dan indikasi pengolahan file.",
                       ),
                     ],
                   ),
@@ -165,32 +169,80 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _buildMethodItem(IconData icon, String title, String desc) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0E0E20),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: const Color(0xFF7C3AED), size: 28),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
+  Widget _buildMethodItem(
+    IconData icon,
+    String title,
+    String desc,
+    String detail,
+  ) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(15),
+      onTap: () => _showMethodDetail(icon, title, detail),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0E0E20),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: const Color(0xFF7C3AED), size: 28),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          Text(
-            desc,
-            style: const TextStyle(color: Colors.white54, fontSize: 10),
-          ),
-        ],
+            Text(
+              desc,
+              style: const TextStyle(color: Colors.white54, fontSize: 10),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMethodDetail(IconData icon, String title, String detail) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF1D143E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: const Color(0xFF39D2DD), size: 34),
+            const SizedBox(height: 14),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              detail,
+              style: const TextStyle(
+                color: Colors.white70,
+                height: 1.5,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 18),
+          ],
+        ),
       ),
     );
   }

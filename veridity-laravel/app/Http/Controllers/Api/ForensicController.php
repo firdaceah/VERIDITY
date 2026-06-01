@@ -434,7 +434,9 @@ class ForensicController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'Riwayat audit berhasil dihapus!');
+        $tab = request('redirect_tab') === 'documents' ? 'documents' : 'images';
+
+        return redirect()->route('user.my-audits', ['tab' => $tab])->with('success', 'Riwayat audit berhasil dihapus!');
     }
 
     public function downloadPdf($id)

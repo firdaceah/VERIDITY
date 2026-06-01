@@ -148,6 +148,7 @@
                                     <div class="pt-2 border-t border-slate-800/60 mt-2 text-white font-bold">
                                         <p><i class="fa-solid fa-diagram-project text-blue-400 mr-2 text-[10px]"></i>Model Classifier Baseline : RoBERTa-Base OpenAI Detector Pipeline</p>
                                         <p><i class="fa-solid fa-gauge-high text-blue-400 mr-2 text-[10px]"></i>Hasil Akhir Skor Orisinalitas : <span class="text-blue-400 font-bold">{{ $analysis->final_result['full_report']['final_score'] ?? 0 }}%</span></p>
+                                        <p><i class="fa-solid fa-square-root-variable text-blue-400 mr-2 text-[10px]"></i>Rumus Human Score : (Jumlah kalimat Human-written / Total kalimat terklasifikasi) x 100%</p>
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-1 gap-4 text-[11px] pt-1">
@@ -183,8 +184,8 @@
                                         </div>
                                         <div class="grid grid-cols-1 md:grid-cols-12 items-start gap-1 md:gap-4 border-t border-slate-900/60 pt-2">
                                             <div class="md:col-span-3 font-bold text-red-400 flex items-center gap-2">Skor 0.00% - 59.99%</div>
-                                            <div class="md:col-span-3 font-extrabold uppercase tracking-wide text-red-500">[ FULL AI GENERATED ]</div>
-                                            <div class="md:col-span-6 text-slate-400 text-[11px]">Keseluruhan isi dokumen terdeteksi dibuat instan lewat generator kecerdasan buatan.</div>
+                                            <div class="md:col-span-3 font-extrabold uppercase tracking-wide text-red-500">[ MAYORITAS AI GENERATED ]</div>
+                                            <div class="md:col-span-6 text-slate-400 text-[11px]">Mayoritas kalimat utama menunjukkan pola AI. Elemen administratif seperti cover, nama dosen, nama mahasiswa, dan nama kampus diperlakukan sebagai konteks pendukung sehingga tidak menjadi dasar arsiran utama.</div>
                                         </div>
                                     </div>
                                 </div>

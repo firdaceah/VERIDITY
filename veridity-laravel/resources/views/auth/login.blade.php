@@ -5,11 +5,8 @@
 @section('auth-form')
     <div class="bg-slate-800/40 backdrop-blur-xl p-8 rounded-3xl border border-slate-700 shadow-2xl">
         @if (session('success'))
-            <div
-                class="bg-emerald-500/10 border border-emerald-500/50 p-4 rounded-2xl mb-6 flex items-start gap-3 animate-fade-in">
-                <div class="text-emerald-500 mt-0.5">
-                    <i class="fa-solid fa-circle-check"></i>
-                </div>
+            <div class="bg-emerald-500/10 border border-emerald-500/50 p-4 rounded-2xl mb-6 flex items-start gap-3">
+                <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5"></i>
                 <div>
                     <h5 class="text-sm font-bold text-emerald-400 leading-none mb-1">Berhasil!</h5>
                     <p class="text-xs text-emerald-500/80">{{ session('success') }}</p>
@@ -19,9 +16,7 @@
 
         @if ($errors->any())
             <div class="bg-red-500/10 border border-red-500/50 p-4 rounded-2xl mb-6 flex items-start gap-3">
-                <div class="text-red-500 mt-0.5">
-                    <i class="fa-solid fa-circle-xmark"></i>
-                </div>
+                <i class="fa-solid fa-circle-xmark text-red-500 mt-0.5"></i>
                 <div class="text-xs text-red-400">
                     @foreach ($errors->all() as $error)
                         <p>{{ $error }}</p>
@@ -29,6 +24,7 @@
                 </div>
             </div>
         @endif
+
         <form method="POST" action="{{ route('login') }}" class="space-y-6">
             @csrf
 
@@ -45,28 +41,25 @@
             </div>
 
             <div>
-                <div class="flex justify-between mb-2">
-                    <label class="text-sm font-medium text-slate-300">Password</label>
-                    @if (Route::has('password.request'))
-                        <a href="{{ route('password.request') }}" class="text-xs text-blue-400 hover:underline italic">
-                            Lupa Password?
-                        </a>
-                    @endif
-                </div>
+                <label class="text-sm font-medium text-slate-300 mb-2 block">Password</label>
                 <div class="relative">
                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
                         <i class="fa-solid fa-lock"></i>
                     </span>
-                    <input type="password" name="password" required
-                        class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm"
-                        placeholder="••••••••">
+                    <input id="loginPassword" type="password" name="password" required
+                        class="w-full pl-10 pr-12 py-3 bg-slate-900/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm"
+                        placeholder="password">
+                    <button type="button" onclick="togglePassword('loginPassword', 'loginPasswordIcon')"
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-blue-400">
+                        <i id="loginPasswordIcon" class="fa-solid fa-eye"></i>
+                    </button>
                 </div>
             </div>
 
-            <div class="flex items-center">
-                <input type="checkbox" name="remember" id="remember"
-                    class="rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500">
-                <label for="remember" class="ml-2 text-sm text-slate-400">Ingat perangkat ini</label>
+            <div class="flex justify-end">
+                <a href="{{ route('password.request') }}" class="text-sm text-blue-400 hover:underline font-semibold">
+                    Lupa password?
+                </a>
             </div>
 
             <button type="submit"
@@ -81,5 +74,13 @@
         </div>
     </div>
 
-
+<script>
+    function togglePassword(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        input.type = input.type === 'password' ? 'text' : 'password';
+        icon.classList.toggle('fa-eye');
+        icon.classList.toggle('fa-eye-slash');
+    }
+</script>
 @endsection

@@ -38,6 +38,7 @@
             <div class="flex items-center gap-6">
                 <a href="/dashboard" class="text-sm font-medium hover:text-blue-400 transition">Beranda</a>
                 <a href="/my-audits" class="text-sm font-medium hover:text-blue-400 transition">Riwayat Saya</a>
+                <a href="{{ route('user.profile') }}" class="text-sm font-medium hover:text-blue-400 transition">Profil</a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button

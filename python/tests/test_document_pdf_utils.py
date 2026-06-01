@@ -114,3 +114,19 @@ def test_generate_annotated_pdf_supports_docx_source_with_highlights():
 
     assert _annotation_count(result.getvalue()) >= 1
     assert "Kalimat ini dibuat oleh AI" in _text_content(result.getvalue())
+
+
+def test_generate_annotated_pdf_skips_administrative_identity_sentences():
+    result = generate_annotated_pdf(
+        _sample_pdf_bytes(),
+        {
+            "Nama Dosen Politeknik Elektronika Negeri Surabaya.": "AI-generated",
+            "Kalimat ini dibuat oleh AI untuk menguji laporan Veridity.": "AI-generated",
+        },
+    )
+
+    doc = fitz.open(stream=result.getvalue(), filetype="pdf")
+    subject = doc.metadata.get("subject", "")
+    doc.close()
+    assert "skipped_administrative" in subject
+    assert _annotation_count(result.getvalue()) >= 1

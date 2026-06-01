@@ -84,6 +84,8 @@ class LoginState extends State<Login> {
       builder: (context) {
         bool requesting = false;
         bool resetting = false;
+        bool resetPasswordHidden = true;
+        bool resetConfirmHidden = true;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -157,16 +159,22 @@ class LoginState extends State<Login> {
                     const SizedBox(height: 10),
                     _dialogField(_resetTokenController, "Token reset"),
                     const SizedBox(height: 10),
-                    _dialogField(
+                    _dialogPasswordField(
                       _resetPasswordController,
                       "Password baru",
-                      obscure: true,
+                      hidden: resetPasswordHidden,
+                      onToggle: () => setDialogState(
+                        () => resetPasswordHidden = !resetPasswordHidden,
+                      ),
                     ),
                     const SizedBox(height: 10),
-                    _dialogField(
+                    _dialogPasswordField(
                       _resetConfirmController,
                       "Konfirmasi password",
-                      obscure: true,
+                      hidden: resetConfirmHidden,
+                      onToggle: () => setDialogState(
+                        () => resetConfirmHidden = !resetConfirmHidden,
+                      ),
                     ),
                   ],
                 ),
@@ -358,6 +366,38 @@ class LoginState extends State<Login> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.white38),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.white24),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF39D2DD)),
+        ),
+      ),
+    );
+  }
+
+  Widget _dialogPasswordField(
+    TextEditingController controller,
+    String hint, {
+    required bool hidden,
+    required VoidCallback onToggle,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: hidden,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white38),
+        suffixIcon: IconButton(
+          onPressed: onToggle,
+          icon: Icon(
+            hidden ? Icons.visibility_off : Icons.visibility,
+            color: Colors.white54,
+          ),
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: Colors.white24),

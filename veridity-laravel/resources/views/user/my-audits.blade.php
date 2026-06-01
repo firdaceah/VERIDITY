@@ -4,7 +4,7 @@
 
 @section('content')
     {{-- Inisialisasi State Tab Menggunakan Alpine.js --}}
-    <div x-data="{ activeTab: 'images' }" class="text-slate-100">
+    <div x-data="{ activeTab: '{{ request('tab') === 'documents' ? 'documents' : 'images' }}', query: '' }" class="text-slate-100">
         
         {{-- Header Section --}}
         <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -13,7 +13,12 @@
                 <p class="text-slate-400 text-sm mt-1">Daftar rekaman riwayat investigasi forensik digital milik Anda.</p>
             </div>
 
-            {{-- Sakelar Navigasi Tab --}}
+            <div class="w-full md:w-auto flex flex-col sm:flex-row gap-3">
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                <input x-model="query" type="search" placeholder="Cari nama file atau status..."
+                    class="w-full sm:w-72 pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600">
+            </div>
             <div class="flex bg-slate-950 p-1 rounded-2xl border border-slate-800/80 self-start">
                 <button @click="activeTab = 'images'" 
                     :class="activeTab === 'images' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'"
@@ -25,6 +30,7 @@
                     class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2">
                     <i class="fa-solid fa-file-lines"></i> Dokumen Teks
                 </button>
+            </div>
             </div>
         </div>
 
@@ -46,7 +52,7 @@
         {{-- ========================================================================= --}}
         <div x-show="activeTab === 'images'" x-transition:enter="transition ease-out duration-300" class="grid grid-cols-1 md:grid-cols-3 gap-8">
             @forelse($imageAudits as $audit)
-                <div class="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden group hover:border-blue-500/50 transition-all duration-300 shadow-xl flex flex-col justify-between">
+                <div x-show="'{{ strtolower($audit->image_name.' '.($audit->final_result['summary_label'] ?? '')) }}'.includes(query.toLowerCase())" class="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden group hover:border-blue-500/50 transition-all duration-300 shadow-xl flex flex-col justify-between">
                     <div>
                         <div class="aspect-video bg-slate-950 relative overflow-hidden border-b border-slate-800/40">
                             <img src="{{ asset('storage/' . $audit->s3_path) }}"
@@ -85,6 +91,7 @@
                                 <form id="delete-form-{{ $audit->id }}" action="{{ route('audit.destroy', $audit->id) }}" method="POST" class="inline">
                                     @csrf
                                     @method('DELETE')
+                                    <input type="hidden" name="redirect_tab" value="images">
                                     <button type="button" onclick="confirmDelete({{ $audit->id }}, '{{ $audit->image_name }}')"
                                         class="w-9 h-9 flex items-center justify-center rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-200 focus:outline-none">
                                         <i class="fa-solid fa-trash-can text-xs"></i>
@@ -114,7 +121,7 @@
                 @php
                     $ext = strtolower(pathinfo($audit->image_name, PATHINFO_EXTENSION));
                 @endphp
-                <div class="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden group hover:border-blue-500/50 transition-all duration-300 shadow-xl flex flex-col justify-between">
+                <div x-show="'{{ strtolower($audit->image_name.' '.($audit->final_result['summary_label'] ?? '')) }}'.includes(query.toLowerCase())" class="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden group hover:border-blue-500/50 transition-all duration-300 shadow-xl flex flex-col justify-between">
                     <div>
                         {{-- Tampilan Header Kartu Khusus File Dokumen --}}
                         <div class="aspect-video bg-gradient-to-br from-slate-950 to-slate-900 relative overflow-hidden border-b border-slate-800/40 flex items-center justify-center p-6">
@@ -154,6 +161,7 @@
                                 <form id="delete-form-{{ $audit->id }}" action="{{ route('audit.destroy', $audit->id) }}" method="POST" class="inline">
                                     @csrf
                                     @method('DELETE')
+                                    <input type="hidden" name="redirect_tab" value="documents">
                                     <button type="button" onclick="confirmDelete({{ $audit->id }}, '{{ $audit->image_name }}')"
                                         class="w-9 h-9 flex items-center justify-center rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-200 focus:outline-none">
                                         <i class="fa-solid fa-trash-can text-xs"></i>

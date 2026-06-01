@@ -10,7 +10,7 @@ use Throwable;
 
 class AuditReportService
 {
-    private const REPORT_VERSION = 3;
+    private const REPORT_VERSION = 4;
 
     public function ensureReport(ForensicAnalysis $analysis): ?string
     {

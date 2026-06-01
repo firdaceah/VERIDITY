@@ -279,7 +279,7 @@ test('report download reuses stored pdf instead of generating different output',
         'noise_status' => 'Not Applicable',
         'report_pdf_path' => 'reports/'.$user->id.'/stored.pdf',
         'report_status' => 'ready',
-        'report_version' => 3,
+        'report_version' => 4,
         'report_generated_at' => now(),
         'final_result' => [
             'summary_label' => 'MIXED TEXT',

@@ -187,6 +187,26 @@
             style="background-color: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-style: italic;">
             "{{ $analysis->final_result['full_report']['results']['document']['interpretation'] ?? '' }}"
         </p>
+
+        <div class="section-title">Alasan Kesimpulan dan Rumus Keputusan</div>
+        <table>
+            <tr>
+                <th>Rumus Human Score</th>
+                <td>Human Score = persentase kalimat yang diklasifikasikan sebagai Human-written.</td>
+            </tr>
+            <tr>
+                <th>Ambang Aman</th>
+                <td>&ge; 80% Human Score dikategorikan AUTHENTIC (HUMAN WRITTEN).</td>
+            </tr>
+            <tr>
+                <th>Ambang Mixed</th>
+                <td>60% - 79% Human Score dikategorikan MIXED TEXT (AI ASSISTED).</td>
+            </tr>
+            <tr>
+                <th>Ambang Mayoritas AI</th>
+                <td>&lt; 60% Human Score dikategorikan MAYORITAS AI GENERATED.</td>
+            </tr>
+        </table>
     @else
         {{-- BLOK PRINT DATA KHUSUS CITRA GAMBAR --}}
         <div class="section-title">Kalkulasi Parameter Fisik Citra Digital</div>
@@ -226,6 +246,26 @@
             style="background-color: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-style: italic;">
             "{{ $analysis->final_result['full_report']['results']['noise']['interpretation'] ?? 'Normal.' }}"
         </p>
+
+        <div class="section-title">Alasan Kesimpulan Forensik Citra</div>
+        <table>
+            <tr>
+                <th>ELA</th>
+                <td>Semakin kecil anomali ELA, semakin konsisten jejak kompresi piksel pada gambar.</td>
+            </tr>
+            <tr>
+                <th>Deepfake/GAN</th>
+                <td>GAN score rendah menunjukkan indikasi citra sintetis AI tidak dominan.</td>
+            </tr>
+            <tr>
+                <th>Noise</th>
+                <td>Noise dinilai sebagai sinyal pendukung dan dikorelasikan dengan ELA, metadata, dan AI detection.</td>
+            </tr>
+            <tr>
+                <th>Metadata</th>
+                <td>Metadata dipakai untuk melihat jejak perangkat, aplikasi penyunting, serta konsistensi waktu pembuatan file.</td>
+            </tr>
+        </table>
     @endif
 
     {{-- FOOTER NOTIFIKASI VALIDASI KAMPUS --}}
