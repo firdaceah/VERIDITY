@@ -199,7 +199,7 @@ Task:
   - pertahankan route web yang sudah berjalan;
   - buat method/resource API yang konsisten untuk mobile.
 - [x] Gunakan `ForensicResource` untuk response audit.
-- [x] Tambahkan validasi file untuk image, PDF, dan DOCX.
+- [x] Tambahkan validasi file untuk image dan PDF.
 - [x] Tambahkan response `visual_results` untuk citra jika ada ELA/noise output.
 - [x] Pastikan delete audit memeriksa owner/admin untuk API dan web.
 - [x] Tambahkan endpoint report PDF untuk API/mobile.
@@ -213,7 +213,7 @@ Deliverable:
 Verifikasi:
 - [x] Test auth API.
 - [x] Test upload image API.
-- [x] Test upload PDF/DOCX API dengan Python engine aktif/fake.
+- [x] Test upload PDF API dengan Python engine aktif/fake.
 - [x] Test history API hanya menampilkan data user terkait.
 - [x] Test report PDF mengembalikan `Content-Type: application/pdf`.
 
@@ -273,7 +273,7 @@ Task:
 - [x] Refactor layar:
   - Login dan signup memakai repository, bukan `http.post` langsung.
   - Home menampilkan CTA upload image/document.
-  - Upload mendukung JPG, PNG, PDF, DOCX.
+  - Upload mendukung JPG, PNG, PDF.
   - History membaca `/api/audits`.
   - Profile membaca token/session yang tersimpan.
 - [x] Tambahkan detail result mobile untuk status, score, metadata summary, jumlah klasifikasi, delete, dan URL report PDF.
@@ -329,7 +329,7 @@ Task:
 - [x] Perbaiki warna dan legenda agar sama dengan label Python.
 - [x] Pastikan hasil PDF tetap punya halaman kop di awal.
 - [x] Perbaiki route unduh PDF mobile agar bisa dibuka dari browser eksternal memakai token query.
-- [x] Tambahkan fallback PDF ringkasan untuk hasil analisis foto dan DOCX lewat Laravel DomPDF.
+- [x] Tambahkan fallback PDF ringkasan untuk hasil analisis foto.
 
 Deliverable:
 - [x] Download PDF dokumen memiliki arsiran lebih detail.
@@ -526,7 +526,7 @@ Deliverable:
 Verifikasi:
 - Login/register website.
 - Upload image.
-- Upload PDF/DOCX.
+- Upload PDF.
 - Download report PDF.
 - Cek log Laravel dan Python.
 
@@ -586,7 +586,7 @@ Alasan:
 ### Skenario 2 - Analisis Dokumen dari Website
 
 1. User login di website VERIDITY.
-2. User upload PDF/DOCX.
+2. User upload PDF.
 3. Laravel memanggil FastAPI `/analyze-document`.
 4. Hasil klasifikasi AI/manusia/campuran tersimpan.
 5. User membuka result page.

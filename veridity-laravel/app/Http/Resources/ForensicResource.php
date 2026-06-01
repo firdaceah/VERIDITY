@@ -44,6 +44,9 @@ class ForensicResource extends JsonResource
             'noise_status' => $this->noise_status,
             'metadata_details' => $this->metadata_details,
             'final_result' => $finalResult,
+            'report_status' => $this->report_status,
+            'report_version' => $this->report_version,
+            'report_generated_at' => optional($this->report_generated_at)->toISOString(),
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
         ];
     }

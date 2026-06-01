@@ -22,13 +22,13 @@ class _UploadFotoState extends State<UploadFoto> {
 
   bool get _isDocument {
     final extension = _selectedFile?.extension?.toLowerCase();
-    return extension == 'pdf' || extension == 'docx';
+    return extension == 'pdf';
   }
 
   Future<void> _pickFile() async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'docx'],
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
       withData: true,
     );
 
@@ -196,7 +196,7 @@ class _UploadFotoState extends State<UploadFoto> {
         ),
         SizedBox(height: 8),
         Text(
-          "PNG, JPG, JPEG, PDF, DOCX (max. 15MB)",
+          "PNG, JPG, JPEG, PDF (max. 15MB)",
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.white54, fontSize: 12),
         ),
@@ -224,12 +224,8 @@ class _UploadFotoState extends State<UploadFoto> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          extension == 'PDF'
-                              ? Icons.picture_as_pdf_outlined
-                              : Icons.description_outlined,
-                          color: extension == 'PDF'
-                              ? Colors.redAccent
-                              : const Color(0xFF39D2DD),
+                          Icons.picture_as_pdf_outlined,
+                          color: Colors.redAccent,
                           size: 72,
                         ),
                         const SizedBox(height: 12),

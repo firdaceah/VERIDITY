@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import 'api_exception.dart';
 
@@ -127,7 +128,12 @@ class ApiClient {
       if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     });
     request.files.add(
-      http.MultipartFile.fromBytes(fieldName, bytes, filename: fileName),
+      http.MultipartFile.fromBytes(
+        fieldName,
+        bytes,
+        filename: fileName,
+        contentType: _mediaTypeFor(fileName),
+      ),
     );
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
@@ -135,20 +141,56 @@ class ApiClient {
   }
 
   Map<String, dynamic> _decode(http.Response response) {
-    final decoded = response.body.isEmpty
-        ? <String, dynamic>{}
-        : jsonDecode(response.body) as Map<String, dynamic>;
+    Map<String, dynamic> decoded;
+
+    try {
+      decoded = response.body.isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(response.body) as Map<String, dynamic>;
+    } on FormatException {
+      final message = response.statusCode == 413
+          ? 'Ukuran file melebihi batas server. Naikkan upload_max_filesize dan post_max_size di php.ini.'
+          : 'Server mengirim respons yang tidak dapat dibaca aplikasi.';
+      throw ApiException(message, statusCode: response.statusCode);
+    }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return decoded;
     }
 
+    final validationMessage = _firstValidationMessage(decoded['errors']);
     throw ApiException(
-      decoded['message']?.toString() ?? 'Terjadi kesalahan pada server',
+      validationMessage ??
+          decoded['message']?.toString() ??
+          'Terjadi kesalahan pada server',
       statusCode: response.statusCode,
       errors: decoded['errors'] is Map<String, dynamic>
           ? decoded['errors'] as Map<String, dynamic>
           : null,
     );
+  }
+
+  String? _firstValidationMessage(Object? errors) {
+    if (errors is! Map<String, dynamic> || errors.isEmpty) {
+      return null;
+    }
+
+    final first = errors.values.first;
+    if (first is List && first.isNotEmpty) {
+      return first.first.toString();
+    }
+
+    return first?.toString();
+  }
+
+  MediaType? _mediaTypeFor(String fileName) {
+    final extension = fileName.split('.').last.toLowerCase();
+
+    return switch (extension) {
+      'jpg' || 'jpeg' => MediaType('image', 'jpeg'),
+      'png' => MediaType('image', 'png'),
+      'pdf' => MediaType('application', 'pdf'),
+      _ => null,
+    };
   }
 }

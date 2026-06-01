@@ -68,9 +68,9 @@ def generate_noise_map(image_path, sigma=2.0, ela_anomaly_score=0.0, is_deepfake
         # Pengecekan B: Uji ketidakrataan sebaran blok partikel citra
         else:
             if variance_std > (mean_variance * static_threshold_multiplier):
-                warnings.append("Pola sebaran partikel gambar tidak rata. Terdeteksi adanya kontaminasi objek asing (Splicing)")
-                interpretation = "Pola sebaran partikel gambar tidak rata. Terdeteksi adanya objek asing yang sengaja ditempel atau dihapus (Splicing)."
-                researcher_note = "Varians lokal antar-blok melewati ambang batas deviasi standar statis citra."
+                warnings.append("Pola sebaran partikel gambar tidak rata dan perlu dibandingkan dengan ELA, metadata, serta skor AI.")
+                interpretation = "Ditemukan variasi noise lokal pada beberapa area gambar. Indikasi ini bersifat pendukung dan belum cukup untuk menyimpulkan splicing tanpa korelasi dengan ELA, metadata, dan deteksi AI."
+                researcher_note = "Varians lokal antar-blok melewati ambang batas deviasi standar statis citra; gunakan sebagai sinyal pendukung, bukan vonis tunggal."
                 
                 # Menghitung pinalti skor murni dari rasio lonjakan deviasi
                 deviation_ratio = variance_std / (mean_variance * static_threshold_multiplier)

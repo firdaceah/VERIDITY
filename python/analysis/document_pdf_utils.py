@@ -6,6 +6,7 @@ from nltk.tokenize import word_tokenize
 from docx import Document  
 import os
 import re
+import textwrap
 import unicodedata
 
 for nltk_path in [
@@ -41,11 +42,19 @@ def extract_any_document(file_bytes, file_extension):
     ext = ext.lstrip('.')
     
     if ext == 'pdf':
-        return extract_text_from_pdf(file_bytes)
+        return normalize_document_text(extract_text_from_pdf(file_bytes))
     elif ext == 'docx':
-        return extract_text_from_docx(file_bytes)
+        return normalize_document_text(extract_text_from_docx(file_bytes))
     else:
         raise ValueError(f"Format dokumen '{ext}' tidak didukung oleh sistem Veridity!")
+
+def normalize_document_text(text):
+    text = unicodedata.normalize("NFKC", str(text))
+    text = re.sub(r"-\s*\n\s*", "", text)
+    text = re.sub(r"\s*\n\s*", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    text = re.sub(r"\s+([,.;:!?])", r"\1", text)
+    return text.strip()
 
 def word_count(text):
     try:
@@ -126,6 +135,18 @@ def _highlight_sentence(doc, sentence, color):
 
         for match in matches:
             for rect in _merge_line_rects(match):
+                expanded = fitz.Rect(rect)
+                expanded.x0 -= 1.5
+                expanded.y0 -= 1.5
+                expanded.x1 += 1.5
+                expanded.y1 += 1.5
+                page.draw_rect(
+                    expanded,
+                    color=None,
+                    fill=color,
+                    fill_opacity=0.34,
+                    overlay=True,
+                )
                 annot = page.add_highlight_annot(rect)
                 annot.set_colors(stroke=color)
                 annot.update()
@@ -133,12 +154,87 @@ def _highlight_sentence(doc, sentence, color):
 
     return total_annotations
 
-def generate_annotated_pdf(pdf_bytes, classification_map, metadata_summary="MIXED TEXT (AI ASSISTED)", audit_id="61", analyzed_at=None):
+def _pdf_from_text(text):
+    doc = fitz.open()
+    lines = []
+    for paragraph in normalize_document_text(text).split("\n"):
+        wrapped = textwrap.wrap(paragraph, width=92) or [""]
+        lines.extend(wrapped)
+
+    page = None
+    y = 58
+
+    for line in lines:
+        if page is None or y > 790:
+            page = doc.new_page(width=595, height=842)
+            y = 58
+
+        page.insert_text(
+            fitz.Point(50, y),
+            line,
+            fontsize=11,
+            fontname="helvetica",
+            color=(31/255, 41/255, 55/255),
+        )
+        y += 17
+
+    out = doc.write()
+    doc.close()
+    return out
+
+def _source_pdf_bytes(file_bytes, source_extension):
+    ext = str(source_extension or "pdf").lower().lstrip(".")
+    if ext == "docx":
+        return _pdf_from_text(extract_text_from_docx(file_bytes))
+    return file_bytes
+
+def _percentage(value):
+    try:
+        return f"{float(value):.2f}%"
+    except (TypeError, ValueError):
+        return "0.00%"
+
+def _draw_nlp_metrics(page, metrics, interpretation):
+    metrics = metrics or {}
+    page.draw_rect(fitz.Rect(50, 440, 545, 460), color=None, fill=(248/255, 250/255, 252/255))
+    page.insert_text(fitz.Point(55, 454), "RINCIAN KOMPUTASI BAHASA (NLP METRICS)", fontsize=10, fontname="helvetica-bold", color=(30/255, 58/255, 138/255))
+    rows = [
+        ("Kalimat Orisinal (Human-written)", metrics.get("human_p", 0)),
+        ("Kalimat Sintetis (AI-generated)", metrics.get("ai_p", 0)),
+        ("Kalimat Hybrid / AI-refined", metrics.get("hybrid_p", 0)),
+    ]
+
+    for index, (label, value) in enumerate(rows):
+        y = 485 + (index * 25)
+        page.insert_text(fitz.Point(65, y), label, fontsize=10, fontname="helvetica", color=(51/255, 65/255, 85/255))
+        page.insert_text(fitz.Point(405, y), _percentage(value), fontsize=10, fontname="helvetica-bold", color=(30/255, 58/255, 138/255))
+
+    if interpretation:
+        page.draw_rect(fitz.Rect(55, 560, 540, 630), color=(226/255, 232/255, 240/255), fill=(248/255, 250/255, 252/255))
+        page.insert_textbox(
+            fitz.Rect(65, 572, 530, 620),
+            str(interpretation),
+            fontsize=9,
+            fontname="helvetica-oblique",
+            color=(71/255, 85/255, 105/255),
+        )
+
+def generate_annotated_pdf(
+    pdf_bytes,
+    classification_map,
+    metadata_summary="MIXED TEXT (AI ASSISTED)",
+    audit_id="61",
+    analyzed_at=None,
+    document_metrics=None,
+    interpretation=None,
+    source_extension="pdf",
+):
     """
     Menghasilkan laporan PDF formal dengan menyisipkan Kop Surat Veridity PENS 
     di halaman pertama, lalu memberikan warna stabilo AI pada teks di halaman berikutnya.
     """
-    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    doc = fitz.open(stream=_source_pdf_bytes(pdf_bytes, source_extension), filetype="pdf")
+    doc.set_metadata({**doc.metadata, "title": "Laporan Investigasi Forensik Veridity"})
     kop_page = doc.new_page(pno=0, width=595, height=842) 
     
     # Desain Garis Pembatas Kop Surat
@@ -157,7 +253,8 @@ def generate_annotated_pdf(pdf_bytes, classification_map, metadata_summary="MIXE
         
     kop_page.insert_text(fitz.Point(55, 160), f"Kode Investigasi    :  #VRD-{audit_id}", fontsize=11, fontname="helvetica")
     kop_page.insert_text(fitz.Point(55, 185), f"Waktu Analisis       :  {analyzed_at}", fontsize=11, fontname="helvetica")
-    kop_page.insert_text(fitz.Point(55, 210), f"Format Objek        :  PDF (Rumpun Linguistic Teks)", fontsize=11, fontname="helvetica")
+    format_label = str(source_extension or "pdf").upper().lstrip(".")
+    kop_page.insert_text(fitz.Point(55, 210), f"Format Objek        :  {format_label} (Rumpun Linguistic Teks)", fontsize=11, fontname="helvetica")
     
     kop_page.insert_text(fitz.Point(55, 238), f"Vonis Akhir Berkas : ", fontsize=11, fontname="helvetica")
     
@@ -182,6 +279,8 @@ def generate_annotated_pdf(pdf_bytes, classification_map, metadata_summary="MIXE
     kop_page.insert_text(fitz.Point(55, 355), "• Jingga (Orange)            :  Hasil Parafrase / Refinement Mesin Komputer (AI-Refined)", fontsize=11, fontname="helvetica")
     kop_page.insert_text(fitz.Point(55, 380), "• Biru Muda (Light Blue)  :  Teks Gabungan / Hasil Editan Manusia & AI", fontsize=11, fontname="helvetica")
     kop_page.insert_text(fitz.Point(55, 405), "• Tanpa Warna Stabilo     :  Murni Gaya Tulisan Alami Manusia (Human-written)", fontsize=11, fontname="helvetica")
+
+    _draw_nlp_metrics(kop_page, document_metrics, interpretation)
 
     # Catatan Kaki Validasi Kampus PENS
     kop_page.draw_line(fitz.Point(50, 780), fitz.Point(545, 780), color=(226/255, 232/255, 240/255), width=1)
@@ -228,6 +327,7 @@ def generate_annotated_pdf(pdf_bytes, classification_map, metadata_summary="MIXE
 
     doc.set_metadata({
         **doc.metadata,
+        "title": "Laporan Investigasi Forensik Veridity",
         "subject": f"Veridity highlight stats: {highlight_stats}",
     })
 

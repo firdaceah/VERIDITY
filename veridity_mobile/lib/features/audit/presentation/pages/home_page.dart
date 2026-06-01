@@ -89,7 +89,7 @@ class _HomeState extends State<Home> {
                                 ),
                               ),
                               Text(
-                                "Verifikasi keaslian citra, PDF, dan DOCX",
+                                "Verifikasi keaslian citra dan PDF",
                                 style: TextStyle(
                                   color: Colors.white60,
                                   fontSize: 13,

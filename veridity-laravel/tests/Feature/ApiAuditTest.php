@@ -22,6 +22,9 @@ test('authenticated user can analyze a document through the audits endpoint usin
                 'Kalimat ini kemungkinan dibantu AI.' => 'AI-generated',
             ],
         ]),
+        'http://python-engine.test/generate-pdf-report' => Http::response('%PDF-1.4 generated report', 200, [
+            'Content-Type' => 'application/pdf',
+        ]),
     ]);
 
     $user = User::factory()->create();
@@ -41,6 +44,27 @@ test('authenticated user can analyze a document through the audits endpoint usin
         ->assertJsonPath('data.final_score', 62.5);
 
     Http::assertSent(fn ($request) => $request->url() === 'http://python-engine.test/analyze-document');
+
+    $analysis = ForensicAnalysis::query()->first();
+    expect($analysis->report_status)->toBe('ready');
+    expect($analysis->report_pdf_path)->not->toBeNull();
+    Storage::disk('public')->assertExists($analysis->report_pdf_path);
+});
+
+test('docx upload is rejected so document analysis remains pdf only', function () {
+    $user = User::factory()->create();
+
+    $this
+        ->actingAs($user, 'sanctum')
+        ->postJson('/api/audits', [
+            'image' => UploadedFile::fake()->create(
+                'sample.docx',
+                32,
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ),
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('image');
 });
 
 test('legacy analyze and history endpoints remain available as mobile compatibility aliases', function () {
@@ -237,4 +261,41 @@ test('image audit can download summary pdf without python document report endpoi
         ->assertHeader('Content-Type', 'application/pdf');
 
     Http::assertNothingSent();
+});
+
+test('report download reuses stored pdf instead of generating different output', function () {
+    Http::preventStrayRequests();
+
+    $user = User::factory()->create();
+    Storage::disk('public')->put('reports/'.$user->id.'/stored.pdf', '%PDF-1.4 stored report');
+
+    $audit = ForensicAnalysis::create([
+        'user_id' => $user->id,
+        'image_name' => 'document.pdf',
+        's3_path' => 'uploads/document.pdf',
+        'ela_score' => 0,
+        'is_deepfake' => false,
+        'metadata_details' => ['summary' => ['verdict' => 'MIXED TEXT']],
+        'noise_status' => 'Not Applicable',
+        'report_pdf_path' => 'reports/'.$user->id.'/stored.pdf',
+        'report_status' => 'ready',
+        'report_version' => 3,
+        'report_generated_at' => now(),
+        'final_result' => [
+            'summary_label' => 'MIXED TEXT',
+            'summary_color' => 'warning',
+            'full_report' => [
+                'final_score' => 62.5,
+                'classification_map' => [
+                    'Kalimat ini kemungkinan dibantu AI.' => 'AI-generated',
+                ],
+            ],
+        ],
+    ]);
+
+    $this
+        ->actingAs($user, 'sanctum')
+        ->get("/api/audits/{$audit->id}/report")
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
 });

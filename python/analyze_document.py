@@ -45,9 +45,9 @@ def run_document_analysis(file_bytes, file_extension):
             summary_color = "warning"
             interpretation = "Terdeteksi kombinasi gaya bahasa campuran. Sebagian paragraf terindikasi disusun manual dan sebagian lainnya disisipi kalimat bentukan AI."
         else:
-            summary_label = "FULL AI GENERATED"
+            summary_label = "MAYORITAS AI GENERATED"
             summary_color = "danger"
-            interpretation = "Mayoritas struktur bahasa sangat monoton dengan tingkat ketertebakan kata yang terlalu kaku khas generator kecerdasan buatan."
+            interpretation = "Mayoritas kalimat terindikasi kuat dibuat AI. Jika masih ada bagian yang terdeteksi Human-written, bagian tersebut tetap dihitung sebagai porsi tulisan manusia dan dapat dilihat pada arsiran serta rincian NLP metrics."
 
         return {
             "status": "success",

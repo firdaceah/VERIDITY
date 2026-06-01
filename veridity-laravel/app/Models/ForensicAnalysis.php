@@ -19,7 +19,12 @@ class ForensicAnalysis extends Model
         'is_deepfake',
         'metadata_details',
         'noise_status',
-        'final_result'
+        'final_result',
+        'report_pdf_path',
+        'report_status',
+        'report_version',
+        'report_error',
+        'report_generated_at',
     ];
 
     protected $casts = [
@@ -27,6 +32,8 @@ class ForensicAnalysis extends Model
         'is_deepfake' => 'boolean',
         'ela_score' => 'float',
         'final_result' => 'json',
+        'report_version' => 'integer',
+        'report_generated_at' => 'datetime',
     ];
 
     public function user()

@@ -49,7 +49,7 @@
             @csrf
             <div class="bg-slate-900 border-2 border-dashed border-slate-700 rounded-[2.5rem] p-12 text-center hover:border-blue-500/50 transition">
                 <input type="file" name="image" class="hidden" id="fileInput" onchange="previewFile(this)"
-                    accept=".jpg,.jpeg,.png,.pdf,.docx,image/jpeg,image/png,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                    accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf">
 
                 {{-- File Preview Container --}}
                 <div id="previewContainer" class="hidden mb-6">
@@ -74,7 +74,7 @@
                 <div id="dropzoneContent">
                     <i class="fa-solid fa-cloud-arrow-up text-5xl text-slate-700 mb-4"></i>
                     <h3 class="text-xl font-bold">Pilih File Analisis</h3>
-                    <p class="text-xs text-slate-500 mt-2">Format yang didukung: JPG, JPEG, PNG, PDF, DOCX.</p>
+                    <p class="text-xs text-slate-500 mt-2">Format yang didukung: JPG, JPEG, PNG, PDF.</p>
                     <p class="text-[11px] text-slate-600 mt-1">Gunakan foto atau dokumen yang ingin diverifikasi keasliannya.</p>
                 </div>
 
@@ -122,7 +122,7 @@
     </div>
 
     <script>
-        const documentExtensions = ['pdf', 'docx'];
+        const documentExtensions = ['pdf'];
         const imageExtensions = ['jpg', 'jpeg', 'png'];
 
         function getFileExtension(fileName) {
@@ -166,7 +166,7 @@
                 const documentPreviewType = document.getElementById('documentPreviewType');
 
                 if (!imageExtensions.includes(extension) && !documentExtensions.includes(extension)) {
-                    alert('Format file belum didukung. Gunakan JPG, JPEG, PNG, PDF, atau DOCX.');
+                    alert('Format file belum didukung. Gunakan JPG, JPEG, PNG, atau PDF.');
                     removeFile();
                     return;
                 }
@@ -185,7 +185,7 @@
                     imagePreview.classList.add('hidden');
                     documentPreview.classList.remove('hidden');
                     documentPreview.classList.add('flex');
-                    documentPreviewIcon.className = 'fa-solid ' + (extension === 'pdf' ? 'fa-file-pdf text-red-400' : 'fa-file-word text-blue-400') + ' text-5xl';
+                    documentPreviewIcon.className = 'fa-solid fa-file-pdf text-red-400 text-5xl';
                     documentPreviewType.textContent = extension.toUpperCase();
                 }
 

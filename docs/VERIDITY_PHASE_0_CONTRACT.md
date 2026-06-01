@@ -92,7 +92,7 @@ Python engine berjalan sebagai service FastAPI di `PYTHON_ENGINE_URL`.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/` | Health check |
-| POST | `/analyze-document` | Analisis PDF/DOCX |
+| POST | `/analyze-document` | Analisis PDF |
 | POST | `/generate-pdf-report` | Generate PDF report dengan highlight |
 
 Untuk citra, Laravel masih memakai `PYTHON_PATH` dan `PYTHON_TOOLKIT_SCRIPT` yang menunjuk ke `python/analyze_all.py`.

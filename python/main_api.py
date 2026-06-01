@@ -30,10 +30,14 @@ async def generate_pdf_report_endpoint(
     classification_map_str: str = Form(...),
     summary_label: str = Form("MIXED TEXT"), 
     audit_id: str = Form("64"),
-    analyzed_at: str = Form(None)
+    analyzed_at: str = Form(None),
+    extension: str = Form("pdf"),
+    document_metrics_str: str = Form("{}"),
+    interpretation: str = Form("")
 ):
     try:
         classification_map = json.loads(classification_map_str)
+        document_metrics = json.loads(document_metrics_str)
         pdf_bytes = await file.read()
         
         # Memanggil utilitas eksternal yang sudah diperbaiki
@@ -42,7 +46,10 @@ async def generate_pdf_report_endpoint(
             classification_map, 
             metadata_summary=summary_label, 
             audit_id=audit_id,
-            analyzed_at=analyzed_at
+            analyzed_at=analyzed_at,
+            document_metrics=document_metrics,
+            interpretation=interpretation,
+            source_extension=extension,
         )
         
         return Response(

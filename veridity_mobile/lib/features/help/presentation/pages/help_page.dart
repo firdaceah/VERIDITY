@@ -41,11 +41,11 @@ class HelpState extends State<Help> {
                   const SizedBox(height: 25),
                   _faq(
                     "Bagaimana cara analisis file?",
-                    "Ketuk tombol tambah di navigasi bawah, pilih foto/PDF/DOCX, cek preview, lalu tekan Unggah & Analisis.",
+                    "Ketuk tombol tambah di navigasi bawah, pilih foto/PDF, cek preview, lalu tekan Unggah & Analisis.",
                   ),
                   _faq(
                     "Format apa yang didukung?",
-                    "VERIDITY mendukung JPG, JPEG, PNG untuk foto serta PDF dan DOCX untuk dokumen.",
+                    "VERIDITY mendukung JPG, JPEG, PNG untuk foto serta PDF untuk dokumen.",
                   ),
                   _faq(
                     "Apa arti hasil Aman, Mencurigakan, dan Berbahaya?",

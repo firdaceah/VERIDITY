@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ForensicResource;
 use App\Models\ForensicAnalysis;
+use App\Services\AuditReportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\PersonalAccessToken;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class ForensicController extends Controller
 {
@@ -43,6 +43,11 @@ class ForensicController extends Controller
         }
 
         return $analysis;
+    }
+
+    private function reportService(): AuditReportService
+    {
+        return app(AuditReportService::class);
     }
 
     private function runImageAnalysisCommand(string $fullPathFile, string $outputFolder): array
@@ -149,7 +154,7 @@ class ForensicController extends Controller
     public function uploadImage(Request $request)
     {
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'image' => 'required|image|mimes:jpeg,png,jpg|max:15000',
         ]);
 
         $path = $request->file('image')->store('forensics', 'public');
@@ -174,7 +179,7 @@ class ForensicController extends Controller
 
         // 1. Validasi Fleksibel: Menerima rumpun Gambar (Citra) ATAU Dokumen Teks
         $request->validate([
-            'image' => 'required|file|mimes:jpeg,png,jpg,pdf,docx|max:15000',
+            'image' => 'required|file|mimes:jpeg,png,jpg,pdf|max:15000',
         ]);
 
         try {
@@ -187,10 +192,10 @@ class ForensicController extends Controller
             $fullPathFile = storage_path('app/public/'.$path);
 
             // =========================================================================
-            // PERCABANGAN KONDISI CABANG A: JIKA BERKAS ADALAH DOKUMEN TEKS (PDF / DOCX)
+            // PERCABANGAN KONDISI CABANG A: JIKA BERKAS ADALAH DOKUMEN TEKS (PDF)
             // =========================================================================
-            if (in_array($extension, ['pdf', 'docx'])) {
-                // Ambil stream file agar multipart upload stabil untuk PDF/DOCX besar.
+            if ($extension === 'pdf') {
+                // Ambil stream file agar multipart upload stabil untuk PDF besar.
                 $fileStream = fopen($fullPathFile, 'r');
 
                 // Panggil REST API Backend Python di Port 8001 dengan proteksi timeout 5 menit
@@ -251,6 +256,9 @@ class ForensicController extends Controller
                     ],
                 ]);
 
+                $this->reportService()->ensureReport($analysis);
+                $analysis->refresh();
+
                 if (! $request->expectsJson()) {
                     return redirect()->route('user.result', $analysis->id)->with('success', 'Analisis Dokumen Selesai!');
                 }
@@ -305,6 +313,12 @@ class ForensicController extends Controller
                 $statusColor = 'warning';
             }
 
+            if ($statusColor === 'success' && isset($result['results']['noise'])) {
+                $result['results']['noise']['warnings'] = [];
+                $result['results']['noise']['interpretation'] = 'Pola noise memiliki variasi lokal yang masih berada dalam toleransi hasil akhir. Tidak ditemukan korelasi kuat dengan ELA, metadata, atau deteksi AI untuk menyimpulkan manipulasi.';
+                $result['results']['noise']['researcher_note'] = 'Noise diperlakukan sebagai sinyal pendukung dan telah diselaraskan dengan keputusan akhir analisis citra.';
+            }
+
             $analysis = ForensicAnalysis::create([
                 'user_id' => Auth::id(),
                 'image_name' => $filename,
@@ -319,6 +333,9 @@ class ForensicController extends Controller
                     'full_report' => $result,
                 ],
             ]);
+
+            $this->reportService()->ensureReport($analysis);
+            $analysis->refresh();
 
             if (! $request->expectsJson()) {
                 return redirect()->route('user.result', $analysis->id)->with('success', 'Analisis Citra Selesai!');
@@ -404,6 +421,10 @@ class ForensicController extends Controller
             }
         }
 
+        if ($analysis->report_pdf_path && Storage::disk('public')->exists($analysis->report_pdf_path)) {
+            Storage::disk('public')->delete($analysis->report_pdf_path);
+        }
+
         $analysis->delete();
 
         if (request()->expectsJson()) {
@@ -422,96 +443,25 @@ class ForensicController extends Controller
         set_time_limit(180);
 
         try {
-            // 1. Ambil data record audit murni dari database Oracle
             $audit = $this->findAccessibleAudit($id);
-            $finalResultData = $audit->final_result;
+            $reportPath = $this->reportService()->ensureReport($audit);
 
-            if (is_string($finalResultData)) {
-                $finalResultData = json_decode($finalResultData, true) ?: [];
-            }
-
-            $fileExtension = strtolower(pathinfo((string) ($audit->image_name ?? $audit->s3_path), PATHINFO_EXTENSION));
-
-            if ($fileExtension !== 'pdf') {
-                return $this->downloadSummaryPdf($audit, $fileExtension);
-            }
-
-            // 2. Ambil referensi nama file asli dari field database yang valid (image_name)
-            $namaFile = $audit->image_name ?? $audit->s3_path ?? null;
-
-            // Target folder utama tempat dokumen asli tersimpan
-            $folderStorage = storage_path('app/public/uploads'.DIRECTORY_SEPARATOR);
-
-            if (! file_exists($folderStorage)) {
-                $folderStorage = storage_path('app/public/forensics'.DIRECTORY_SEPARATOR);
-            }
-
-            $pdfPath = $folderStorage.$namaFile;
-
-            if ($audit->s3_path && Storage::disk('public')->exists($audit->s3_path)) {
-                $pdfPath = Storage::disk('public')->path($audit->s3_path);
-            }
-
-            // Jalur Pengaman Alternatif Cepat
-            if (! $namaFile || ! file_exists($pdfPath)) {
-                $semuaFile = glob($folderStorage.'*.pdf');
-
-                if (! empty($semuaFile)) {
-                    $pdfPath = $semuaFile[0];
-                } else {
-                    if (request()->expectsJson()) {
-                        return response()->json([
-                            'status' => 'error',
-                            'message' => 'Berkas fisik dokumen pemeriksaan belum tersedia di server local storage. Silakan lakukan pemeriksaan ulang.',
-                        ], 404);
-                    }
-
-                    return back()->with('warning', 'Berkas fisik dokumen pemeriksaan belum tersedia di server local storage. Silakan lakukan pemeriksaan ulang.');
-                }
-            }
-
-            // Selam ke dalam struktur array bertingkat: final_result -> full_report -> classification_map
-            $classificationMap = $finalResultData['full_report']['classification_map'] ?? [];
-
-            // Ambil juga summary_label secara presisi dari dalam JSON final_result
-            $summaryLabel = $finalResultData['summary_label'] ?? 'MIXED TEXT';
-
-            // 4. Lempar data parameter secara lengkap ke REST API Python Engine Port 8001
-            $pdfStream = fopen($pdfPath, 'r');
-
-            $response = Http::timeout(120)->attach(
-                'file',
-                $pdfStream,
-                'document.pdf'
-            )->post($this->pythonEngineUrl().'/generate-pdf-report', [
-                'classification_map_str' => json_encode($classificationMap),
-                'summary_label' => $summaryLabel,
-                'audit_id' => $audit->id,
-                'analyzed_at' => $audit->created_at->setTimezone('Asia/Jakarta')->format('d M Y, H:i').' WIB',
-            ]);
-
-            if (is_resource($pdfStream)) {
-                fclose($pdfStream);
-            }
-
-            if ($response->failed()) {
+            if (! $reportPath) {
                 if (request()->expectsJson()) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'Gagal terhubung dengan Layanan Analisis Forensik (Python Engine). Pastikan service gateway aktif.',
+                        'message' => 'Laporan PDF belum tersedia. Silakan coba unduh kembali beberapa saat lagi.',
                     ], 502);
                 }
 
-                return back()->with('error', 'Gagal terhubung dengan Layanan Analisis Forensik (Python Engine). Pastikan service gateway aktif.');
+                return back()->with('error', 'Laporan PDF belum tersedia. Silakan coba unduh kembali beberapa saat lagi.');
             }
 
-            // 5. Sambas data stream binary PDF dari FastAPI dan luncurkan ke browser client
-            $pdfContent = $response->body();
-            $fileName = 'REPORT_VERIDITY_#VRD-'.$audit->id.'.pdf';
-
-            return response($pdfContent, 200)
-                ->header('Content-Type', 'application/pdf')
-                ->header('Content-Disposition', 'attachment; filename="'.$fileName.'"');
+            return Storage::disk('public')->download(
+                $reportPath,
+                $this->reportService()->reportFileName($audit),
+                ['Content-Type' => 'application/pdf']
+            );
         } catch (\Exception $e) {
             Log::error('Gagal mengunduh laporan PDF: '.$e->getMessage());
 
@@ -538,25 +488,5 @@ class ForensicController extends Controller
         Auth::setUser($accessToken->tokenable);
 
         return $this->downloadPdf($id);
-    }
-
-    private function downloadSummaryPdf(ForensicAnalysis $analysis, string $fileExtension)
-    {
-        $isDocument = in_array($fileExtension, ['pdf', 'docx'], true);
-        $waktuAnalisis = $analysis->created_at
-            ? $analysis->created_at->setTimezone('Asia/Jakarta')->format('d M Y, H:i').' WIB'
-            : now('Asia/Jakarta')->format('d M Y, H:i').' WIB';
-
-        $pdf = Pdf::loadView('user.pdf-report', [
-            'analysis' => $analysis,
-            'isDocument' => $isDocument,
-            'fileExtension' => $fileExtension ?: 'unknown',
-            'waktuAnalisis' => $waktuAnalisis,
-            'generatedAt' => now('Asia/Jakarta')->format('d M Y, H:i').' WIB',
-        ])->setPaper('a4');
-
-        $fileName = 'REPORT_VERIDITY_#VRD-'.$analysis->id.'.pdf';
-
-        return $pdf->download($fileName);
     }
 }
