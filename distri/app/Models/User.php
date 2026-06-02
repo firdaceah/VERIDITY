@@ -18,14 +18,17 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $table = 'USERS';
-
     protected $fillable = [
         'name',
         'email',
         'role',
         'password',
     ];
+
+    public function getTable()
+    {
+        return config('database.default') === 'pgsql' ? 'users' : 'USERS';
+    }
 
     /**
      * The attributes that should be hidden for serialization.

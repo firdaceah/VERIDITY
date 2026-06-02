@@ -666,6 +666,26 @@ cp .env.example .env
 php artisan key:generate
 ```
 
+Jika `composer install` gagal karena `ext-oci8`:
+
+```text
+yajra/laravel-oci8 requires ext-oci8
+```
+
+itu terjadi karena project masih menyimpan package Oracle untuk kebutuhan mata kuliah Basis Data. Untuk deployment AWS PostgreSQL, jalankan:
+
+```bash
+composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-oci8
+```
+
+Pastikan `.env` production memakai:
+
+```env
+DB_CONNECTION=pgsql
+```
+
+Jangan jalankan `composer update` di server kecuali memang ingin mengubah versi dependency.
+
 Jika tidak ada `.env.example`, buat `.env` manual:
 
 ```bash
@@ -779,6 +799,18 @@ npm install
 npm run build
 cp .env.example .env
 php artisan key:generate
+```
+
+Jika `composer install` pada `distri` juga gagal karena `ext-oci8`, gunakan:
+
+```bash
+composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-oci8
+```
+
+Ini aman untuk deployment PostgreSQL selama `.env` memakai:
+
+```env
+DB_CONNECTION=pgsql
 ```
 
 Edit `.env`:
