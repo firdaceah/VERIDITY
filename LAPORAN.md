@@ -2,15 +2,27 @@
 
 ## 1. Deskripsi Sistem
 
-VERIDITY adalah aplikasi forensik digital untuk membantu pengguna memeriksa apakah foto, nota pembayaran, atau dokumen memiliki indikasi hasil AI, hasil editan, atau campuran antara tulisan manusia dan AI. Sistem terdiri dari website Laravel, aplikasi mobile Flutter, engine Python, dan website distributor `distri`.
+VERIDITY adalah sistem forensik digital untuk mendeteksi indikasi foto, nota pembayaran, dan dokumen yang dibuat oleh AI, diedit, atau memiliki campur tangan manusia dan AI. Sistem terdiri dari:
 
-Untuk mata kuliah Basis Data, fokus utama sistem adalah website Laravel yang terhubung ke Oracle. Database menyimpan data user, hasil analisis forensik, produk distributor, order, item order, voucher, dan status validasi nota.
+- `veridity-laravel`: website utama, API, autentikasi, upload file, riwayat analisis, dashboard user/admin, dan penyimpanan hasil analisis.
+- `distri`: website distributor/toko untuk katalog produk, checkout, voucher, pesanan, upload nota, dan validasi bukti pembayaran melalui VERIDITY.
+- `python`: engine analisis foto/dokumen dan generate PDF report.
+- `veridity_mobile`: aplikasi Flutter sebagai client mobile. Untuk laporan basis data, mobile hanya menjadi konsumen API dan tidak menjadi fokus utama Oracle.
+
+Untuk mata kuliah Basis Data, fokus implementasi adalah aplikasi web Laravel yang terkoneksi ke Oracle. Database Oracle dipakai untuk menyimpan user, hasil analisis forensik, produk, order, item order, voucher, serta status validasi nota.
+
+Implementasi Oracle menggunakan dua schema:
+
+- `VERIDITY`: schema untuk aplikasi forensik utama.
+- `DISTRI`: schema untuk aplikasi distributor/toko.
+
+Kedua schema memakai tablespace `VERIDITY_TS` agar administrasi storage tetap terpusat, tetapi data tetap dipisahkan sesuai batas aplikasi.
 
 ## 2. Perancangan Database
 
-### 2.1 ERD
+### 2.1 ERD (Entity Relationship Diagram)
 
-Entitas utama yang digunakan:
+Entitas utama:
 
 1. `users`
 2. `forensic_analyses`
@@ -20,13 +32,22 @@ Entitas utama yang digunakan:
 6. `order_items`
 7. `vouchers`
 
+Relasi utama:
+
+- User memiliki banyak hasil analisis.
+- User/reseller memiliki banyak order.
+- Category memiliki banyak product.
+- Product muncul pada banyak order item.
+- Order memiliki banyak order item.
+- Voucher dapat digunakan oleh banyak order.
+
 ```mermaid
 erDiagram
     USERS ||--o{ FORENSIC_ANALYSES : membuat
     USERS ||--o{ ORDERS : melakukan
-    CATEGORIES ||--o{ PRODUCTS : mengelompokkan
+    CATEGORIES ||--o{ PRODUCTS : memiliki
     PRODUCTS ||--o{ ORDER_ITEMS : dipesan
-    ORDERS ||--o{ ORDER_ITEMS : memiliki
+    ORDERS ||--o{ ORDER_ITEMS : berisi
     VOUCHERS ||--o{ ORDERS : digunakan
 
     USERS {
@@ -36,8 +57,6 @@ erDiagram
         VARCHAR2 role
         VARCHAR2 password
         VARCHAR2 profile_photo_path
-        TIMESTAMP created_at
-        TIMESTAMP updated_at
     }
 
     FORENSIC_ANALYSES {
@@ -81,7 +100,7 @@ erDiagram
         VARCHAR2 payment_method
         VARCHAR2 payment_status
         VARCHAR2 order_status
-        VARCHAR2 voucher_code FK
+        VARCHAR2 voucher_code
     }
 
     ORDER_ITEMS {
@@ -105,118 +124,131 @@ erDiagram
     }
 ```
 
-### 2.2 CDM
+### 2.2 CDM (Conceptual Data Model)
 
-Model konseptual sistem:
+CDM menggambarkan model konseptual tanpa fokus pada tipe data teknis. Model konseptual VERIDITY terdiri dari:
 
-- User dapat melakukan banyak analisis forensik.
-- User distributor atau reseller dapat membuat banyak order.
-- Produk dikelompokkan oleh kategori.
-- Order memiliki banyak item order.
-- Item order menyimpan snapshot nama produk, harga, kuantitas, dan subtotal saat transaksi dibuat.
-- Voucher dapat digunakan pada order untuk memberi potongan harga.
-- Hasil validasi nota dari VERIDITY disimpan pada order distributor.
+| Entitas | Deskripsi |
+| --- | --- |
+| User | Pengguna sistem, admin, atau reseller |
+| Forensic Analysis | Riwayat dan hasil analisis foto/dokumen |
+| Category | Kelompok produk distributor |
+| Product | Data produk minimarket/distributor |
+| Order | Transaksi pembelian reseller |
+| Order Item | Detail produk dalam satu order |
+| Voucher | Data potongan harga yang dapat digunakan saat checkout |
 
-Relasi konseptual:
+Relasi CDM:
 
-| Entitas Asal | Relasi | Entitas Tujuan |
+| Relasi | Kardinalitas | Keterangan |
 | --- | --- | --- |
-| User | 1 ke banyak | Forensic Analysis |
-| User | 1 ke banyak | Order |
-| Category | 1 ke banyak | Product |
-| Order | 1 ke banyak | Order Item |
-| Product | 1 ke banyak | Order Item |
-| Voucher | 1 ke banyak | Order |
+| User - Forensic Analysis | 1 : N | Satu user dapat melakukan banyak analisis |
+| User - Order | 1 : N | Satu reseller dapat membuat banyak order |
+| Category - Product | 1 : N | Satu kategori memiliki banyak produk |
+| Product - Order Item | 1 : N | Satu produk dapat muncul pada banyak item order |
+| Order - Order Item | 1 : N | Satu order memiliki banyak item |
+| Voucher - Order | 0/1 : N | Satu voucher dapat digunakan pada banyak order, order boleh tanpa voucher |
 
-### 2.3 PDM Oracle
+Catatan CDM:
 
-PDM berikut menggambarkan implementasi fisik di Oracle.
+- Atribut `id` menjadi identifier utama setiap entitas.
+- `email`, `slug`, `order_id_string`, dan `code` menjadi alternate identifier/unique key.
+- Atribut FK seperti `user_id`, `product_id`, dan `category_id` pada CDM direpresentasikan oleh relasi antar entitas.
 
-#### Tabel `users`
+### 2.3 PDM (Physical Data Model) Oracle
 
-| Kolom | Tipe Data Oracle | Keterangan |
+PDM adalah implementasi fisik pada Oracle. Tipe data yang digunakan:
+
+- `NUMBER` untuk ID, angka, status boolean, dan nilai numerik.
+- `VARCHAR2` untuk teks pendek.
+- `CLOB` untuk teks panjang/JSON besar.
+- `TIMESTAMP` untuk waktu.
+
+#### Tabel `USERS`
+
+| Kolom | Tipe Data | Constraint/Keterangan |
 | --- | --- | --- |
-| id | NUMBER | Primary key |
-| name | VARCHAR2(255) | Nama user |
-| email | VARCHAR2(255) | Unique |
-| role | VARCHAR2(30) | Role user/admin/reseller |
-| email_verified_at | TIMESTAMP | Verifikasi email |
-| password | VARCHAR2(255) | Password hash |
-| profile_photo_path | VARCHAR2(255) | Foto profil |
-| remember_token | VARCHAR2(100) | Token remember |
-| created_at | TIMESTAMP | Waktu dibuat |
-| updated_at | TIMESTAMP | Waktu diubah |
+| id | NUMBER | PK |
+| name | VARCHAR2(255) | NOT NULL |
+| email | VARCHAR2(255) | UNIQUE, NOT NULL |
+| role | VARCHAR2(30) | NOT NULL |
+| email_verified_at | TIMESTAMP | NULL |
+| password | VARCHAR2(255) | NOT NULL |
+| profile_photo_path | VARCHAR2(255) | NULL |
+| remember_token | VARCHAR2(100) | NULL |
+| created_at | TIMESTAMP | NULL |
+| updated_at | TIMESTAMP | NULL |
 
-#### Tabel `forensic_analyses`
+#### Tabel `FORENSIC_ANALYSES`
 
-| Kolom | Tipe Data Oracle | Keterangan |
+| Kolom | Tipe Data | Constraint/Keterangan |
 | --- | --- | --- |
-| id | NUMBER | Primary key |
-| user_id | NUMBER | Foreign key ke `users.id` |
-| image_name | VARCHAR2(255) | Nama file |
-| s3_path | VARCHAR2(255) | Path file |
+| id | NUMBER | PK |
+| user_id | NUMBER | FK ke `USERS.id` |
+| image_name | VARCHAR2(255) | NOT NULL |
+| s3_path | VARCHAR2(255) | Path file/foto |
 | ela_score | NUMBER(5,2) | Skor ELA |
 | is_deepfake | NUMBER(1) | Flag deepfake |
-| metadata_details | CLOB | Detail metadata |
+| metadata_details | CLOB | Metadata/JSON |
 | noise_status | CLOB | Detail noise |
-| final_result | CLOB | Hasil akhir analisis |
-| report_pdf_path | VARCHAR2(255) | Path PDF report |
+| final_result | CLOB | Hasil akhir |
+| report_pdf_path | VARCHAR2(255) | Path report PDF |
 | report_status | VARCHAR2(50) | Status report |
-| report_error | CLOB | Error generate report |
+| report_error | CLOB | Error report |
 | report_version | NUMBER | Versi report |
-| created_at | TIMESTAMP | Waktu dibuat |
-| updated_at | TIMESTAMP | Waktu diubah |
+| created_at | TIMESTAMP | NULL |
+| updated_at | TIMESTAMP | NULL |
 
-#### Tabel `categories`
+#### Tabel `CATEGORIES`
 
-| Kolom | Tipe Data Oracle | Keterangan |
+| Kolom | Tipe Data | Constraint/Keterangan |
 | --- | --- | --- |
-| id | NUMBER | Primary key |
-| name | VARCHAR2(120) | Nama kategori |
-| slug | VARCHAR2(140) | Unique |
-| icon | VARCHAR2(60) | Nama ikon |
-| created_at | TIMESTAMP | Waktu dibuat |
-| updated_at | TIMESTAMP | Waktu diubah |
+| id | NUMBER | PK |
+| name | VARCHAR2(120) | NOT NULL |
+| slug | VARCHAR2(140) | UNIQUE |
+| icon | VARCHAR2(60) | NULL |
+| created_at | TIMESTAMP | NULL |
+| updated_at | TIMESTAMP | NULL |
 
-#### Tabel `products`
+#### Tabel `PRODUCTS`
 
-| Kolom | Tipe Data Oracle | Keterangan |
+| Kolom | Tipe Data | Constraint/Keterangan |
 | --- | --- | --- |
-| id | NUMBER | Primary key |
-| category_id | NUMBER | Foreign key ke `categories.id` |
+| id | NUMBER | PK |
+| category_id | NUMBER | FK ke `CATEGORIES.id` |
 | external_id | VARCHAR2(80) | ID data dummy/API |
-| name | VARCHAR2(255) | Nama produk |
-| brand | VARCHAR2(120) | Merek |
-| description | CLOB | Deskripsi |
-| unit | VARCHAR2(100) | Satuan |
+| name | VARCHAR2(255) | NOT NULL |
+| brand | VARCHAR2(120) | NULL |
+| description | CLOB | Deskripsi produk |
+| unit | VARCHAR2(100) | NOT NULL |
 | min_qty | NUMBER | Minimal pembelian |
 | price | NUMBER(12,2) | Harga sebelum diskon |
 | stock | NUMBER | Stok |
-| rating | NUMBER(3,2) | Rating produk |
+| rating | NUMBER(3,2) | Rating |
 | discount_percentage | NUMBER(5,2) | Diskon produk |
-| image | VARCHAR2(255) | File gambar lokal |
+| image | VARCHAR2(255) | Nama file gambar |
 | image_url | CLOB | URL gambar |
-| created_at | TIMESTAMP | Waktu dibuat |
-| updated_at | TIMESTAMP | Waktu diubah |
+| created_at | TIMESTAMP | NULL |
+| updated_at | TIMESTAMP | NULL |
 
-#### Tabel `orders`
+#### Tabel `ORDERS`
 
-| Kolom | Tipe Data Oracle | Keterangan |
+| Kolom | Tipe Data | Constraint/Keterangan |
 | --- | --- | --- |
-| id | NUMBER | Primary key |
-| order_id_string | VARCHAR2(50) | Unique invoice |
-| user_id | NUMBER | Foreign key ke `users.id` |
-| product_id | NUMBER | Foreign key ke `products.id` |
+| id | NUMBER | PK |
+| order_id_string | VARCHAR2(50) | UNIQUE |
+| user_id | NUMBER | FK ke `USERS.id` |
+| product_id | NUMBER | FK ke `PRODUCTS.id` |
 | quantity | NUMBER | Total kuantitas |
 | total_amount | NUMBER(12,2) | Total pembayaran |
-| proof_of_transfer | VARCHAR2(255) | Bukti transfer |
+| proof_of_transfer | VARCHAR2(255) | Bukti pembayaran |
 | payment_method | VARCHAR2(50) | Metode pembayaran |
 | payment_channel | VARCHAR2(80) | Channel pembayaran |
 | payment_status | VARCHAR2(50) | Status pembayaran |
 | order_status | VARCHAR2(40) | Status pesanan |
 | payment_instruction | CLOB | Instruksi pembayaran |
 | shipping_address | CLOB | Alamat pengiriman |
-| voucher_code | VARCHAR2(40) | Referensi logis ke `vouchers.code` |
+| voucher_code | VARCHAR2(40) | Referensi logis ke `VOUCHERS.code` |
 | discount_amount | NUMBER(12,2) | Potongan voucher |
 | shipping_fee | NUMBER(12,2) | Ongkir |
 | veridity_status | VARCHAR2(50) | Status validasi nota |
@@ -225,195 +257,296 @@ PDM berikut menggambarkan implementasi fisik di Oracle.
 | veridity_message | CLOB | Pesan validasi |
 | veridity_validation_details | CLOB | Detail validasi |
 | veridity_checked_at | TIMESTAMP | Waktu validasi |
-| created_at | TIMESTAMP | Waktu dibuat |
-| updated_at | TIMESTAMP | Waktu diubah |
+| created_at | TIMESTAMP | NULL |
+| updated_at | TIMESTAMP | NULL |
 
-#### Tabel `order_items`
+#### Tabel `ORDER_ITEMS`
 
-| Kolom | Tipe Data Oracle | Keterangan |
+| Kolom | Tipe Data | Constraint/Keterangan |
 | --- | --- | --- |
-| id | NUMBER | Primary key |
-| order_id | NUMBER | Foreign key ke `orders.id` |
-| product_id | NUMBER | Foreign key ke `products.id` |
+| id | NUMBER | PK |
+| order_id | NUMBER | FK ke `ORDERS.id` |
+| product_id | NUMBER | FK ke `PRODUCTS.id` |
 | product_name | VARCHAR2(255) | Snapshot nama produk |
 | quantity | NUMBER | Jumlah |
 | price | NUMBER(12,2) | Harga setelah diskon produk |
-| subtotal | NUMBER(12,2) | Subtotal item |
-| created_at | TIMESTAMP | Waktu dibuat |
-| updated_at | TIMESTAMP | Waktu diubah |
+| subtotal | NUMBER(12,2) | Subtotal |
+| created_at | TIMESTAMP | NULL |
+| updated_at | TIMESTAMP | NULL |
 
-#### Tabel `vouchers`
+#### Tabel `VOUCHERS`
 
-| Kolom | Tipe Data Oracle | Keterangan |
+| Kolom | Tipe Data | Constraint/Keterangan |
 | --- | --- | --- |
-| id | NUMBER | Primary key |
-| code | VARCHAR2(40) | Unique |
-| name | VARCHAR2(120) | Nama voucher |
+| id | NUMBER | PK |
+| code | VARCHAR2(40) | UNIQUE |
+| name | VARCHAR2(120) | NOT NULL |
 | type | VARCHAR2(20) | Percent/fixed |
 | value | NUMBER(10,2) | Nilai voucher |
 | minimum_order | NUMBER(12,2) | Minimal belanja |
 | is_active | NUMBER(1) | Status aktif |
-| created_at | TIMESTAMP | Waktu dibuat |
-| updated_at | TIMESTAMP | Waktu diubah |
+| created_at | TIMESTAMP | NULL |
+| updated_at | TIMESTAMP | NULL |
 
-## 3. Aplikasi Web
+## 3. Aplikasi Web (Frontend + Backend)
 
 ### 3.1 Backend
 
-Backend menggunakan PHP dengan framework Laravel. Laravel bertugas untuk:
+Backend menggunakan PHP dengan framework Laravel.
 
-- Autentikasi user.
-- CRUD data produk distributor.
-- Menyimpan hasil analisis foto/dokumen.
-- Menghubungkan website dengan Oracle.
-- Menghubungkan website dengan Python engine.
-- Menyediakan API untuk Flutter dan integrasi `distri`.
+Implementasi backend:
 
-Driver Oracle yang digunakan adalah `yajra/laravel-oci8`.
+- Koneksi ke Oracle memakai driver `yajra/laravel-oci8`.
+- Autentikasi user/admin/reseller.
+- CRUD produk distributor.
+- Upload dan penyimpanan hasil analisis.
+- Integrasi ke Python engine untuk analisis foto/dokumen.
+- API untuk Flutter dan integrasi `distri`.
+- Validasi nota dari `distri` ke VERIDITY.
 
 ### 3.2 Frontend
 
-Frontend menggunakan Blade Laravel, HTML, CSS, dan JavaScript. Tampilan terdiri dari:
+Frontend menggunakan Laravel Blade, HTML, CSS, dan JavaScript.
 
-- Login/register.
+Halaman utama:
+
+- Login dan register.
 - Dashboard user.
-- Upload file analisis.
+- Upload foto/dokumen.
 - Riwayat analisis.
 - Detail analisis dan download PDF.
-- Katalog produk distributor.
-- Checkout, voucher, dan riwayat pesanan.
-- Dashboard admin untuk CRUD produk, pantau toko, pantau pesanan, dan validasi nota.
+- Dashboard admin VERIDITY.
+- Katalog produk `distri`.
+- Keranjang, voucher, checkout, dan riwayat pesanan.
+- Dashboard admin `distri` untuk kelola produk, toko, pesanan, dan validasi nota.
 
 ### 3.3 Fitur Minimal
 
-| Fitur | Implementasi |
+| Syarat | Implementasi |
 | --- | --- |
-| Login/authentication | Laravel Auth dan session |
-| CRUD data utama | CRUD produk pada admin distributor |
-| Menampilkan data dari Oracle | Produk, order, user, hasil analisis |
-| Validasi input | Laravel Request validation pada register, login, checkout, upload, produk |
-| Demo CRUD | Tambah, edit, hapus, dan cari produk |
+| Login/authentication | Laravel session auth dan API token |
+| CRUD data utama | CRUD produk pada admin `distri` |
+| Menampilkan data Oracle | Produk, order, user, riwayat analisis, validasi nota |
+| Validasi input | Laravel validation pada auth, produk, checkout, upload, dan profil |
 
 ## 4. Implementasi Database Oracle
 
-### 4.1 Pembuatan Tablespace
+### 4.1 Pembuatan Database dan Schema
+
+Oracle memakai dua schema:
+
+- `VERIDITY`
+- `DISTRI`
+
+Contoh pembuatan user:
+
+```sql
+CREATE USER VERIDITY IDENTIFIED BY "password_oracle"
+DEFAULT TABLESPACE VERIDITY_TS
+TEMPORARY TABLESPACE TEMP
+QUOTA UNLIMITED ON VERIDITY_TS;
+
+CREATE USER DISTRI IDENTIFIED BY "password_oracle"
+DEFAULT TABLESPACE VERIDITY_TS
+TEMPORARY TABLESPACE TEMP
+QUOTA UNLIMITED ON VERIDITY_TS;
+```
+
+### 4.2 Pembuatan Tabel
+
+Tabel dibuat melalui migration Laravel. Tabel utama:
+
+Schema `VERIDITY`:
+
+- `USERS`
+- `FORENSIC_ANALYSES`
+- `PERSONAL_ACCESS_TOKENS`
+- tabel pendukung Laravel seperti `CACHE`, `JOBS`, `SESSIONS`, dan `MIGRATIONS`
+
+Schema `DISTRI`:
+
+- `USERS`
+- `CATEGORIES`
+- `PRODUCTS`
+- `ORDERS`
+- `ORDER_ITEMS`
+- `VOUCHERS`
+- `CART_ITEMS`
+- `SHIPPING_ADDRESSES`
+- tabel pendukung Laravel seperti `CACHE`, `JOBS`, `SESSIONS`, dan `MIGRATIONS`
+
+### 4.3 Relasi Antar Tabel
+
+Relasi yang digunakan:
+
+- `FORENSIC_ANALYSES.user_id` ke `USERS.id`.
+- `PRODUCTS.category_id` ke `CATEGORIES.id`.
+- `ORDERS.user_id` ke `USERS.id`.
+- `ORDERS.product_id` ke `PRODUCTS.id`.
+- `ORDER_ITEMS.order_id` ke `ORDERS.id`.
+- `ORDER_ITEMS.product_id` ke `PRODUCTS.id`.
+- `ORDERS.voucher_code` ke `VOUCHERS.code` sebagai referensi logis aplikasi.
+
+### 4.4 Index dan Constraint
+
+Constraint:
+
+- Primary key pada setiap tabel utama.
+- Unique key pada `USERS.email`.
+- Unique key pada `CATEGORIES.slug`.
+- Unique key pada `ORDERS.order_id_string`.
+- Unique key pada `VOUCHERS.code`.
+- Foreign key antar tabel sesuai relasi PDM.
+
+Contoh query verifikasi:
+
+```sql
+SELECT CONSTRAINT_NAME, CONSTRAINT_TYPE, TABLE_NAME, STATUS
+FROM USER_CONSTRAINTS
+ORDER BY TABLE_NAME, CONSTRAINT_TYPE;
+```
+
+Index:
+
+- Index bawaan primary key dan unique key.
+- Index Laravel untuk cache, queue, session, dan token.
+- Index relasi untuk mempercepat join.
+
+Contoh query verifikasi:
+
+```sql
+SELECT INDEX_NAME, TABLE_NAME, UNIQUENESS, STATUS
+FROM USER_INDEXES
+ORDER BY TABLE_NAME, INDEX_NAME;
+```
+
+## 5. Administrasi Database (DBA)
+
+### 5.1 Manajemen User
+
+User/schema:
+
+- `VERIDITY`: akses database aplikasi forensik.
+- `DISTRI`: akses database aplikasi distributor/toko.
+
+Role luas seperti `DBA`, `CONNECT`, dan `RESOURCE` dicabut. User aplikasi hanya diberi privilege eksplisit yang dibutuhkan.
+
+Privilege:
+
+```sql
+GRANT CREATE SESSION TO VERIDITY CONTAINER=ALL;
+GRANT CREATE TABLE TO VERIDITY CONTAINER=ALL;
+GRANT CREATE SEQUENCE TO VERIDITY CONTAINER=ALL;
+GRANT CREATE VIEW TO VERIDITY CONTAINER=ALL;
+GRANT CREATE PROCEDURE TO VERIDITY CONTAINER=ALL;
+GRANT CREATE TRIGGER TO VERIDITY CONTAINER=ALL;
+
+GRANT CREATE SESSION TO DISTRI CONTAINER=ALL;
+GRANT CREATE TABLE TO DISTRI CONTAINER=ALL;
+GRANT CREATE SEQUENCE TO DISTRI CONTAINER=ALL;
+GRANT CREATE VIEW TO DISTRI CONTAINER=ALL;
+GRANT CREATE PROCEDURE TO DISTRI CONTAINER=ALL;
+GRANT CREATE TRIGGER TO DISTRI CONTAINER=ALL;
+```
+
+Verifikasi privilege:
+
+```sql
+SELECT GRANTEE, PRIVILEGE, COMMON, INHERITED
+FROM DBA_SYS_PRIVS
+WHERE GRANTEE IN ('VERIDITY', 'DISTRI')
+ORDER BY GRANTEE, PRIVILEGE;
+```
+
+### 5.2 Role dan Privilege
+
+Role yang tidak digunakan:
+
+- `DBA`
+- `CONNECT`
+- `RESOURCE`
+
+Verifikasi role:
+
+```sql
+SELECT *
+FROM DBA_ROLE_PRIVS
+WHERE GRANTEE IN ('VERIDITY', 'DISTRI')
+ORDER BY GRANTEE, GRANTED_ROLE;
+```
+
+Target hasil: 0 row untuk role luas.
+
+### 5.3 Storage Management
+
+Storage dikelola melalui tablespace:
 
 ```sql
 CREATE TABLESPACE VERIDITY_TS
-DATAFILE 'veridity01.dbf'
+DATAFILE 'C:\ORACLE21C\DB\ORADATA\VERIDITY_TS01.DBF'
 SIZE 500M
 AUTOEXTEND ON
 NEXT 100M
 MAXSIZE 2G;
 ```
 
-### 4.2 Pembuatan User
+Verifikasi tablespace:
 
 ```sql
-CREATE USER VERIDITY
-IDENTIFIED BY "password_oracle"
-DEFAULT TABLESPACE VERIDITY_TS
-TEMPORARY TABLESPACE TEMP;
+SELECT TABLESPACE_NAME, STATUS, CONTENTS
+FROM DBA_TABLESPACES
+WHERE TABLESPACE_NAME = 'VERIDITY_TS';
 ```
 
-### 4.3 Role dan Privilege
+Verifikasi datafile:
 
 ```sql
-GRANT CREATE SESSION TO VERIDITY;
-GRANT CREATE TABLE TO VERIDITY;
-GRANT CREATE SEQUENCE TO VERIDITY;
-GRANT CREATE VIEW TO VERIDITY;
-GRANT CREATE PROCEDURE TO VERIDITY;
-ALTER USER VERIDITY QUOTA UNLIMITED ON VERIDITY_TS;
+SELECT FILE_NAME, TABLESPACE_NAME, BYTES / 1024 / 1024 AS SIZE_MB, AUTOEXTENSIBLE
+FROM DBA_DATA_FILES
+WHERE TABLESPACE_NAME = 'VERIDITY_TS';
 ```
 
-Prinsip yang digunakan adalah least privilege. User aplikasi hanya diberi hak yang dibutuhkan untuk menjalankan aplikasi dan migrasi, bukan hak DBA penuh.
-
-### 4.4 Index dan Constraint
-
-Constraint yang diterapkan:
-
-- Primary key pada setiap tabel utama.
-- Unique constraint pada `users.email`.
-- Unique constraint pada `orders.order_id_string`.
-- Unique constraint pada `categories.slug`.
-- Unique constraint pada `vouchers.code`.
-- Foreign key dari `forensic_analyses.user_id` ke `users.id`.
-- Foreign key dari `products.category_id` ke `categories.id`.
-- Foreign key dari `orders.user_id` ke `users.id`.
-- Foreign key dari `orders.product_id` ke `products.id`.
-- Foreign key dari `order_items.order_id` ke `orders.id`.
-- Foreign key dari `order_items.product_id` ke `products.id`.
-- Relasi `orders.voucher_code` ke `vouchers.code` digunakan sebagai referensi logis pada aplikasi.
-
-Contoh index tambahan:
+Verifikasi quota:
 
 ```sql
-CREATE INDEX IDX_FORENSIC_USER ON FORENSIC_ANALYSES (USER_ID);
-CREATE INDEX IDX_ORDERS_USER ON ORDERS (USER_ID);
-CREATE INDEX IDX_ORDERS_STATUS ON ORDERS (ORDER_STATUS, PAYMENT_STATUS);
-CREATE INDEX IDX_PRODUCTS_CATEGORY ON PRODUCTS (CATEGORY_ID);
+SELECT USERNAME, TABLESPACE_NAME, BYTES / 1024 / 1024 AS USED_MB, MAX_BYTES / 1024 / 1024 AS MAX_MB
+FROM DBA_TS_QUOTAS
+WHERE USERNAME IN ('VERIDITY', 'DISTRI')
+ORDER BY USERNAME;
 ```
 
-## 5. Administrasi Database DBA
-
-### 5.1 Manajemen User
-
-User database utama adalah `VERIDITY`. User ini digunakan oleh aplikasi Laravel untuk koneksi ke Oracle.
-
-```sql
-CREATE USER VERIDITY IDENTIFIED BY "password_oracle";
-GRANT CREATE SESSION TO VERIDITY;
-```
-
-Untuk demo keamanan, dapat dibuat user read-only.
-
-```sql
-CREATE USER VERIDITY_READONLY IDENTIFIED BY "readonly_password";
-GRANT CREATE SESSION TO VERIDITY_READONLY;
-GRANT SELECT ON VERIDITY.USERS TO VERIDITY_READONLY;
-GRANT SELECT ON VERIDITY.FORENSIC_ANALYSES TO VERIDITY_READONLY;
-GRANT SELECT ON VERIDITY.PRODUCTS TO VERIDITY_READONLY;
-GRANT SELECT ON VERIDITY.ORDERS TO VERIDITY_READONLY;
-```
-
-### 5.2 Storage Management
-
-Storage dikelola melalui tablespace `VERIDITY_TS` dan datafile `veridity01.dbf`.
-
-```sql
-ALTER DATABASE DATAFILE 'veridity01.dbf' AUTOEXTEND ON NEXT 100M MAXSIZE 2G;
-```
-
-### 5.3 Security
+### 5.4 Security
 
 Strategi keamanan:
 
-- Password user database tidak disimpan di source code, tetapi di `.env`.
-- Akses aplikasi memakai user database khusus.
-- User read-only hanya memiliki hak `SELECT`.
-- Field sensitif seperti password disimpan dalam bentuk hash.
+- Password database disimpan pada `.env`, bukan di source code.
+- User aplikasi tidak memakai role `DBA`.
+- Privilege memakai prinsip least privilege.
+- Password aplikasi disimpan dalam bentuk hash.
 - Integrasi `distri` ke VERIDITY memakai `VERIDITY_INTEGRATION_KEY`.
+- File sensitif dan credential AWS tidak dimasukkan ke repository.
 
 ## 6. Koneksi Web ke Oracle
 
 ### 6.1 Listener dan Service Name
 
-Oracle harus memiliki listener aktif.
+Oracle listener harus aktif.
 
 ```bash
 lsnrctl status
 ```
 
-Contoh service name:
+Informasi koneksi yang dibutuhkan:
 
-```text
-XE
-```
+- Host: `127.0.0.1` atau alamat server Oracle.
+- Port: `1521`.
+- Service name: contoh `XE` atau `XEPDB1`.
+- Username: `VERIDITY` atau `DISTRI`.
+- Password: sesuai user Oracle.
 
 ### 6.2 Konfigurasi Backend Laravel
 
-Contoh `.env`:
+Contoh `.env` `veridity-laravel`:
 
 ```env
 DB_CONNECTION=oracle
@@ -424,7 +557,18 @@ DB_USERNAME=VERIDITY
 DB_PASSWORD=password_oracle
 ```
 
-Setelah mengubah konfigurasi:
+Contoh `.env` `distri`:
+
+```env
+DB_CONNECTION=oracle
+DB_HOST=127.0.0.1
+DB_PORT=1521
+DB_SERVICE_NAME=XE
+DB_USERNAME=DISTRI
+DB_PASSWORD=password_oracle
+```
+
+Setelah mengubah koneksi:
 
 ```bash
 php artisan config:clear
@@ -435,55 +579,69 @@ php artisan migrate
 
 ### 7.1 Aplikasi Web
 
-Output aplikasi web terdiri dari:
+Output:
 
-- Website `veridity-laravel`.
-- Website `distri`.
-- Backend Laravel yang terkoneksi ke Oracle.
-- Python engine sebagai service pendukung analisis.
+- Website `veridity-laravel` berjalan.
+- Website `distri` berjalan.
+- Backend Laravel terkoneksi ke Oracle.
+- Python engine berjalan sebagai service pendukung analisis.
 
 ### 7.2 Database Oracle
 
-Output database:
+Output:
 
-- Struktur tabel sesuai PDM.
+- Schema `VERIDITY` dan `DISTRI`.
+- Tabel sesuai PDM.
 - Relasi antar tabel.
-- Index dan constraint.
-- User Oracle, privilege, tablespace, dan datafile.
+- Constraint dan index.
+- Tablespace `VERIDITY_TS`.
+- Datafile dan quota user.
+- Privilege eksplisit tanpa role `DBA`.
 
 ### 7.3 Desain Database
 
-Desain database berisi:
+Output desain:
 
 - ERD.
-- CDM.
-- PDM.
+- CDM dari PowerDesigner.
+- PDM Oracle dari PowerDesigner/reverse engineering.
 
 ### 7.4 Laporan
 
-Laporan mencakup:
+Isi laporan:
 
 - Deskripsi sistem.
 - Diagram database.
-- Implementasi DBA.
-- Implementasi aplikasi.
+- Implementasi Oracle.
+- Administrasi DBA.
 - Koneksi web ke Oracle.
+- Fitur aplikasi.
 - Skenario demo CRUD.
 
-### 7.5 Demo CRUD
+### 7.5 Demo
 
-Skenario demo:
+Skenario demo CRUD:
 
-1. Login sebagai admin distributor.
-2. Tambah produk baru.
-3. Edit nama, kategori, stok, harga, dan diskon produk.
-4. Cari produk melalui fitur search admin.
-5. Hapus atau nonaktifkan produk.
+1. Login sebagai admin `distri`.
+2. Tambah produk.
+3. Edit produk.
+4. Cari produk.
+5. Hapus produk.
 6. Login sebagai reseller.
-7. Tambahkan produk ke keranjang.
-8. Checkout dengan voucher.
-9. Admin memantau status pesanan dan validasi nota.
+7. Masukkan produk ke keranjang.
+8. Checkout dan gunakan voucher.
+9. Upload nota pembayaran.
+10. Admin melihat validasi nota dan status pesanan.
+
+Skenario demo VERIDITY:
+
+1. Login sebagai user VERIDITY.
+2. Upload foto/dokumen.
+3. Sistem menjalankan Python engine.
+4. Hasil analisis tersimpan di Oracle.
+5. User melihat riwayat dan detail analisis.
+6. User mengunduh PDF report.
 
 ## 8. Kesimpulan
 
-VERIDITY memenuhi kebutuhan mata kuliah Basis Data karena memiliki perancangan database, implementasi Oracle, fitur web frontend dan backend, autentikasi, CRUD data utama, validasi input, serta administrasi database berupa user, privilege, tablespace, dan security. Sistem juga memiliki relasi antar entitas yang jelas dan dapat didemokan melalui flow analisis forensik serta transaksi distributor.
+VERIDITY memenuhi kebutuhan mata kuliah Basis Data karena memiliki perancangan ERD, CDM, dan PDM, implementasi database Oracle, web frontend dan backend, autentikasi, CRUD data utama, validasi input, koneksi backend ke Oracle, serta administrasi DBA berupa user, privilege, tablespace, datafile, constraint, index, dan prinsip least privilege.
