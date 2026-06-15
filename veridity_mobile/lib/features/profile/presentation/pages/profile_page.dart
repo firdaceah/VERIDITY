@@ -154,7 +154,12 @@ class ProfilState extends State<Profil> {
         children: [
           Positioned.fill(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 30),
+              padding: EdgeInsets.fromLTRB(
+                30,
+                0,
+                30,
+                AppBottomNav.contentBottomPadding(context),
+              ),
               child: Column(
                 children: [
                   const SizedBox(height: 50),
@@ -255,7 +260,6 @@ class ProfilState extends State<Profil> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 120),
                 ],
               ),
             ),

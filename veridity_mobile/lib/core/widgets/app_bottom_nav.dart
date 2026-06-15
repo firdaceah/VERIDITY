@@ -7,11 +7,18 @@ class AppBottomNav extends StatelessWidget {
     required this.userData,
   });
 
+  static double contentBottomPadding(BuildContext context) {
+    return 124 + MediaQuery.viewPaddingOf(context).bottom;
+  }
+
   final int activeIndex;
   final Map<String, dynamic>? userData;
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+    final navHeight = 80.0 + bottomInset;
+
     return Positioned(
       bottom: 0,
       left: 0,
@@ -21,7 +28,8 @@ class AppBottomNav extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           Container(
-            height: 80,
+            height: navHeight,
+            padding: EdgeInsets.only(bottom: bottomInset),
             decoration: const BoxDecoration(
               color: Color(0xFF0E0E20),
               borderRadius: BorderRadius.only(

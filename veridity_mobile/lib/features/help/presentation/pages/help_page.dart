@@ -21,7 +21,12 @@ class HelpState extends State<Help> {
         children: [
           Positioned.fill(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 40),
+              padding: EdgeInsets.fromLTRB(
+                25,
+                40,
+                25,
+                AppBottomNav.contentBottomPadding(context),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -63,7 +68,6 @@ class HelpState extends State<Help> {
                     "Bagaimana jika lupa password?",
                     "Tekan Lupa password di halaman login, masukkan email, lalu ikuti instruksi reset yang diberikan aplikasi.",
                   ),
-                  const SizedBox(height: 120),
                 ],
               ),
             ),

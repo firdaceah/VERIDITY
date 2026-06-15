@@ -31,11 +31,11 @@ class _HomeState extends State<Home> {
         children: [
           Positioned.fill(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.only(
+              padding: EdgeInsets.only(
                 left: 25,
                 right: 25,
                 top: 50,
-                bottom: 120,
+                bottom: AppBottomNav.contentBottomPadding(context),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

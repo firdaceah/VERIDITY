@@ -78,7 +78,12 @@ class HistoryState extends State<History> {
         children: [
           Positioned.fill(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(25, 40, 25, 130),
+              padding: EdgeInsets.fromLTRB(
+                25,
+                40,
+                25,
+                AppBottomNav.contentBottomPadding(context),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
