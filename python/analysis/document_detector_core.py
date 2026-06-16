@@ -3,6 +3,7 @@ import os
 import re
 from nltk.tokenize import sent_tokenize
 from analysis.document_model_loaders import load_detector_model
+from analysis.document_pdf_utils import _is_administrative_sentence
 
 for nltk_path in [
     *os.environ.get("NLTK_DATA", "").split(os.pathsep),
@@ -25,7 +26,11 @@ def classify_text_hf(text, threshold=0.8):
     as AI-generated or human-written, returning a map of {sentence: label} and overall percentages.
     """
     detector = load_detector_model()
-    sentences = _sentences(text)
+    sentences = [
+        sentence
+        for sentence in _sentences(text)
+        if not _is_administrative_sentence(sentence)
+    ]
     max_sentences = int(os.environ.get("VERIDITY_DOCUMENT_MAX_SENTENCES", "35"))
     if max_sentences > 0:
         sentences = sentences[:max_sentences]

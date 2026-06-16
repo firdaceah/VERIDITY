@@ -120,6 +120,56 @@ def _merge_line_rects(match_tokens):
 
     return list(lines.values())
 
+ADMINISTRATIVE_PATTERNS = [
+    r"\bnama\s+(dosen|mahasiswa|anggota|penyusun|kampus)\b",
+    r"\b(dosen|mahasiswa|kampus|universitas|politeknik|institut|sekolah tinggi|pens)\b",
+    r"\b(nim|nrp|nip|kelas|program studi|prodi|jurusan|fakultas)\b",
+    r"\b(disusun oleh|diajukan kepada|mata kuliah|lembar pengesahan|cover|dosen pengampu|kelompok)\b",
+    r"\b\d{8,}\b",
+]
+
+def _is_administrative_sentence(sentence):
+    normalized = normalize_document_text(sentence).lower()
+    words = normalized.split()
+
+    if not normalized:
+        return True
+
+    if len(words) <= 12 and re.search(r"\b(nama|nim|nrp|nip|kelas|prodi|jurusan|kelompok|dosen|disusun)\b", normalized):
+        return True
+
+    if len(words) <= 24 and re.search(r"\b\d{8,}\b", normalized):
+        return True
+
+    if len(words) <= 24 and re.search(r"\b(program studi|politeknik|universitas|departemen|informatika|surabaya)\b", normalized):
+        return True
+
+    return any(re.search(pattern, normalized) for pattern in ADMINISTRATIVE_PATTERNS)
+
+def _is_administrative_page(page):
+    normalized = normalize_document_text(page.get_text("text")).lower()
+
+    if not normalized:
+        return False
+
+    marker_count = sum(
+        1
+        for marker in [
+            "dosen pengampu",
+            "disusun oleh",
+            "kelompok",
+            "program studi",
+            "politeknik",
+            "universitas",
+            "departemen",
+            "nim",
+            "nrp",
+        ]
+        if marker in normalized
+    )
+
+    return marker_count >= 2
+
 def _highlight_sentence(doc, sentence, color):
     pattern = _sentence_tokens(sentence)
 
@@ -130,6 +180,9 @@ def _highlight_sentence(doc, sentence, color):
 
     for page_num in range(1, len(doc)):
         page = doc[page_num]
+        if _is_administrative_page(page):
+            continue
+
         tokens = _page_tokens(page)
         matches = _find_token_matches(tokens, pattern)
 
@@ -153,21 +206,6 @@ def _highlight_sentence(doc, sentence, color):
                 total_annotations += 1
 
     return total_annotations
-
-ADMINISTRATIVE_PATTERNS = [
-    r"\bnama\s+(dosen|mahasiswa|anggota|penyusun|kampus)\b",
-    r"\b(dosen|mahasiswa|kampus|universitas|politeknik|institut|sekolah tinggi)\b",
-    r"\b(nim|nrp|nip|kelas|program studi|prodi|jurusan|fakultas)\b",
-    r"\b(disusun oleh|diajukan kepada|mata kuliah|lembar pengesahan|cover)\b",
-]
-
-def _is_administrative_sentence(sentence):
-    normalized = normalize_document_text(sentence).lower()
-
-    if len(normalized.split()) <= 8 and re.search(r"\b(nama|nim|nrp|kelas|prodi|jurusan)\b", normalized):
-        return True
-
-    return any(re.search(pattern, normalized) for pattern in ADMINISTRATIVE_PATTERNS)
 
 def _pdf_from_text(text):
     doc = fitz.open()
