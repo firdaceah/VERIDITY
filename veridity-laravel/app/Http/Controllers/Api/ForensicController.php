@@ -70,6 +70,11 @@ class ForensicController extends Controller
 
     private function runImageAnalysisCommand(string $fullPathFile, string $outputFolder): array
     {
+        $serviceResult = $this->runImageAnalysisService($fullPathFile, $outputFolder);
+        if ($serviceResult !== null) {
+            return $serviceResult;
+        }
+
         $pythonPath = config('services.veridity.python_path');
         $scriptPath = config('services.veridity.python_toolkit_script');
 
@@ -167,6 +172,77 @@ class ForensicController extends Controller
         }
 
         return $result;
+    }
+
+    private function runImageAnalysisService(string $fullPathFile, string $outputFolder): ?array
+    {
+        $engineUrl = $this->pythonEngineUrl();
+
+        if ($engineUrl === '' || str_contains($engineUrl, '127.0.0.1') || str_contains($engineUrl, 'localhost')) {
+            return null;
+        }
+
+        try {
+            $fileStream = fopen($fullPathFile, 'r');
+
+            if (! is_resource($fileStream)) {
+                return [
+                    'status' => 'error',
+                    'message' => 'File gambar tidak dapat dibaca untuk dikirim ke layanan Python.',
+                ];
+            }
+
+            $response = Http::timeout(300)
+                ->attach('file', $fileStream, basename($fullPathFile))
+                ->post($engineUrl.'/analyze-image');
+
+            fclose($fileStream);
+
+            if ($response->failed()) {
+                return [
+                    'status' => 'error',
+                    'message' => 'Layanan analisis gambar Python sedang tidak merespons. Silakan coba sesaat lagi.',
+                ];
+            }
+
+            $result = $response->json();
+
+            if (! is_array($result)) {
+                return [
+                    'status' => 'error',
+                    'message' => 'Analisis gambar gagal karena output layanan Python tidak valid.',
+                ];
+            }
+
+            foreach (($result['visual_assets'] ?? []) as $asset) {
+                $filename = $asset['filename'] ?? null;
+                $content = $asset['content_base64'] ?? null;
+
+                if (! $filename || ! $content) {
+                    continue;
+                }
+
+                if (! file_exists($outputFolder)) {
+                    mkdir($outputFolder, 0777, true);
+                }
+
+                file_put_contents($outputFolder.DIRECTORY_SEPARATOR.basename($filename), base64_decode($content));
+            }
+
+            unset($result['visual_assets']);
+
+            return $result;
+        } catch (\Throwable $e) {
+            Log::error('Image analysis service call failed', [
+                'engine_url' => $engineUrl,
+                'message' => $e->getMessage(),
+            ]);
+
+            return [
+                'status' => 'error',
+                'message' => 'Analisis gambar gagal karena layanan Python tidak dapat dihubungi.',
+            ];
+        }
     }
 
     public function uploadImage(Request $request)

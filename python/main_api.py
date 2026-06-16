@@ -1,8 +1,12 @@
 from fastapi import FastAPI, UploadFile, File, Form, Response
 from fastapi.responses import JSONResponse
+from analyze_all import run_full_investigation_quiet
 from analyze_document import run_document_analysis
 from analysis.document_pdf_utils import generate_annotated_pdf, extract_any_document
+import base64
 import json
+import os
+import tempfile
 import traceback
 
 app = FastAPI(title="Veridity Document Forensic API")
@@ -20,6 +24,44 @@ async def analyze_document_endpoint(
         file_bytes = await file.read()
         report = run_document_analysis(file_bytes, extension)
         return JSONResponse(content=report)
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+
+@app.post("/analyze-image")
+async def analyze_image_endpoint(file: UploadFile = File(...)):
+    try:
+        suffix = os.path.splitext(file.filename or "image.jpg")[1] or ".jpg"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            image_path = os.path.join(temp_dir, "input" + suffix)
+            output_dir = os.path.join(temp_dir, "results")
+
+            with open(image_path, "wb") as uploaded_file:
+                uploaded_file.write(await file.read())
+
+            report = run_full_investigation_quiet(image_path, output_dir)
+
+            if report.get("status") != "success":
+                return JSONResponse(status_code=500, content=report)
+
+            visual_assets = {}
+            for key in ("ela", "noise"):
+                filename = report.get("results", {}).get(key, {}).get("image_url")
+                if not filename:
+                    continue
+
+                asset_path = os.path.join(output_dir, filename)
+                if os.path.exists(asset_path):
+                    with open(asset_path, "rb") as asset:
+                        visual_assets[key] = {
+                            "filename": filename,
+                            "content_base64": base64.b64encode(asset.read()).decode("ascii"),
+                        }
+
+            report["visual_assets"] = visual_assets
+
+            return JSONResponse(content=report)
     except Exception as e:
         traceback.print_exc()
         return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})

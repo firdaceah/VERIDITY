@@ -1,6 +1,8 @@
 import sys
 import json
 import os
+import contextlib
+import io
 from datetime import datetime
 from PIL import Image 
 
@@ -107,10 +109,14 @@ def run_full_investigation(image_path, output_dir):
             }
         }
 
-        print(json.dumps(full_report))
+        return full_report
 
     except Exception as e:
-        print(json.dumps({"status": "error", "message": str(e)}))
+        return {"status": "error", "message": str(e)}
+
+def run_full_investigation_quiet(image_path, output_dir):
+    with contextlib.redirect_stdout(io.StringIO()):
+        return run_full_investigation(image_path, output_dir)
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
@@ -118,4 +124,4 @@ if __name__ == "__main__":
     else:
         img = sys.argv[1]
         out = sys.argv[2]
-        run_full_investigation(img, out)
+        print(json.dumps(run_full_investigation(img, out)))
