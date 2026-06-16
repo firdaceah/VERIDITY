@@ -26,7 +26,11 @@ def classify_text_hf(text, threshold=0.8):
     """
     detector = load_detector_model()
     sentences = _sentences(text)
-    results = detector(sentences, truncation=True)
+    max_sentences = int(os.environ.get("VERIDITY_DOCUMENT_MAX_SENTENCES", "35"))
+    if max_sentences > 0:
+        sentences = sentences[:max_sentences]
+
+    results = detector(sentences, truncation=True, batch_size=4)
 
     classification_map = {}
     counts = {

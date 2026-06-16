@@ -2,6 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+ENV HF_HOME=/app/.cache/huggingface
+ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
+ENV NLTK_DATA=/app/nltk_data
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
@@ -18,6 +22,9 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+
+RUN python -c "import nltk; nltk.download('punkt', download_dir='/app/nltk_data'); nltk.download('punkt_tab', download_dir='/app/nltk_data')" \
+    && python -c "from transformers import pipeline; pipeline('text-classification', model='roberta-base-openai-detector')"
 
 EXPOSE 10000
 

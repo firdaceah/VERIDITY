@@ -412,8 +412,8 @@ class ForensicController extends Controller
 
     public function analyze(Request $request)
     {
-        // Memberikan napas waktu 5 menit untuk komputasi teks intensif model AI Hugging Face via CPU
-        set_time_limit(300);
+        // Memberikan napas waktu lebih panjang untuk komputasi teks intensif model AI Hugging Face via CPU.
+        set_time_limit(600);
 
         // 1. Validasi Fleksibel: Menerima rumpun Gambar (Citra) ATAU Dokumen Teks
         $request->validate([
@@ -437,7 +437,7 @@ class ForensicController extends Controller
                 $fileStream = fopen($fullPathFile, 'r');
 
                 // Panggil REST API Backend Python di Port 8001 dengan proteksi timeout 5 menit
-                $response = Http::timeout(300)
+                $response = Http::timeout(600)
                     ->attach('file', $fileStream, $filename)
                     ->post($this->pythonEngineUrl().'/analyze-document', [
                         'extension' => $extension,
