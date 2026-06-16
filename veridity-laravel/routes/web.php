@@ -22,6 +22,9 @@ Route::get('/forgot-password', [AuthController::class, 'webForgotPassword'])->na
 Route::post('/forgot-password', [AuthController::class, 'webSendResetToken'])->name('password.email');
 Route::get('/reset-password', [AuthController::class, 'webResetPasswordForm'])->name('password.reset.form');
 Route::post('/reset-password', [AuthController::class, 'webResetPassword'])->name('password.update');
+Route::get('/files/{path}', [ForensicController::class, 'publicStorageFile'])
+    ->where('path', '.*')
+    ->name('files.public');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [AuthController::class, 'userDashboard'])->name('user.dashboard');

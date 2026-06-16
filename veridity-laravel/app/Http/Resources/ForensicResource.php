@@ -25,13 +25,13 @@ class ForensicResource extends JsonResource
             'file_name' => $this->image_name,
             'file_extension' => $extension,
             'file_type' => $isDocument ? 'document' : 'image',
-            'file_url' => $this->s3_path ? asset('storage/'.$this->s3_path) : null,
-            'image_url' => $this->s3_path ? asset('storage/'.$this->s3_path) : null,
+            'file_url' => $this->s3_path ? route('files.public', ['path' => $this->s3_path]) : null,
+            'image_url' => $this->s3_path ? route('files.public', ['path' => $this->s3_path]) : null,
             'ela_image_url' => isset($results['ela']['image_url'])
-                ? asset('storage/results/'.$this->user_id.'/'.$results['ela']['image_url'])
+                ? route('files.public', ['path' => 'results/'.$this->user_id.'/'.$results['ela']['image_url']])
                 : null,
             'noise_image_url' => isset($results['noise']['image_url'])
-                ? asset('storage/results/'.$this->user_id.'/'.$results['noise']['image_url'])
+                ? route('files.public', ['path' => 'results/'.$this->user_id.'/'.$results['noise']['image_url']])
                 : null,
             'summary_label' => $finalResult['summary_label'] ?? 'UNKNOWN',
             'summary_color' => $finalResult['summary_color'] ?? 'warning',

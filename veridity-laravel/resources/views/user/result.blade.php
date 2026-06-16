@@ -97,7 +97,7 @@
                         {{-- Tampilan Viewport Khusus Citra Gambar --}}
                         <p class="text-[10px] uppercase font-bold text-slate-500 mb-4 px-4 tracking-widest italic">Visual Analysis Viewport</p>
                         <div class="relative overflow-hidden rounded-2xl bg-slate-950 flex items-center justify-center min-h-[300px]">
-                            <img id="mainViewport" src="{{ asset('storage/' . $analysis->s3_path) }}"
+                            <img id="mainViewport" src="{{ route('files.public', ['path' => $analysis->s3_path]) }}"
                                 class="w-full h-auto max-h-[500px] object-contain transition-all duration-500 shadow-2xl" alt="Analyzed Image">
                         </div>
 
@@ -491,15 +491,15 @@
                 btnNoise.className = "px-5 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold transition-all duration-150 text-slate-300";
 
                 if (type === 'original') {
-                    imgElement.src = "{{ asset('storage/' . $analysis->s3_path) }}";
+                    imgElement.src = "{{ route('files.public', ['path' => $analysis->s3_path]) }}";
                     btnOriginal.className = "px-5 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-bold transition-all duration-150 text-white shadow-md shadow-blue-600/20";
                 } else if (type === 'ela') {
                     const elaFileName = "{{ $analysis->final_result['full_report']['results']['ela']['image_url'] ?? '' }}";
-                    imgElement.src = "{{ asset('storage/results/' . auth()->id()) }}/" + elaFileName;
+                    imgElement.src = "{{ route('files.public', ['path' => 'results/' . auth()->id() . '/__FILE__']) }}".replace('__FILE__', elaFileName);
                     btnEla.className = "px-5 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-bold transition-all duration-150 text-white shadow-md shadow-blue-600/20";
                 } else if (type === 'noise') {
                     const noiseFileName = "{{ $analysis->final_result['full_report']['results']['noise']['image_url'] ?? '' }}";
-                    imgElement.src = "{{ asset('storage/results/' . auth()->id()) }}/" + noiseFileName;
+                    imgElement.src = "{{ route('files.public', ['path' => 'results/' . auth()->id() . '/__FILE__']) }}".replace('__FILE__', noiseFileName);
                     btnNoise.className = "px-5 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-bold transition-all duration-150 text-white shadow-md shadow-blue-600/20";
                 }
             @endif

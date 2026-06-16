@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -584,8 +585,8 @@ class ForensicController extends Controller
                 'message' => 'Analisis citra selesai!',
                 'data' => new ForensicResource($analysis),
                 'visual_results' => [
-                    'ela' => asset('storage/results/'.Auth::id().'/'.$result['results']['ela']['image_url']),
-                    'noise' => asset('storage/results/'.Auth::id().'/'.$result['results']['noise']['image_url']),
+                    'ela' => route('files.public', ['path' => 'results/'.Auth::id().'/'.$result['results']['ela']['image_url']]),
+                    'noise' => route('files.public', ['path' => 'results/'.Auth::id().'/'.$result['results']['noise']['image_url']]),
                 ],
             ]);
         } catch (\Exception $e) {
@@ -728,5 +729,21 @@ class ForensicController extends Controller
         Auth::setUser($accessToken->tokenable);
 
         return $this->downloadPdf($id);
+    }
+
+    public function publicStorageFile(string $path)
+    {
+        $path = ltrim($path, '/');
+
+        abort_if(str_contains($path, '..'), 404);
+        abort_unless(Storage::disk('public')->exists($path), 404);
+
+        $fullPath = Storage::disk('public')->path($path);
+        $mimeType = Storage::disk('public')->mimeType($path) ?: 'application/octet-stream';
+
+        return Response::file($fullPath, [
+            'Content-Type' => $mimeType,
+            'Cache-Control' => 'public, max-age=604800',
+        ]);
     }
 }

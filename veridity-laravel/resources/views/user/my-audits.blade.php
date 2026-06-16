@@ -55,7 +55,7 @@
                 <div x-show="'{{ strtolower($audit->image_name.' '.($audit->final_result['summary_label'] ?? '')) }}'.includes(query.toLowerCase())" class="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden group hover:border-blue-500/50 transition-all duration-300 shadow-xl flex flex-col justify-between">
                     <div>
                         <div class="aspect-video bg-slate-950 relative overflow-hidden border-b border-slate-800/40">
-                            <img src="{{ asset('storage/' . $audit->s3_path) }}"
+                            <img src="{{ route('files.public', ['path' => $audit->s3_path]) }}"
                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 alt="{{ $audit->image_name }}">
 
