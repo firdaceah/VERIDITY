@@ -193,16 +193,20 @@ class ForensicController extends Controller
                 ];
             }
 
-            $response = Http::timeout(300)
+            $response = Http::timeout(600)
                 ->attach('file', $fileStream, basename($fullPathFile))
                 ->post($engineUrl.'/analyze-image');
 
             fclose($fileStream);
 
             if ($response->failed()) {
+                $pythonMessage = $response->json('message')
+                    ?? $response->json('error')
+                    ?? $response->body();
+
                 return [
                     'status' => 'error',
-                    'message' => 'Layanan analisis gambar Python sedang tidak merespons. Silakan coba sesaat lagi.',
+                    'message' => 'Layanan analisis gambar Python gagal: '.str((string) $pythonMessage)->limit(220),
                 ];
             }
 

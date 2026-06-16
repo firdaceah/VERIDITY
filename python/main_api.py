@@ -8,8 +8,17 @@ import json
 import os
 import tempfile
 import traceback
+from PIL import Image, ImageOps
 
 app = FastAPI(title="Veridity Document Forensic API")
+
+def prepare_image_for_render_free(source_path: str, target_path: str) -> None:
+    max_side = int(os.environ.get("VERIDITY_IMAGE_MAX_SIDE", "1600"))
+
+    with Image.open(source_path) as image:
+        image = ImageOps.exif_transpose(image).convert("RGB")
+        image.thumbnail((max_side, max_side))
+        image.save(target_path, "JPEG", quality=92, optimize=True)
 
 @app.get("/")
 def health_check():
@@ -34,11 +43,14 @@ async def analyze_image_endpoint(file: UploadFile = File(...)):
         suffix = os.path.splitext(file.filename or "image.jpg")[1] or ".jpg"
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            image_path = os.path.join(temp_dir, "input" + suffix)
+            raw_image_path = os.path.join(temp_dir, "input" + suffix)
+            image_path = os.path.join(temp_dir, "input_analysis.jpg")
             output_dir = os.path.join(temp_dir, "results")
 
-            with open(image_path, "wb") as uploaded_file:
+            with open(raw_image_path, "wb") as uploaded_file:
                 uploaded_file.write(await file.read())
+
+            prepare_image_for_render_free(raw_image_path, image_path)
 
             report = run_full_investigation_quiet(image_path, output_dir)
 
