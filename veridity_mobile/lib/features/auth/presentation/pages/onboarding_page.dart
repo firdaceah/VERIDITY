@@ -68,15 +68,28 @@ class SplashScreen2State extends State<SplashScreen2> {
           padding: const EdgeInsets.fromLTRB(28, 28, 28, 34),
           child: Column(
             children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _finish,
-                  child: const Text(
-                    'Lewati',
-                    style: TextStyle(color: Colors.white60),
+              Row(
+                children: [
+                  Image.asset('assets/images/logo.png', width: 40, height: 40),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'VERIDITY',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
                   ),
-                ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: _finish,
+                    child: const Text(
+                      'Lewati',
+                      style: TextStyle(color: Colors.white60),
+                    ),
+                  ),
+                ],
               ),
               Expanded(
                 child: PageView.builder(
@@ -88,8 +101,6 @@ class SplashScreen2State extends State<SplashScreen2> {
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset('assets/images/logo.png', width: 96),
-                        const SizedBox(height: 36),
                         Container(
                           width: 150,
                           height: 150,

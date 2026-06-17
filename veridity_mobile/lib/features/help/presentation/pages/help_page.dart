@@ -50,7 +50,7 @@ class HelpState extends State<Help> {
                   ),
                   _faq(
                     "Format apa yang didukung?",
-                    "VERIDITY mendukung JPG, JPEG, PNG untuk foto serta PDF untuk dokumen.",
+                    "VERIDITY mendukung JPG, JPEG, PNG untuk foto serta PDF dokumen teks. PDF hasil ekspor PPT/slide atau scan gambar belum didukung untuk analisis teks.",
                   ),
                   _faq(
                     "Apa arti hasil Aman, Mencurigakan, dan Berbahaya?",
@@ -66,7 +66,7 @@ class HelpState extends State<Help> {
                   ),
                   _faq(
                     "Bagaimana jika lupa password?",
-                    "Jika belum login, tekan Lupa password di halaman login. Jika sudah login, buka Profil, tekan Edit Data, lalu isi Password Lama, Password Baru, dan Konfirmasi Password untuk mengganti password.",
+                    "Gunakan fitur Lupa password di halaman login agar aplikasi membuat token reset melalui email. Jika masih login tetapi benar-benar lupa password lama, keluar dari akun lalu gunakan Lupa password. Menu Edit Data hanya dipakai jika masih ingat password lama dan ingin menggantinya.",
                   ),
                 ],
               ),

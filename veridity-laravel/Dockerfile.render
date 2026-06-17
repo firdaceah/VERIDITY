@@ -27,6 +27,7 @@ RUN composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-oc
 
 COPY render-apache.conf /etc/apache2/sites-available/000-default.conf
 COPY render-start.sh /usr/local/bin/render-start.sh
+COPY php-upload.ini /usr/local/etc/php/conf.d/veridity-upload.ini
 
 RUN a2enmod rewrite headers \
     && chmod +x /usr/local/bin/render-start.sh

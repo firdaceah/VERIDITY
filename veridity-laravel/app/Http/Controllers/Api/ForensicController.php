@@ -423,6 +423,12 @@ class ForensicController extends Controller
         // 1. Validasi Fleksibel: Menerima rumpun Gambar (Citra) ATAU Dokumen Teks
         $request->validate([
             'image' => 'required|file|mimes:jpeg,png,jpg,pdf|max:15000',
+        ], [
+            'image.required' => 'File analisis wajib dipilih.',
+            'image.file' => 'File analisis tidak valid.',
+            'image.uploaded' => 'File gagal diunggah. Pastikan ukuran file maksimal 15MB dan formatnya JPG, JPEG, PNG, atau PDF dokumen teks.',
+            'image.mimes' => 'Format file belum didukung. Gunakan JPG, JPEG, PNG, atau PDF dokumen teks.',
+            'image.max' => 'Ukuran file maksimal 15MB.',
         ]);
 
         try {

@@ -20,7 +20,7 @@ def run_document_analysis(file_bytes, file_extension):
         if not raw_text or len(raw_text.split()) < 5:
             return {
                 "status": "error",
-                "message": "Dokumen kosong atau teks terlalu pendek untuk dianalisis forensik."
+                "message": "Dokumen kosong atau teks terlalu pendek untuk dianalisis forensik. Gunakan PDF dokumen teks, bukan PDF hasil ekspor PPT/slide atau scan gambar."
             }
             
         # 2. Eksekusi analisis teks lewat model Hugging Face

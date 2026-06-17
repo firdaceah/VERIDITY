@@ -25,6 +25,31 @@ class _UploadFotoState extends State<UploadFoto> {
     return extension == 'pdf';
   }
 
+  bool get _isImage {
+    final extension = _selectedFile?.extension?.toLowerCase();
+    return ['jpg', 'jpeg', 'png'].contains(extension);
+  }
+
+  String _friendlyUploadError(String message) {
+    final normalized = message.toLowerCase();
+
+    if (normalized.contains('image failed to upload') ||
+        normalized.contains('file failed to upload') ||
+        normalized.contains('failed to upload')) {
+      return _isDocument
+          ? 'Dokumen gagal diunggah. Pastikan file PDF tidak lebih dari 15MB dan berisi teks dokumen, bukan slide/presentasi yang diekspor menjadi PDF.'
+          : 'Foto gagal diunggah. Pastikan file JPG/JPEG/PNG tidak lebih dari 15MB. Jika ukuran sudah benar, coba kompres foto atau ulangi setelah server aktif.';
+    }
+
+    if (normalized.contains('server mengirim respons yang tidak dapat dibaca')) {
+      return _isDocument
+          ? 'Analisis dokumen belum dapat diproses. Gunakan PDF dokumen teks, bukan file presentasi/slide yang dijadikan PDF.'
+          : message;
+    }
+
+    return message;
+  }
+
   Future<void> _pickFile() async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
@@ -66,18 +91,20 @@ class _UploadFotoState extends State<UploadFoto> {
       if (!mounted) {
         return;
       }
-      setState(() => _errorMessage = e.message);
+      final message = _friendlyUploadError(e.message);
+      setState(() => _errorMessage = message);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ).showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
       if (!mounted) {
         return;
       }
-      setState(() => _errorMessage = "Gagal mengunggah file: $e");
+      final message = _friendlyUploadError("Gagal mengunggah file: $e");
+      setState(() => _errorMessage = message);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Gagal mengunggah file: $e")));
+      ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -117,6 +144,11 @@ class _UploadFotoState extends State<UploadFoto> {
               ),
             ),
             const SizedBox(height: 40),
+            const Text(
+              "Format: JPG, JPEG, PNG, atau PDF dokumen teks. PDF dari PPT/slide atau hasil scan gambar belum didukung untuk analisis teks.",
+              style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.5),
+            ),
+            const SizedBox(height: 14),
             GestureDetector(
               onTap: _isLoading ? null : _pickFile,
               child: Container(
@@ -196,7 +228,7 @@ class _UploadFotoState extends State<UploadFoto> {
         ),
         SizedBox(height: 8),
         Text(
-          "PNG, JPG, JPEG, PDF (max. 15MB)",
+          "PNG, JPG, JPEG, PDF dokumen teks (max. 15MB)",
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.white54, fontSize: 12),
         ),
@@ -207,7 +239,7 @@ class _UploadFotoState extends State<UploadFoto> {
   Widget _buildPreview() {
     final file = _selectedFile!;
     final extension = file.extension?.toUpperCase() ?? 'FILE';
-    final isImage = !_isDocument;
+    final isImage = _isImage;
     final bytes = file.bytes;
 
     return Column(
