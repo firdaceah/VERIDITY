@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'app/app.dart';
+import 'app/app_dependencies.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppDependencies.initialize();
   runApp(const VeridityApp());
 }

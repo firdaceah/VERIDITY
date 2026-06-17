@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
+import '../../../../app/app_dependencies.dart';
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
   @override
@@ -11,8 +13,28 @@ class SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacementNamed(context, '/SplashScreen2');
+    Timer(const Duration(seconds: 2), () {
+      if (!mounted) {
+        return;
+      }
+
+      final sessionStore = AppDependencies.sessionStore;
+      if (!sessionStore.onboardingCompleted) {
+        Navigator.pushReplacementNamed(context, '/SplashScreen2');
+        return;
+      }
+
+      final session = sessionStore.session;
+      if (session != null && session.token.isNotEmpty) {
+        Navigator.pushReplacementNamed(
+          context,
+          '/Home',
+          arguments: session.asRouteArguments(),
+        );
+        return;
+      }
+
+      Navigator.pushReplacementNamed(context, '/Login');
     });
   }
 

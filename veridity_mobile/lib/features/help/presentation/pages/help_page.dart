@@ -66,7 +66,7 @@ class HelpState extends State<Help> {
                   ),
                   _faq(
                     "Bagaimana jika lupa password?",
-                    "Tekan Lupa password di halaman login, masukkan email, lalu ikuti instruksi reset yang diberikan aplikasi.",
+                    "Jika belum login, tekan Lupa password di halaman login. Jika sudah login, buka Profil, tekan Edit Data, lalu isi Password Lama, Password Baru, dan Konfirmasi Password untuk mengganti password.",
                   ),
                 ],
               ),

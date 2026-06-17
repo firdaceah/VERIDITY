@@ -18,6 +18,24 @@ class AuthSession {
     );
   }
 
+  factory AuthSession.fromStoredJson(Map<String, dynamic> json) {
+    return AuthSession(
+      token: json['token']?.toString() ?? '',
+      user: UserEntity.fromJson(
+        json['user'] is Map<String, dynamic>
+            ? json['user'] as Map<String, dynamic>
+            : <String, dynamic>{},
+      ),
+    );
+  }
+
+  Map<String, dynamic> toStoredJson() {
+    return {
+      'token': token,
+      'user': user.toJson(),
+    };
+  }
+
   Map<String, dynamic> asRouteArguments() {
     return {
       'token': token,

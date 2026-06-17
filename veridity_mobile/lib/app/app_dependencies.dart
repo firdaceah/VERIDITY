@@ -22,4 +22,8 @@ class AppDependencies {
     apiClient: apiClient,
     sessionStore: sessionStore,
   );
+
+  static Future<void> initialize() async {
+    await sessionStore.load();
+  }
 }

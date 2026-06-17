@@ -38,7 +38,7 @@ class ProfileRepository {
       token: token,
     );
     final user = UserEntity.fromJson(response['data'] as Map<String, dynamic>);
-    _sessionStore.updateUser(user);
+    await _sessionStore.updateUser(user);
     return user;
   }
 
@@ -61,7 +61,7 @@ class ProfileRepository {
       token: token,
     );
     final user = UserEntity.fromJson(response['data'] as Map<String, dynamic>);
-    _sessionStore.updateUser(user);
+    await _sessionStore.updateUser(user);
     return user;
   }
 

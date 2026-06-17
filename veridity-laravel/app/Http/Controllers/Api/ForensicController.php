@@ -441,21 +441,47 @@ class ForensicController extends Controller
                 // Ambil stream file agar multipart upload stabil untuk PDF besar.
                 $fileStream = fopen($fullPathFile, 'r');
 
-                // Panggil REST API Backend Python di Port 8001 dengan proteksi timeout 5 menit
-                $response = Http::timeout(600)
-                    ->attach('file', $fileStream, $filename)
-                    ->post($this->pythonEngineUrl().'/analyze-document', [
-                        'extension' => $extension,
+                try {
+                    // Panggil REST API Backend Python dengan proteksi retry karena Render free dapat cold start.
+                    $response = Http::connectTimeout(60)
+                        ->timeout(600)
+                        ->retry(2, 8000)
+                        ->attach('file', $fileStream, $filename)
+                        ->post($this->pythonEngineUrl().'/analyze-document', [
+                            'extension' => $extension,
+                        ]);
+                } catch (\Throwable $pythonException) {
+                    if (is_resource($fileStream)) {
+                        fclose($fileStream);
+                    }
+
+                    Log::warning('Veridity document Python service unreachable', [
+                        'message' => $pythonException->getMessage(),
+                        'engine_url' => $this->pythonEngineUrl(),
+                        'filename' => $filename,
                     ]);
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Layanan analisis dokumen forensik sedang sibuk atau baru aktif. Silakan tunggu 30-60 detik lalu coba lagi.',
+                    ], 503);
+                }
 
                 if (is_resource($fileStream)) {
                     fclose($fileStream);
                 }
 
                 if ($response->failed()) {
+                    Log::warning('Veridity document Python service failed', [
+                        'status' => $response->status(),
+                        'body' => mb_substr($response->body(), 0, 1000),
+                        'engine_url' => $this->pythonEngineUrl(),
+                        'filename' => $filename,
+                    ]);
+
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'Layanan analisis dokumen forensik sedang tidak merespons. Silakan coba sesaat lagi.',
+                        'message' => 'Layanan analisis dokumen forensik sedang sibuk atau baru aktif. Silakan tunggu 30-60 detik lalu coba lagi.',
                     ], 500);
                 }
 

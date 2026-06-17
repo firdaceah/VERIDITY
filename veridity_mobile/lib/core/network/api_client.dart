@@ -122,6 +122,35 @@ class ApiClient {
     required Uint8List bytes,
     String? token,
   }) async {
+    var response = await _sendMultipartBytes(
+      path,
+      fieldName: fieldName,
+      fileName: fileName,
+      bytes: bytes,
+      token: token,
+    );
+
+    if (_isTransientGatewayError(response.statusCode)) {
+      await Future<void>.delayed(const Duration(seconds: 8));
+      response = await _sendMultipartBytes(
+        path,
+        fieldName: fieldName,
+        fileName: fileName,
+        bytes: bytes,
+        token: token,
+      );
+    }
+
+    return _decode(response);
+  }
+
+  Future<http.Response> _sendMultipartBytes(
+    String path, {
+    required String fieldName,
+    required String fileName,
+    required Uint8List bytes,
+    String? token,
+  }) async {
     final request = http.MultipartRequest('POST', _uri(path));
     request.headers.addAll({
       'Accept': 'application/json',
@@ -136,9 +165,11 @@ class ApiClient {
       ),
     );
     final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-    return _decode(response);
+    return http.Response.fromStream(streamedResponse);
   }
+
+  bool _isTransientGatewayError(int statusCode) =>
+      statusCode == 502 || statusCode == 503 || statusCode == 504;
 
   Map<String, dynamic> _decode(http.Response response) {
     Map<String, dynamic> decoded;
@@ -148,9 +179,13 @@ class ApiClient {
           ? <String, dynamic>{}
           : jsonDecode(response.body) as Map<String, dynamic>;
     } on FormatException {
-      final message = response.statusCode == 413
-          ? 'Ukuran file melebihi batas server. Naikkan upload_max_filesize dan post_max_size di php.ini.'
-          : 'Server mengirim respons yang tidak dapat dibaca aplikasi.';
+      final message = switch (response.statusCode) {
+        413 =>
+          'Ukuran file melebihi batas server. Coba kompres file atau pilih file yang lebih kecil.',
+        502 || 503 || 504 =>
+          'Layanan analisis sedang bangun atau sibuk. Buka ulang beberapa saat lagi lalu coba analisis kembali.',
+        _ => 'Server mengirim respons yang tidak dapat dibaca aplikasi.',
+      };
       throw ApiException(message, statusCode: response.statusCode);
     }
 

@@ -21,7 +21,7 @@ class AuthRepository {
       body: {'email': email, 'password': password},
     );
     final session = AuthSession.fromJson(response);
-    _sessionStore.save(session);
+    await _sessionStore.save(session);
     return session;
   }
 
@@ -41,7 +41,7 @@ class AuthRepository {
       },
     );
     final session = AuthSession.fromJson(response);
-    _sessionStore.save(session);
+    await _sessionStore.save(session);
     return session;
   }
 
@@ -50,7 +50,7 @@ class AuthRepository {
     if (token != null && token.isNotEmpty) {
       await _apiClient.postJson('/logout', token: token);
     }
-    _sessionStore.clear();
+    await _sessionStore.clear();
   }
 
   Future<String?> forgotPassword(String email) async {
