@@ -255,7 +255,30 @@ def _tr(language, en, id_text):
     return id_text if _normalize_language(language) == "id" else en
 
 
-def _draw_nlp_metrics(page, metrics, interpretation, language="en"):
+def _message(language, key, fallback=""):
+    messages = {
+        "document_human_style": (
+            "The language style has dynamic sentence-length variation and natural word choice typical of human writing.",
+            "Gaya bahasa memiliki variasi panjang kalimat yang sangat dinamis dengan kekayaan diksi yang alami khas tulisan manusia murni.",
+        ),
+        "document_mixed_style": (
+            "Mixed language patterns were detected. Some paragraphs appear manually written while others contain AI-assisted sentences.",
+            "Terdeteksi kombinasi gaya bahasa campuran. Sebagian paragraf terindikasi disusun manual dan sebagian lainnya disisipi kalimat bentukan AI.",
+        ),
+        "document_mostly_ai_style": (
+            "Most sentences are strongly indicated as AI-generated. Any detected human-written portions are still counted in the NLP metrics.",
+            "Mayoritas kalimat terindikasi kuat dibuat AI. Bagian yang terdeteksi human-written tetap dihitung dalam metrik NLP.",
+        ),
+    }
+
+    if key in messages:
+        en, id_text = messages[key]
+        return _tr(language, en, id_text)
+
+    return fallback
+
+
+def _draw_nlp_metrics(page, metrics, interpretation, interpretation_key="", language="en"):
     metrics = metrics or {}
     page.draw_rect(fitz.Rect(50, 440, 545, 460), color=None, fill=(248/255, 250/255, 252/255))
     page.insert_text(fitz.Point(55, 454), _tr(language, "LANGUAGE COMPUTATION DETAILS (NLP METRICS)", "RINCIAN KOMPUTASI BAHASA (NLP METRICS)"), fontsize=10, fontname="helvetica-bold", color=(30/255, 58/255, 138/255))
@@ -271,6 +294,7 @@ def _draw_nlp_metrics(page, metrics, interpretation, language="en"):
         page.insert_text(fitz.Point(405, y), _percentage(value), fontsize=10, fontname="helvetica-bold", color=(30/255, 58/255, 138/255))
 
     if interpretation:
+        interpretation = _message(language, interpretation_key, str(interpretation))
         page.draw_rect(fitz.Rect(55, 560, 540, 630), color=(226/255, 232/255, 240/255), fill=(248/255, 250/255, 252/255))
         page.insert_textbox(
             fitz.Rect(65, 572, 530, 620),
@@ -302,6 +326,7 @@ def generate_annotated_pdf(
     analyzed_at=None,
     document_metrics=None,
     interpretation=None,
+    interpretation_key="",
     source_extension="pdf",
     language="en",
 ):
@@ -358,7 +383,7 @@ def generate_annotated_pdf(
     kop_page.insert_text(fitz.Point(55, 380), _tr(language, "- Light Blue :  Combined human and AI-edited text", "- Biru Muda (Light Blue)  :  Teks Gabungan / Hasil Editan Manusia & AI"), fontsize=11, fontname="helvetica")
     kop_page.insert_text(fitz.Point(55, 405), _tr(language, "- No highlight: Natural human-written style", "- Tanpa Warna Stabilo     :  Murni Gaya Tulisan Alami Manusia (Human-written)"), fontsize=11, fontname="helvetica")
 
-    _draw_nlp_metrics(kop_page, document_metrics, interpretation, language=language)
+    _draw_nlp_metrics(kop_page, document_metrics, interpretation, interpretation_key=interpretation_key, language=language)
 
     # Catatan Kaki Validasi Kampus PENS
     kop_page.draw_line(fitz.Point(50, 780), fitz.Point(545, 780), color=(226/255, 232/255, 240/255), width=1)

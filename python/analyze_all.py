@@ -118,10 +118,13 @@ def run_full_investigation(image_path, output_dir, language="en", is_cancelled=N
         # Sinkronisasi teks status berkas sub-report
         if is_deepfake_positive:
             meta_report['summary']['verdict'] = "REKAYASA DIGITAL / GENERATOR AI (SANGAT BERBAHAYA)"
+            meta_report['summary']['verdict_key'] = "metadata_ai_generated"
         elif verdict == "MANIPULATED":
             meta_report['summary']['verdict'] = "REKAYASA DIGITAL / EDITING"
+            meta_report['summary']['verdict_key'] = "metadata_digital_editing"
         else:
             meta_report['summary']['verdict'] = "KAMERA FISIK REAL (OTENTIK)"
+            meta_report['summary']['verdict_key'] = "metadata_authentic_camera"
 
         full_report = {
             "status": "success",

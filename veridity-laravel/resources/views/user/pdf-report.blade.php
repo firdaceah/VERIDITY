@@ -24,6 +24,38 @@
 
         return $value;
     };
+    $analysisMessage = function (?string $key, ?string $fallback = '') use ($t, $analysisText) {
+        return match ($key) {
+            'document_human_style' => $t(
+                'The language style has dynamic sentence-length variation and natural word choice typical of human writing.',
+                'Gaya bahasa memiliki variasi panjang kalimat yang sangat dinamis dengan kekayaan diksi yang alami khas tulisan manusia murni.'
+            ),
+            'document_mixed_style' => $t(
+                'Mixed language patterns were detected. Some paragraphs appear manually written while others contain AI-assisted sentences.',
+                'Terdeteksi kombinasi gaya bahasa campuran. Sebagian paragraf terindikasi disusun manual dan sebagian lainnya disisipi kalimat bentukan AI.'
+            ),
+            'document_mostly_ai_style' => $t(
+                'Most sentences are strongly indicated as AI-generated. Any detected human-written portions are still counted in the NLP metrics.',
+                'Mayoritas kalimat terindikasi kuat dibuat AI. Bagian yang terdeteksi human-written tetap dihitung dalam metrik NLP.'
+            ),
+            'noise_very_low' => $t(
+                'Noise level is very low, indicating possible local retouching or smoothing.',
+                'Kadar noise sangat rendah, mengindikasikan kemungkinan retouching atau smoothing lokal.'
+            ),
+            'noise_local_variation' => $t(
+                'Local noise variation was found. This is a supporting signal and is not enough alone to conclude splicing.',
+                'Ditemukan variasi noise lokal. Ini sinyal pendukung dan belum cukup sendiri untuk menyimpulkan splicing.'
+            ),
+            'noise_uniform' => $t(
+                'Noise distribution and compression-error traces are even and homogeneous across the image.',
+                'Sebaran noise dan jejak eror kompresi tersebar merata dan homogen pada gambar.'
+            ),
+            'metadata_authentic_camera' => $t('Physical camera capture (authentic)', 'Kamera fisik real (otentik)'),
+            'metadata_suspicious_editing' => $t('Editing indication detected (suspicious)', 'Terindikasi editing (mencurigakan)'),
+            'metadata_digital_editing', 'metadata_ai_generated' => $t('Digital manipulation / editing indicated', 'Rekayasa digital / editing'),
+            default => $analysisText($fallback),
+        };
+    };
     $objectFamily = $isDocument
         ? $t('Linguistic Text', 'Linguistic Teks')
         : $t('Image Multimedia', 'Multimedia Citra');
@@ -217,7 +249,10 @@
         <div class="section-title">{{ $t('Forensic Expert Interpretation', 'Interpretasi Pakar Forensik') }}</div>
         <p
             style="background-color: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-style: italic;">
-            "{{ $analysis->final_result['full_report']['results']['document']['interpretation'] ?? '' }}"
+            "{{ $analysisMessage(
+                $analysis->final_result['full_report']['results']['document']['interpretation_key'] ?? null,
+                $analysis->final_result['full_report']['results']['document']['interpretation'] ?? ''
+            ) }}"
         </p>
 
         <div class="section-title">{{ $t('Conclusion Rationale and Decision Formula', 'Alasan Kesimpulan dan Rumus Keputusan') }}</div>
@@ -265,7 +300,10 @@
                 </tr>
                 <tr>
                     <td>EXIF Metadata Security</td>
-                    <td>{{ $analysisText($analysis->final_result['full_report']['results']['metadata']['summary']['verdict'] ?? 'N/A') }}
+                    <td>{{ $analysisMessage(
+                        $analysis->final_result['full_report']['results']['metadata']['summary']['verdict_key'] ?? null,
+                        $analysis->final_result['full_report']['results']['metadata']['summary']['verdict'] ?? 'N/A'
+                    ) }}
                     </td>
                     <td>{{ number_format($analysis->final_result['full_report']['results']['metadata']['summary']['authenticity_score'] ?? 100, 2) }}%
                     </td>
@@ -276,7 +314,10 @@
         <div class="section-title">{{ $t('Lens Noise Particle Inspection Result (Noise Interpretation)', 'Hasil Pemeriksaan Partikel Kebisingan Lensa (Noise Interpretation)') }}</div>
         <p
             style="background-color: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-style: italic;">
-            "{{ $analysisText($analysis->final_result['full_report']['results']['noise']['interpretation'] ?? 'Normal.') }}"
+            "{{ $analysisMessage(
+                $analysis->final_result['full_report']['results']['noise']['interpretation_key'] ?? null,
+                $analysis->final_result['full_report']['results']['noise']['interpretation'] ?? 'Normal.'
+            ) }}"
         </p>
 
         <div class="section-title">{{ $t('Image Forensic Conclusion Rationale', 'Alasan Kesimpulan Forensik Citra') }}</div>

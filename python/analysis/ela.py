@@ -163,6 +163,7 @@ def forensic_analysis(image_path, qualities=[75, 85, 95], error_scale=10, overla
 
     return {
         "interpretation": "Peta ELA mendeteksi sisa sebaran tingkat kompresi file. Jika terdapat kecerahan berpola tajam yang terisolasi di tempat tertentu, bagian tersebut dicurigai sebagai hasil tempelan digital.",
+        "interpretation_key": "ela_compression_trace",
         "ela_multi_quality": ela_results,
         "ela_90": ela_primary,  
         "ela_90_overlay": overlay_primary,

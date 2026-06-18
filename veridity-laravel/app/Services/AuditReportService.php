@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\ForensicAnalysis;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class AuditReportService
@@ -17,18 +16,17 @@ class AuditReportService
         return app(EvidenceStorage::class);
     }
 
-    public function ensureReport(ForensicAnalysis $analysis): ?string
+    public function ensureReport(ForensicAnalysis $analysis, ?string $language = null): ?string
     {
-        if (
-            $analysis->report_pdf_path
-            && (int) $analysis->report_version >= self::REPORT_VERSION
-            && $this->evidenceStorage()->exists($analysis->report_pdf_path)
-        ) {
-            return $analysis->report_pdf_path;
+        $language = $this->normalizeLanguage($language ?? $this->analysisLanguage($analysis));
+        $reportPath = $this->reportPathForLanguage($analysis, $language);
+
+        if ($reportPath && $this->evidenceStorage()->exists($reportPath)) {
+            return $reportPath;
         }
 
         try {
-            return $this->generateAndStore($analysis);
+            return $this->generateAndStore($analysis, $language);
         } catch (Throwable $exception) {
             $analysis->forceFill([
                 'report_status' => 'failed',
@@ -39,15 +37,19 @@ class AuditReportService
         }
     }
 
-    public function generateAndStore(ForensicAnalysis $analysis): string
+    public function generateAndStore(ForensicAnalysis $analysis, ?string $language = null): string
     {
+        $language = $this->normalizeLanguage($language ?? $this->analysisLanguage($analysis));
         $extension = strtolower(pathinfo((string) ($analysis->image_name ?? $analysis->s3_path), PATHINFO_EXTENSION));
         $content = in_array($extension, ['pdf', 'docx'], true)
-            ? $this->generateAnnotatedDocumentReport($analysis)
-            : $this->generateSummaryReport($analysis, $extension);
+            ? $this->generateAnnotatedDocumentReport($analysis, $language)
+            : $this->generateSummaryReport($analysis, $extension, $language);
 
-        $path = 'reports/'.$analysis->user_id.'/REPORT_VERIDITY_VRD-'.$analysis->id.'.pdf';
+        $path = 'reports/'.$analysis->user_id.'/REPORT_VERIDITY_VRD-'.$analysis->id.'_'.$language.'.pdf';
         $this->evidenceStorage()->put($path, $content);
+        $finalResult = $this->finalResult($analysis);
+        $finalResult['report_pdf_paths'][$language] = $path;
+        $finalResult['report_version'] = self::REPORT_VERSION;
 
         $analysis->forceFill([
             'report_pdf_path' => $path,
@@ -55,26 +57,29 @@ class AuditReportService
             'report_version' => self::REPORT_VERSION,
             'report_error' => null,
             'report_generated_at' => now(),
+            'final_result' => $finalResult,
         ])->save();
 
         return $path;
     }
 
-    public function reportFileName(ForensicAnalysis $analysis): string
+    public function reportFileName(ForensicAnalysis $analysis, ?string $language = null): string
     {
-        return 'REPORT_VERIDITY_#VRD-'.$analysis->id.'.pdf';
+        $language = $this->normalizeLanguage($language ?? $this->analysisLanguage($analysis));
+
+        return 'REPORT_VERIDITY_#VRD-'.$analysis->id.'_'.$language.'.pdf';
     }
 
-    private function generateAnnotatedDocumentReport(ForensicAnalysis $analysis): string
+    private function generateAnnotatedDocumentReport(ForensicAnalysis $analysis, string $language): string
     {
         $pdfPath = $this->sourceFilePath($analysis);
         $finalResult = $this->finalResult($analysis);
         $classificationMap = $finalResult['full_report']['classification_map'] ?? [];
         $summaryLabel = $finalResult['summary_label'] ?? 'MIXED TEXT';
-        $language = $this->analysisLanguage($analysis);
         $document = $finalResult['full_report']['results']['document'] ?? [];
         $metrics = $document['metrics'] ?? [];
         $interpretation = $document['interpretation'] ?? '';
+        $interpretationKey = $document['interpretation_key'] ?? '';
         $extension = strtolower(pathinfo((string) ($analysis->image_name ?? $analysis->s3_path), PATHINFO_EXTENSION));
         $pdfStream = fopen($pdfPath, 'r');
 
@@ -91,6 +96,7 @@ class AuditReportService
                 'extension' => $extension,
                 'document_metrics_str' => json_encode($metrics),
                 'interpretation' => $interpretation,
+                'interpretation_key' => $interpretationKey,
                 'language' => $language,
             ]);
         } finally {
@@ -108,7 +114,7 @@ class AuditReportService
         return $response->body();
     }
 
-    private function generateSummaryReport(ForensicAnalysis $analysis, string $extension): string
+    private function generateSummaryReport(ForensicAnalysis $analysis, string $extension, string $language): string
     {
         $isDocument = in_array($extension, ['pdf', 'docx'], true);
 
@@ -118,14 +124,14 @@ class AuditReportService
             'fileExtension' => $extension ?: 'unknown',
             'waktuAnalisis' => $this->analyzedAt($analysis),
             'generatedAt' => now('Asia/Jakarta')->format('d M Y, H:i').' WIB',
-            'language' => $this->analysisLanguage($analysis),
+            'language' => $language,
         ])->setPaper('a4')->output();
     }
 
     private function sourceFilePath(ForensicAnalysis $analysis): string
     {
-        if ($analysis->s3_path && Storage::disk('public')->exists($analysis->s3_path)) {
-            return Storage::disk('public')->path($analysis->s3_path);
+        if ($analysis->s3_path && $this->evidenceStorage()->exists($analysis->s3_path)) {
+            return $this->evidenceStorage()->temporaryLocalPath($analysis->s3_path);
         }
 
         $fallback = storage_path('app/public/uploads'.DIRECTORY_SEPARATOR.($analysis->image_name ?? ''));
@@ -160,7 +166,33 @@ class AuditReportService
         $finalResult = $this->finalResult($analysis);
         $language = $finalResult['language'] ?? $finalResult['full_report']['language'] ?? null;
 
+        return $this->normalizeLanguage($language);
+    }
+
+    private function normalizeLanguage(?string $language): string
+    {
         return $language === 'id' ? 'id' : 'en';
+    }
+
+    private function reportPathForLanguage(ForensicAnalysis $analysis, string $language): ?string
+    {
+        $finalResult = $this->finalResult($analysis);
+        $languagePath = $finalResult['report_pdf_paths'][$language] ?? null;
+
+        if ($languagePath) {
+            return $languagePath;
+        }
+
+        $legacyLanguage = $this->normalizeLanguage($finalResult['language'] ?? $finalResult['full_report']['language'] ?? null);
+        if (
+            $legacyLanguage === $language
+            && $analysis->report_pdf_path
+            && (int) $analysis->report_version >= self::REPORT_VERSION
+        ) {
+            return $analysis->report_pdf_path;
+        }
+
+        return null;
     }
 
     private function analyzedAt(ForensicAnalysis $analysis): string

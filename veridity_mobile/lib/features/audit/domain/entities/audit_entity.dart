@@ -71,10 +71,29 @@ class AuditEntity {
     'document',
     'interpretation',
   ], fallback: 'Language analysis completed.');
+  String get documentInterpretationKey => _stringMetric([
+    'document',
+    'interpretation_key',
+  ], fallback: '');
   String get noiseInterpretation => _stringMetric([
     'noise',
     'interpretation',
   ], fallback: 'Noise analysis completed.');
+  String get noiseInterpretationKey => _stringMetric([
+    'noise',
+    'interpretation_key',
+  ], fallback: '');
+  String get elaInterpretationKey => _stringMetric([
+    'ela',
+    'interpretation_key',
+  ], fallback: '');
+  String get metadataVerdictKey {
+    final summary = metadataDetails['summary'];
+    if (summary is Map<String, dynamic>) {
+      return summary['verdict_key']?.toString() ?? '';
+    }
+    return '';
+  }
 
   double _metric(List<String> path) {
     dynamic current = results;

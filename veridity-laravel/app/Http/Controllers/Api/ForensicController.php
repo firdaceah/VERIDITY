@@ -700,11 +700,15 @@ class ForensicController extends Controller
                 // Ambil map klasifikasi teks secara aman dari output response engine Python
                 $classificationMapData = $result['classification_map'] ?? $result['results'] ?? [];
 
+                $evidenceOriginalPath = $this->evidenceStorage()->makePath('forensics/original', Auth::id(), $filename);
+                $this->storeEvidenceFile($evidenceOriginalPath, $fullPathFile);
+                Storage::disk('public')->delete($path);
+
                 // Simpan Data Hasil Olahan Dokumen ke Oracle Database dengan aman masuk ke final_result
                 $analysis = ForensicAnalysis::create([
                     'user_id' => Auth::id(),
                     'image_name' => $filename, // Berfungsi ganda menyimpan nama berkas dokumen
-                    's3_path' => $path,
+                    's3_path' => $evidenceOriginalPath,
                     'ela_score' => 0, // Fallback nilai 0 karena dokumen tidak memiliki ELA
                     'is_deepfake' => (($result['summary_color'] ?? '') === 'danger'),
                     'metadata_details' => [
@@ -729,14 +733,8 @@ class ForensicController extends Controller
                     ],
                 ]);
 
-                $reportPath = $this->reportService()->ensureReport($analysis);
+                $reportPath = $this->reportService()->ensureReport($analysis, $language);
                 $analysis->refresh();
-
-                if ($reportPath) {
-                    Storage::disk('public')->delete($path);
-                    $analysis->forceFill(['s3_path' => null])->save();
-                    $analysis->refresh();
-                }
 
                 if (! $request->expectsJson()) {
                     return redirect()->route('user.result', $analysis->id)->with('success', $this->message('document_success', $language));
@@ -827,7 +825,7 @@ class ForensicController extends Controller
                 ],
             ]);
 
-            $this->reportService()->ensureReport($analysis);
+            $this->reportService()->ensureReport($analysis, $language);
             $analysis->refresh();
 
             if (! $request->expectsJson()) {
@@ -931,7 +929,8 @@ class ForensicController extends Controller
 
         try {
             $audit = $this->findAccessibleAudit($id);
-            $reportPath = $this->reportService()->ensureReport($audit);
+            $language = $this->normalizeLanguage(request('language'));
+            $reportPath = $this->reportService()->ensureReport($audit, $language);
 
             if (! $reportPath) {
                 if (request()->expectsJson()) {
@@ -946,7 +945,7 @@ class ForensicController extends Controller
 
             return $this->evidenceStorage()->downloadResponse(
                 $reportPath,
-                $this->reportService()->reportFileName($audit),
+                $this->reportService()->reportFileName($audit, $language),
                 ['Content-Type' => 'application/pdf']
             );
         } catch (\Exception $e) {

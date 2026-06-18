@@ -61,7 +61,10 @@ def generate_noise_map(image_path, sigma=2.0, ela_anomaly_score=0.0, is_deepfake
         if mean_variance < 2.0:
             warnings.append("Kadar noise sangat rendah - Kemungkinan dilakukan manipulasi penghalusan objek (Retouching/Smoothing)")
             interpretation = "Kadar noise sangat rendah - Terdeteksi adanya manipulasi penghalusan objek lokal (Retouching/Smoothing)."
+            interpretation_key = "noise_very_low"
+            warning_keys = ["noise_very_low"]
             researcher_note = "Penghapusan residu noise secara ekstrem mengindikasikan penggunaan patch tool, efek blur, atau karakteristik rendering digital."
+            researcher_note_key = "noise_residue_removed"
             # Skor pinalti berbasis kebersihan piksel
             noise_auth_score = max(10.0, round(mean_variance * 35, 2))
         
@@ -70,13 +73,19 @@ def generate_noise_map(image_path, sigma=2.0, ela_anomaly_score=0.0, is_deepfake
             if variance_std > (mean_variance * static_threshold_multiplier):
                 warnings.append("Pola sebaran partikel gambar tidak rata dan perlu dibandingkan dengan ELA, metadata, serta skor AI.")
                 interpretation = "Ditemukan variasi noise lokal pada beberapa area gambar. Indikasi ini bersifat pendukung dan belum cukup untuk menyimpulkan splicing tanpa korelasi dengan ELA, metadata, dan deteksi AI."
+                interpretation_key = "noise_local_variation"
+                warning_keys = ["noise_local_variation"]
                 researcher_note = "Varians lokal antar-blok melewati ambang batas deviasi standar statis citra; gunakan sebagai sinyal pendukung, bukan vonis tunggal."
+                researcher_note_key = "noise_supporting_signal"
                 
                 # Menghitung pinalti skor murni dari rasio lonjakan deviasi
                 deviation_ratio = variance_std / (mean_variance * static_threshold_multiplier)
                 noise_auth_score = max(20.0, round(100.0 - (deviation_ratio * 20), 2))
             else:
                 interpretation = "Kualitas sebaran partikel gambar dan tingkat eror kompresi piksel tersebar secara merata dan homogen di seluruh area dokumen."
+                interpretation_key = "noise_uniform"
+                warning_keys = []
+                researcher_note_key = "noise_independent_grid"
                 noise_auth_score = 100.0
 
         return {
@@ -94,8 +103,11 @@ def generate_noise_map(image_path, sigma=2.0, ela_anomaly_score=0.0, is_deepfake
                 'noise_authenticity_score': noise_auth_score
             },
             'warnings': warnings,
+            'warning_keys': warning_keys,
             'interpretation': interpretation,
-            'researcher_note': researcher_note
+            'interpretation_key': interpretation_key,
+            'researcher_note': researcher_note,
+            'researcher_note_key': researcher_note_key
         }
 
     except Exception as e:

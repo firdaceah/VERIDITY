@@ -122,10 +122,13 @@ def full_metadata_analysis(image_path):
     
     if score >= 85: 
         verdict = "KAMERA FISIK REAL (OTENTIK)"
+        verdict_key = "metadata_authentic_camera"
     elif score >= 60: 
         verdict = "TERINDIKASI EDITING (MENCURIGAKAN)"
+        verdict_key = "metadata_suspicious_editing"
     else: 
         verdict = "REKAYASA DIGITAL / EDITING"
+        verdict_key = "metadata_digital_editing"
 
     return {
         "metadata": metadata,
@@ -133,6 +136,7 @@ def full_metadata_analysis(image_path):
         "summary": {
             "authenticity_score": score,
             "verdict": verdict,
+            "verdict_key": verdict_key,
             "status": metadata["summary"]["status"]
         }
     }

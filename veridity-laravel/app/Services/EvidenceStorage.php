@@ -141,6 +141,53 @@ class EvidenceStorage
         }, $fileName, $headers);
     }
 
+    public function temporaryLocalPath(string $path): string
+    {
+        if (! $this->exists($path)) {
+            throw new \RuntimeException('Evidence file is not available.');
+        }
+
+        if (! $this->usesSupabaseRest() && $this->diskName() === 'public') {
+            return Storage::disk('public')->path($path);
+        }
+
+        $tempDirectory = storage_path('app/tmp/veridity-evidence');
+        if (! is_dir($tempDirectory)) {
+            mkdir($tempDirectory, 0777, true);
+        }
+
+        $tempPath = $tempDirectory.DIRECTORY_SEPARATOR.basename($path);
+
+        if ($this->usesSupabaseRest()) {
+            $response = Http::withHeaders($this->supabaseHeaders())->get($this->supabaseObjectUrl($path));
+
+            if (! $response->successful()) {
+                throw new \RuntimeException('Evidence file could not be downloaded.');
+            }
+
+            file_put_contents($tempPath, $response->body());
+
+            return $tempPath;
+        }
+
+        $stream = Storage::disk($this->diskName())->readStream($path);
+        if (! is_resource($stream)) {
+            throw new \RuntimeException('Evidence file could not be read.');
+        }
+
+        $target = fopen($tempPath, 'w');
+        try {
+            stream_copy_to_stream($stream, $target);
+        } finally {
+            fclose($stream);
+            if (is_resource($target)) {
+                fclose($target);
+            }
+        }
+
+        return $tempPath;
+    }
+
     public function makePath(string $directory, int|string|null $ownerId, string $fileName): string
     {
         $safeName = preg_replace('/[^A-Za-z0-9._-]+/', '_', $fileName) ?: 'file';

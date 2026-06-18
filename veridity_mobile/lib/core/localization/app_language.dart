@@ -117,4 +117,69 @@ class AppLanguage extends ValueNotifier<AppLocale> {
 
     return auditLabel(value);
   }
+
+  String analysisMessage(String key, {String fallback = ''}) {
+    return switch (key) {
+      'document_authentic_human' => text(
+          'Authentic / human written',
+          'Otentik / ditulis manusia',
+        ),
+      'document_mixed_ai_assisted' => text(
+          'Mixed text / AI assisted',
+          'Teks campuran / dibantu AI',
+        ),
+      'document_mostly_ai' => text(
+          'Mostly AI generated',
+          'Mayoritas AI generated',
+        ),
+      'document_human_style' => text(
+          'The language style has dynamic sentence-length variation and natural word choice typical of human writing.',
+          'Gaya bahasa memiliki variasi panjang kalimat yang sangat dinamis dengan kekayaan diksi yang alami khas tulisan manusia murni.',
+        ),
+      'document_mixed_style' => text(
+          'Mixed language patterns were detected. Some paragraphs appear manually written while others contain AI-assisted sentences.',
+          'Terdeteksi kombinasi gaya bahasa campuran. Sebagian paragraf terindikasi disusun manual dan sebagian lainnya disisipi kalimat bentukan AI.',
+        ),
+      'document_mostly_ai_style' => text(
+          'Most sentences are strongly indicated as AI-generated. Any detected human-written portions are still counted in the NLP metrics.',
+          'Mayoritas kalimat terindikasi kuat dibuat AI. Bagian yang terdeteksi human-written tetap dihitung dalam metrik NLP.',
+        ),
+      'noise_very_low' => text(
+          'Noise level is very low, indicating possible local retouching or smoothing.',
+          'Kadar noise sangat rendah, mengindikasikan kemungkinan retouching atau smoothing lokal.',
+        ),
+      'noise_local_variation' => text(
+          'Local noise variation was found. This is a supporting signal and is not enough alone to conclude splicing.',
+          'Ditemukan variasi noise lokal. Ini sinyal pendukung dan belum cukup sendiri untuk menyimpulkan splicing.',
+        ),
+      'noise_uniform' => text(
+          'Noise distribution and compression-error traces are even and homogeneous across the image.',
+          'Sebaran noise dan jejak eror kompresi tersebar merata dan homogen pada gambar.',
+        ),
+      'metadata_authentic_camera' => text(
+          'Physical camera capture (authentic)',
+          'Kamera fisik real (otentik)',
+        ),
+      'metadata_suspicious_editing' => text(
+          'Editing indication detected (suspicious)',
+          'Terindikasi editing (mencurigakan)',
+        ),
+      'metadata_digital_editing' => text(
+          'Digital manipulation / editing indicated',
+          'Rekayasa digital / editing',
+        ),
+      'ela_compression_trace' => text(
+          'ELA detects compression-level residue. Isolated sharp bright areas may indicate digital pasted regions.',
+          'ELA mendeteksi sisa tingkat kompresi. Area cerah tajam yang terisolasi dapat mengindikasikan tempelan digital.',
+        ),
+      'ai_deepfake_likelihood' => text(
+          'AI/deepfake likelihood is calculated from spectral image patterns.',
+          'Indikasi AI/deepfake dihitung dari pola spektral gambar.',
+        ),
+      'ai_likelihood_very_high' => text('Very high', 'Sangat tinggi'),
+      'ai_likelihood_suspicious' => text('Suspicious', 'Mencurigakan'),
+      'ai_likelihood_low' => text('Low / negative', 'Rendah / negatif'),
+      _ => fallback.isEmpty ? key : analysisText(fallback),
+    };
+  }
 }

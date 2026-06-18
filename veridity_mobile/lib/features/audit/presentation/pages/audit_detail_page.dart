@@ -119,7 +119,7 @@ class _AuditDetailState extends State<AuditDetail> {
     final lang = AppDependencies.language;
     final uri = AppDependencies.auditRepository.mobileReportUri(
       audit.id,
-      languageCode: audit.analysisLanguage == 'id' ? 'id' : 'en',
+      languageCode: lang.isEnglish ? 'en' : 'id',
     );
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
 
@@ -362,9 +362,12 @@ class _ImageDetailCard extends StatelessWidget {
         _MetricTile(
           label: 'Error Level Analysis',
           value: '${audit.elaScore.toStringAsFixed(2)}%',
-          helper: lang.text(
-            'Pixel anomalies and local editing traces.',
-            'Anomali piksel dan jejak editing lokal.',
+          helper: lang.analysisMessage(
+            audit.elaInterpretationKey,
+            fallback: lang.text(
+              'Pixel anomalies and local editing traces.',
+              'Anomali piksel dan jejak editing lokal.',
+            ),
           ),
         ),
         _MetricTile(
@@ -378,11 +381,17 @@ class _ImageDetailCard extends StatelessWidget {
         _MetricTile(
           label: 'Noise Authenticity',
           value: '${audit.noiseAuthenticityScore.toStringAsFixed(2)}%',
-          helper: lang.analysisText(audit.noiseInterpretation),
+          helper: lang.analysisMessage(
+            audit.noiseInterpretationKey,
+            fallback: audit.noiseInterpretation,
+          ),
         ),
         _MetricTile(
           label: 'Metadata',
-          value: lang.analysisText(audit.metadataSummary),
+          value: lang.analysisMessage(
+            audit.metadataVerdictKey,
+            fallback: audit.metadataSummary,
+          ),
           helper: lang.text(
             'EXIF history and editor-application traces.',
             'Riwayat EXIF dan jejak aplikasi editor.',
@@ -433,7 +442,10 @@ class _DocumentDetailCard extends StatelessWidget {
         _MetricTile(
           label: lang.text('Detected Sentences', 'Kalimat Terdeteksi'),
           value: audit.classificationCount.toString(),
-          helper: lang.analysisText(audit.documentInterpretation),
+          helper: lang.analysisMessage(
+            audit.documentInterpretationKey,
+            fallback: audit.documentInterpretation,
+          ),
         ),
       ],
     );

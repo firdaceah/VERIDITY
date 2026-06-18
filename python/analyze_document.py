@@ -82,29 +82,38 @@ def run_document_analysis(file_bytes, file_extension, language="en", is_cancelle
         # 4. Tentukan Klasifikasi Vonis dan Deskripsi Hasil Eksperimen untuk Matriks Sidang
         if final_score >= 80.0:
             summary_label = "AUTHENTIC (HUMAN WRITTEN)" if language == "en" else "OTENTIK (DITULIS MANUSIA)"
+            summary_key = "document_authentic_human"
             summary_color = "success"
             interpretation = "The language style has dynamic sentence-length variation and natural word choice typical of human writing." if language == "en" else "Gaya bahasa memiliki variasi panjang kalimat yang sangat dinamis dengan kekayaan diksi yang alami khas tulisan manusia murni."
+            interpretation_key = "document_human_style"
         elif final_score >= 60.0:
             summary_label = "MIXED TEXT (AI ASSISTED)" if language == "en" else "TEKS CAMPURAN (DIBANTU AI)"
+            summary_key = "document_mixed_ai_assisted"
             summary_color = "warning"
             interpretation = "Mixed language patterns were detected. Some paragraphs appear manually written while others contain AI-assisted sentences." if language == "en" else "Terdeteksi kombinasi gaya bahasa campuran. Sebagian paragraf terindikasi disusun manual dan sebagian lainnya disisipi kalimat bentukan AI."
+            interpretation_key = "document_mixed_style"
         else:
             summary_label = "MOSTLY AI GENERATED" if language == "en" else "MAYORITAS AI GENERATED"
+            summary_key = "document_mostly_ai"
             summary_color = "danger"
             interpretation = "Most sentences are strongly indicated as AI-generated. Any detected human-written portions are still counted and shown in the highlights and NLP metrics." if language == "en" else "Mayoritas kalimat terindikasi kuat dibuat AI. Jika masih ada bagian yang terdeteksi Human-written, bagian tersebut tetap dihitung sebagai porsi tulisan manusia dan dapat dilihat pada arsiran serta rincian NLP metrics."
+            interpretation_key = "document_mostly_ai_style"
 
         return {
             "status": "success",
             "final_score": round(final_score, 2),
             "summary_label": summary_label,
+            "summary_key": summary_key,
             "summary_color": summary_color,
             # SERTAKAN VARIABEL INI AGAR LARAVEL BISA MENYIMPANNYA
             "classification_map": classification_map, 
             "results": {
                 "document": {
                     "verdict": summary_label,
+                    "verdict_key": summary_key,
                     "text_authenticity_score": round(final_score, 2),
                     "interpretation": interpretation,
+                    "interpretation_key": interpretation_key,
                     "metrics": {
                         "human_p": round(human_p, 2),
                         "ai_p": round(ai_p, 2),

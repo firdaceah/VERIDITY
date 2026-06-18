@@ -102,10 +102,13 @@ def detect_gan_fingerprint(image_path):
 
         if gan_score > 0.7:
             likelihood = "SANGAT TINGGI"
+            likelihood_key = "ai_likelihood_very_high"
         elif gan_score > 0.4:
             likelihood = "MENCURIGAKAN"
+            likelihood_key = "ai_likelihood_suspicious"
         else:
             likelihood = "RENDAH / NEGATIF"
+            likelihood_key = "ai_likelihood_low"
 
         # KALKULASI MANDIRI: Mengubah probabilitas GAN menjadi skor keaslian alami kamera fisik
         ai_auth_score = max(0.0, min(100.0, round(100.0 - (float(gan_score) * 100), 2)))
@@ -121,8 +124,11 @@ def detect_gan_fingerprint(image_path):
             },
             "gan_indicators": gan_indicators,
             "gan_likelihood": likelihood,
+            "gan_likelihood_key": likelihood_key,
             "interpretation": f"Tingkat indikasi foto wajah ini merupakan hasil rekayasa kecerdasan buatan (AI/Deepfake): {likelihood}.",
-            "researcher_note": "Analisis menggunakan radially-averaged power spectrum untuk menangkap periodic artifacts sisa upsampling arsitektur GAN."
+            "interpretation_key": "ai_deepfake_likelihood",
+            "researcher_note": "Analisis menggunakan radially-averaged power spectrum untuk menangkap periodic artifacts sisa upsampling arsitektur GAN.",
+            "researcher_note_key": "ai_radial_spectrum_note"
         }
     except Exception as e:
         return {"status": "error", "error": str(e)}

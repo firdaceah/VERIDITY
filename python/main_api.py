@@ -182,6 +182,7 @@ async def generate_pdf_report_endpoint(
     extension: str = Form("pdf"),
     document_metrics_str: str = Form("{}"),
     interpretation: str = Form(""),
+    interpretation_key: str = Form(""),
     language: str = Form("en")
 ):
     try:
@@ -198,6 +199,7 @@ async def generate_pdf_report_endpoint(
             analyzed_at=analyzed_at,
             document_metrics=document_metrics,
             interpretation=interpretation,
+            interpretation_key=interpretation_key,
             source_extension=extension,
             language=language,
         )
