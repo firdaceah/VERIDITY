@@ -247,14 +247,22 @@ def _percentage(value):
     except (TypeError, ValueError):
         return "0.00%"
 
-def _draw_nlp_metrics(page, metrics, interpretation):
+def _normalize_language(language):
+    return "id" if str(language).lower() == "id" else "en"
+
+
+def _tr(language, en, id_text):
+    return id_text if _normalize_language(language) == "id" else en
+
+
+def _draw_nlp_metrics(page, metrics, interpretation, language="en"):
     metrics = metrics or {}
     page.draw_rect(fitz.Rect(50, 440, 545, 460), color=None, fill=(248/255, 250/255, 252/255))
-    page.insert_text(fitz.Point(55, 454), "RINCIAN KOMPUTASI BAHASA (NLP METRICS)", fontsize=10, fontname="helvetica-bold", color=(30/255, 58/255, 138/255))
+    page.insert_text(fitz.Point(55, 454), _tr(language, "LANGUAGE COMPUTATION DETAILS (NLP METRICS)", "RINCIAN KOMPUTASI BAHASA (NLP METRICS)"), fontsize=10, fontname="helvetica-bold", color=(30/255, 58/255, 138/255))
     rows = [
-        ("Kalimat Orisinal (Human-written)", metrics.get("human_p", 0)),
-        ("Kalimat Sintetis (AI-generated)", metrics.get("ai_p", 0)),
-        ("Kalimat Hybrid / AI-refined", metrics.get("hybrid_p", 0)),
+        (_tr(language, "Original Sentences (Human-written)", "Kalimat Orisinal (Human-written)"), metrics.get("human_p", 0)),
+        (_tr(language, "Synthetic Sentences (AI-generated)", "Kalimat Sintetis (AI-generated)"), metrics.get("ai_p", 0)),
+        (_tr(language, "Hybrid / AI-refined Sentences", "Kalimat Hybrid / AI-refined"), metrics.get("hybrid_p", 0)),
     ]
 
     for index, (label, value) in enumerate(rows):
@@ -273,9 +281,10 @@ def _draw_nlp_metrics(page, metrics, interpretation):
         )
 
     page.draw_rect(fitz.Rect(55, 650, 540, 720), color=(226/255, 232/255, 240/255), fill=(255/255, 247/255, 237/255))
-    formula = (
-        "Rumus keputusan: Human Score = persentase kalimat Human-written. "
-        ">= 80%: Aman, 60-79%: Mixed AI Assisted, < 60%: Mayoritas AI Generated."
+    formula = _tr(
+        language,
+        "Decision formula: Human Score = percentage of Human-written sentences. >= 80%: Authentic, 60-79%: Mixed AI Assisted, < 60%: Mostly AI Generated.",
+        "Rumus keputusan: Human Score = persentase kalimat Human-written. >= 80%: Aman, 60-79%: Mixed AI Assisted, < 60%: Mayoritas AI Generated.",
     )
     page.insert_textbox(
         fitz.Rect(65, 662, 530, 710),
@@ -294,13 +303,16 @@ def generate_annotated_pdf(
     document_metrics=None,
     interpretation=None,
     source_extension="pdf",
+    language="en",
 ):
     """
     Menghasilkan laporan PDF formal dengan menyisipkan Kop Surat Veridity PENS 
     di halaman pertama, lalu memberikan warna stabilo AI pada teks di halaman berikutnya.
     """
+    language = _normalize_language(language)
+    report_title = _tr(language, "Veridity Forensic Investigation Report", "Laporan Investigasi Forensik Veridity")
     doc = fitz.open(stream=_source_pdf_bytes(pdf_bytes, source_extension), filetype="pdf")
-    doc.set_metadata({**doc.metadata, "title": "Laporan Investigasi Forensik Veridity"})
+    doc.set_metadata({**doc.metadata, "title": report_title})
     kop_page = doc.new_page(pno=0, width=595, height=842) 
     
     # Desain Garis Pembatas Kop Surat
@@ -308,21 +320,22 @@ def generate_annotated_pdf(
     
     # Tulis Text Kop Surat - Menggunakan fontname standar langsung tanpa init_font
     kop_page.insert_text(fitz.Point(50, 65), "VeriDity.", fontsize=22, fontname="helvetica-bold", color=(30/255, 58/255, 138/255))
-    kop_page.insert_text(fitz.Point(340, 65), "LAPORAN INTEGRITAS DIGITAL DOKUMEN", fontsize=11, fontname="helvetica-bold", color=(100/255, 116/255, 139/255))
+    kop_page.insert_text(fitz.Point(340, 65), _tr(language, "DOCUMENT DIGITAL INTEGRITY REPORT", "LAPORAN INTEGRITAS DIGITAL DOKUMEN"), fontsize=11, fontname="helvetica-bold", color=(100/255, 116/255, 139/255))
     
     # Judul Seksi Informasi Master
     kop_page.draw_rect(fitz.Rect(50, 110, 545, 130), color=None, fill=(248/255, 250/255, 252/255))
-    kop_page.insert_text(fitz.Point(55, 124), "INFORMASI DOKUMEN BARANG BUKTI DOKUMEN", fontsize=10, fontname="helvetica-bold", color=(30/255, 58/255, 138/255))
+    kop_page.insert_text(fitz.Point(55, 124), _tr(language, "DOCUMENT EVIDENCE INFORMATION", "INFORMASI DOKUMEN BARANG BUKTI DOKUMEN"), fontsize=10, fontname="helvetica-bold", color=(30/255, 58/255, 138/255))
     
     if not analyzed_at:
         analyzed_at = datetime.now().strftime("%d %b %Y, %H:%M") + " WIB"
         
-    kop_page.insert_text(fitz.Point(55, 160), f"Kode Investigasi    :  #VRD-{audit_id}", fontsize=11, fontname="helvetica")
-    kop_page.insert_text(fitz.Point(55, 185), f"Waktu Analisis       :  {analyzed_at}", fontsize=11, fontname="helvetica")
+    kop_page.insert_text(fitz.Point(55, 160), f"{_tr(language, 'Investigation Code', 'Kode Investigasi')}    :  #VRD-{audit_id}", fontsize=11, fontname="helvetica")
+    kop_page.insert_text(fitz.Point(55, 185), f"{_tr(language, 'Analysis Time', 'Waktu Analisis')}       :  {analyzed_at}", fontsize=11, fontname="helvetica")
     format_label = str(source_extension or "pdf").upper().lstrip(".")
-    kop_page.insert_text(fitz.Point(55, 210), f"Format Objek        :  {format_label} (Rumpun Linguistic Teks)", fontsize=11, fontname="helvetica")
+    object_family = _tr(language, "Linguistic Text Family", "Rumpun Linguistic Teks")
+    kop_page.insert_text(fitz.Point(55, 210), f"{_tr(language, 'Object Format', 'Format Objek')}        :  {format_label} ({object_family})", fontsize=11, fontname="helvetica")
     
-    kop_page.insert_text(fitz.Point(55, 238), f"Vonis Akhir Berkas : ", fontsize=11, fontname="helvetica")
+    kop_page.insert_text(fitz.Point(55, 238), f"{_tr(language, 'Final File Verdict', 'Vonis Akhir Berkas')} : ", fontsize=11, fontname="helvetica")
     
     # Sinkronisasi Warna Badge Status
     status_upper = str(metadata_summary).upper()
@@ -338,19 +351,19 @@ def generate_annotated_pdf(
 
     # Teks Legenda Panduan Warna Stabilo
     kop_page.draw_rect(fitz.Rect(50, 280, 545, 300), color=None, fill=(248/255, 250/255, 252/255))
-    kop_page.insert_text(fitz.Point(55, 294), "PANDUAN WARNA ANOTASI SEBARAN KALIMAT (AI METRICS)", fontsize=10, fontname="helvetica-bold", color=(30/255, 58/255, 138/255))
+    kop_page.insert_text(fitz.Point(55, 294), _tr(language, "SENTENCE DISTRIBUTION ANNOTATION COLOR GUIDE (AI METRICS)", "PANDUAN WARNA ANOTASI SEBARAN KALIMAT (AI METRICS)"), fontsize=10, fontname="helvetica-bold", color=(30/255, 58/255, 138/255))
     
-    kop_page.insert_text(fitz.Point(55, 330), "• Merah Muda (Pink)       :  Terindikasi Kuat Buatan Mesin Generatif (AI-Generated)", fontsize=11, fontname="helvetica")
-    kop_page.insert_text(fitz.Point(55, 355), "• Jingga (Orange)            :  Hasil Parafrase / Refinement Mesin Komputer (AI-Refined)", fontsize=11, fontname="helvetica")
-    kop_page.insert_text(fitz.Point(55, 380), "• Biru Muda (Light Blue)  :  Teks Gabungan / Hasil Editan Manusia & AI", fontsize=11, fontname="helvetica")
-    kop_page.insert_text(fitz.Point(55, 405), "• Tanpa Warna Stabilo     :  Murni Gaya Tulisan Alami Manusia (Human-written)", fontsize=11, fontname="helvetica")
+    kop_page.insert_text(fitz.Point(55, 330), _tr(language, "- Pink       :  Strongly indicated as AI-generated text", "- Merah Muda (Pink)       :  Terindikasi Kuat Buatan Mesin Generatif (AI-Generated)"), fontsize=11, fontname="helvetica")
+    kop_page.insert_text(fitz.Point(55, 355), _tr(language, "- Orange     :  Machine paraphrase / AI-refined text", "- Jingga (Orange)            :  Hasil Parafrase / Refinement Mesin Komputer (AI-Refined)"), fontsize=11, fontname="helvetica")
+    kop_page.insert_text(fitz.Point(55, 380), _tr(language, "- Light Blue :  Combined human and AI-edited text", "- Biru Muda (Light Blue)  :  Teks Gabungan / Hasil Editan Manusia & AI"), fontsize=11, fontname="helvetica")
+    kop_page.insert_text(fitz.Point(55, 405), _tr(language, "- No highlight: Natural human-written style", "- Tanpa Warna Stabilo     :  Murni Gaya Tulisan Alami Manusia (Human-written)"), fontsize=11, fontname="helvetica")
 
-    _draw_nlp_metrics(kop_page, document_metrics, interpretation)
+    _draw_nlp_metrics(kop_page, document_metrics, interpretation, language=language)
 
     # Catatan Kaki Validasi Kampus PENS
     kop_page.draw_line(fitz.Point(50, 780), fitz.Point(545, 780), color=(226/255, 232/255, 240/255), width=1)
-    kop_page.insert_text(fitz.Point(50, 795), "Dokumen ini diterbitkan oleh Veridity Platform Forensik. Dicetak otomatis via Python Engine Gateway.", fontsize=8, fontname="helvetica", color=(148/255, 163/255, 184/255))
-    kop_page.insert_text(fitz.Point(50, 808), "Politeknik Elektronika Negeri Surabaya (PENS) - Jurusan Teknik Informatika", fontsize=8, fontname="helvetica-bold", color=(148/255, 163/255, 184/255))
+    kop_page.insert_text(fitz.Point(50, 795), _tr(language, "This document was issued by the Veridity Forensic Platform. Generated automatically through the Python Engine Gateway.", "Dokumen ini diterbitkan oleh Veridity Platform Forensik. Dicetak otomatis via Python Engine Gateway."), fontsize=8, fontname="helvetica", color=(148/255, 163/255, 184/255))
+    kop_page.insert_text(fitz.Point(50, 808), _tr(language, "Politeknik Elektronika Negeri Surabaya (PENS) - Informatics Engineering Department", "Politeknik Elektronika Negeri Surabaya (PENS) - Jurusan Teknik Informatika"), fontsize=8, fontname="helvetica-bold", color=(148/255, 163/255, 184/255))
 
     # Logika Penyorotan Kalimat
     def hex_to_rgb_float(hex_color):
@@ -395,7 +408,7 @@ def generate_annotated_pdf(
 
     doc.set_metadata({
         **doc.metadata,
-        "title": "Laporan Investigasi Forensik Veridity",
+        "title": report_title,
         "subject": f"Veridity highlight stats: {highlight_stats}",
     })
 

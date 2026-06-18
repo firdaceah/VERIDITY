@@ -51,6 +51,8 @@ class _AuditDetailState extends State<AuditDetail> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -68,9 +70,9 @@ class _AuditDetailState extends State<AuditDetail> {
             onPressed: _handleBack,
           ),
           iconTheme: const IconThemeData(color: Colors.white),
-          title: const Text(
-            "Detail Analisis",
-            style: TextStyle(color: Colors.white),
+          title: Text(
+            lang.text("Analysis Detail", "Detail Analisis"),
+            style: const TextStyle(color: Colors.white),
           ),
         ),
         body: FutureBuilder<AuditEntity>(
@@ -95,7 +97,7 @@ class _AuditDetailState extends State<AuditDetail> {
                 ElevatedButton.icon(
                   onPressed: () => _downloadReport(context, audit),
                   icon: const Icon(Icons.picture_as_pdf_outlined),
-                  label: const Text("Download PDF"),
+                  label: Text(lang.text("Download PDF", "Unduh PDF")),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4338CA),
                     foregroundColor: Colors.white,
@@ -114,7 +116,11 @@ class _AuditDetailState extends State<AuditDetail> {
   }
 
   Future<void> _downloadReport(BuildContext context, AuditEntity audit) async {
-    final uri = AppDependencies.auditRepository.mobileReportUri(audit.id);
+    final lang = AppDependencies.language;
+    final uri = AppDependencies.auditRepository.mobileReportUri(
+      audit.id,
+      languageCode: audit.analysisLanguage == 'id' ? 'id' : 'en',
+    );
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
 
     if (!context.mounted) {
@@ -125,8 +131,11 @@ class _AuditDetailState extends State<AuditDetail> {
       SnackBar(
         content: Text(
           opened
-              ? "Membuka laporan PDF..."
-              : "Tidak dapat membuka laporan PDF.",
+              ? lang.text("Opening PDF report...", "Membuka laporan PDF...")
+              : lang.text(
+                  "Unable to open PDF report.",
+                  "Tidak dapat membuka laporan PDF.",
+                ),
         ),
       ),
     );
@@ -141,6 +150,8 @@ class _HeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -172,7 +183,7 @@ class _HeaderCard extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
-                  audit.summaryLabel,
+                  lang.auditLabel(audit.summaryLabel),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -214,7 +225,7 @@ class _HeaderCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
-              audit.isDocument ? 'Dokumen' : 'Foto',
+              lang.fileTypeLabel(isDocument: audit.isDocument),
               style: TextStyle(
                 color: statusColor,
                 fontSize: 11,
@@ -317,14 +328,16 @@ class _NetworkImageFallbackState extends State<_NetworkImageFallback> {
           );
         }
 
-        return const Column(
+        final lang = AppDependencies.language;
+
+        return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.broken_image, color: Colors.white54, size: 54),
-            SizedBox(height: 10),
+            const Icon(Icons.broken_image, color: Colors.white54, size: 54),
+            const SizedBox(height: 10),
             Text(
-              'Gambar tidak tersedia',
-              style: TextStyle(color: Colors.white54),
+              lang.text('Image unavailable', 'Gambar tidak tersedia'),
+              style: const TextStyle(color: Colors.white54),
             ),
           ],
         );
@@ -340,29 +353,40 @@ class _ImageDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
+
     return _MetricCard(
-      title: 'Detail Forensik Foto',
+      title: lang.text('Photo Forensic Details', 'Detail Forensik Foto'),
       icon: Icons.image_search,
       children: [
         _MetricTile(
           label: 'Error Level Analysis',
           value: '${audit.elaScore.toStringAsFixed(2)}%',
-          helper: 'Anomali piksel dan jejak editing lokal.',
+          helper: lang.text(
+            'Pixel anomalies and local editing traces.',
+            'Anomali piksel dan jejak editing lokal.',
+          ),
         ),
         _MetricTile(
           label: 'AI / Deepfake Score',
           value: audit.ganScore.toStringAsFixed(4),
-          helper: 'Probabilitas pola spektral buatan AI.',
+          helper: lang.text(
+            'Probability of AI-generated spectral patterns.',
+            'Probabilitas pola spektral buatan AI.',
+          ),
         ),
         _MetricTile(
           label: 'Noise Authenticity',
           value: '${audit.noiseAuthenticityScore.toStringAsFixed(2)}%',
-          helper: audit.noiseInterpretation,
+          helper: lang.analysisText(audit.noiseInterpretation),
         ),
         _MetricTile(
           label: 'Metadata',
-          value: audit.metadataSummary,
-          helper: 'Riwayat EXIF dan jejak aplikasi editor.',
+          value: lang.analysisText(audit.metadataSummary),
+          helper: lang.text(
+            'EXIF history and editor-application traces.',
+            'Riwayat EXIF dan jejak aplikasi editor.',
+          ),
         ),
       ],
     );
@@ -376,29 +400,40 @@ class _DocumentDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
+
     return _MetricCard(
-      title: 'Detail Forensik Dokumen',
+      title: lang.text('Document Forensic Details', 'Detail Forensik Dokumen'),
       icon: Icons.manage_search,
       children: [
         _MetricTile(
           label: 'Human Written',
           value: '${audit.humanPercentage.toStringAsFixed(1)}%',
-          helper: 'Porsi kalimat yang tampak natural ditulis manusia.',
+          helper: lang.text(
+            'Share of sentences that appear naturally human-written.',
+            'Porsi kalimat yang tampak natural ditulis manusia.',
+          ),
         ),
         _MetricTile(
           label: 'AI Generated',
           value: '${audit.aiPercentage.toStringAsFixed(1)}%',
-          helper: 'Porsi kalimat dengan pola generatif AI.',
+          helper: lang.text(
+            'Share of sentences with AI-generative patterns.',
+            'Porsi kalimat dengan pola generatif AI.',
+          ),
         ),
         _MetricTile(
           label: 'Hybrid Refined',
           value: '${audit.hybridPercentage.toStringAsFixed(1)}%',
-          helper: 'Porsi teks campuran manusia dan bantuan AI.',
+          helper: lang.text(
+            'Share of mixed human writing and AI assistance.',
+            'Porsi teks campuran manusia dan bantuan AI.',
+          ),
         ),
         _MetricTile(
-          label: 'Kalimat Terdeteksi',
+          label: lang.text('Detected Sentences', 'Kalimat Terdeteksi'),
           value: audit.classificationCount.toString(),
-          helper: audit.documentInterpretation,
+          helper: lang.analysisText(audit.documentInterpretation),
         ),
       ],
     );

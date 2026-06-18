@@ -36,6 +36,7 @@ class ForensicResource extends JsonResource
                 : null,
             'summary_label' => $finalResult['summary_label'] ?? 'UNKNOWN',
             'summary_color' => $finalResult['summary_color'] ?? 'warning',
+            'analysis_language' => $finalResult['language'] ?? $fullReport['language'] ?? 'en',
             'status' => $finalResult['summary_label'] ?? 'UNKNOWN',
             'color' => $finalResult['summary_color'] ?? 'warning',
             'final_score' => $fullReport['final_score'] ?? 0,

@@ -14,6 +14,7 @@ class AuditEntity {
     this.noiseImageUrl,
     required this.metadataDetails,
     required this.finalResult,
+    this.analysisLanguage = 'en',
   });
 
   final int id;
@@ -28,6 +29,7 @@ class AuditEntity {
   final String? noiseImageUrl;
   final Map<String, dynamic> metadataDetails;
   final Map<String, dynamic> finalResult;
+  final String analysisLanguage;
 
   String get extension => fileName.split('.').last.toLowerCase();
   bool get isDocument => ['pdf', 'docx'].contains(extension);
@@ -68,11 +70,11 @@ class AuditEntity {
   String get documentInterpretation => _stringMetric([
     'document',
     'interpretation',
-  ], fallback: 'Analisis bahasa selesai.');
+  ], fallback: 'Language analysis completed.');
   String get noiseInterpretation => _stringMetric([
     'noise',
     'interpretation',
-  ], fallback: 'Analisis noise selesai.');
+  ], fallback: 'Noise analysis completed.');
 
   double _metric(List<String> path) {
     dynamic current = results;
@@ -103,9 +105,9 @@ class AuditEntity {
     if (summary is Map<String, dynamic>) {
       return summary['verdict']?.toString() ??
           summary['status']?.toString() ??
-          'Tidak tersedia';
+          'Unavailable';
     }
-    return 'Tidak tersedia';
+    return 'Unavailable';
   }
 
   int get classificationCount {
@@ -145,7 +147,7 @@ class AuditEntity {
       summaryLabel:
           json['summary_label']?.toString() ??
           json['status']?.toString() ??
-          (color == 'success' ? 'Aman' : 'Beresiko'),
+          (color == 'success' ? 'Safe' : 'High risk'),
       summaryColor: color,
       finalScore:
           double.tryParse(
@@ -163,6 +165,7 @@ class AuditEntity {
       finalResult: json['final_result'] is Map<String, dynamic>
           ? json['final_result'] as Map<String, dynamic>
           : <String, dynamic>{},
+      analysisLanguage: json['analysis_language']?.toString() ?? 'en',
     );
   }
 

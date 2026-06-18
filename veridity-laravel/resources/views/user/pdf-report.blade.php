@@ -1,8 +1,38 @@
+@php
+    $isId = ($language ?? 'en') === 'id';
+    $t = fn (string $en, string $id) => $isId ? $id : $en;
+    $analysisText = function (?string $value) use ($isId) {
+        $value = (string) ($value ?? '');
+        if ($isId || trim($value) === '') {
+            return $value;
+        }
+
+        $normalized = strtolower($value);
+        if (str_contains($normalized, 'kamera fisik real') || str_contains($normalized, 'otentik')) {
+            return 'Physical camera capture (authentic)';
+        }
+        if (str_contains($normalized, 'rekayasa digital') || str_contains($normalized, 'editing')) {
+            return 'Digital manipulation / editing indicated';
+        }
+        if (str_contains($normalized, 'noise')) {
+            if (str_contains($normalized, 'tidak') || str_contains($normalized, 'anomali')) {
+                return 'Noise pattern needs review as a supporting forensic signal.';
+            }
+
+            return 'Noise pattern remains within the final tolerance range.';
+        }
+
+        return $value;
+    };
+    $objectFamily = $isDocument
+        ? $t('Linguistic Text', 'Linguistic Teks')
+        : $t('Image Multimedia', 'Multimedia Citra');
+@endphp
 <!DOCTYPE html>
 <html>
 
 <head>
-    <title>Laporan Investigasi Forensik Veridity</title>
+    <title>{{ $t('Veridity Forensic Investigation Report', 'Laporan Investigasi Forensik Veridity') }}</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -110,33 +140,33 @@
     <table style="width: 100%; border: none; margin-bottom: 15px;">
         <tr style="border: none;">
             <td style="border: none; width: 50%; padding: 0;" class="logo">VeriDity.</td>
-            <td style="border: none; width: 50%; padding: 0;" class="title">LAPORAN INTEGRITAS DIGITAL</td>
+            <td style="border: none; width: 50%; padding: 0;" class="title">{{ $t('DIGITAL INTEGRITY REPORT', 'LAPORAN INTEGRITAS DIGITAL') }}</td>
         </tr>
     </table>
     <div class="header"></div>
 
     {{-- DETAIL BERKAS MASTER --}}
-    <div class="section-title">Informasi Dokumen Barang Bukti</div>
+    <div class="section-title">{{ $t('Evidence File Information', 'Informasi Dokumen Barang Bukti') }}</div>
     <table>
         <tr>
-            <th style="width: 30%;">Kode Investigasi</th>
+            <th style="width: 30%;">{{ $t('Investigation Code', 'Kode Investigasi') }}</th>
             <td>#VRD-{{ $analysis->id }}</td>
         </tr>
         <tr>
-            <th>Nama Berkas Asli</th>
+            <th>{{ $t('Original File Name', 'Nama Berkas Asli') }}</th>
             <td>{{ $analysis->image_name }}</td>
         </tr>
         <tr>
-            <th>Waktu Analisis</th>
+            <th>{{ $t('Analysis Time', 'Waktu Analisis') }}</th>
             <td>{{ $waktuAnalisis }}</td> {{-- Menggunakan variabel hasil konversi setTimezone --}}
         </tr>
         <tr>
-            <th>Format Objek</th>
-            <td>{{ strtoupper($fileExtension) }} (Rumpun {{ $isDocument ? 'Linguistic Teks' : 'Multimedia Citra' }})
+            <th>{{ $t('Object Format', 'Format Objek') }}</th>
+            <td>{{ strtoupper($fileExtension) }} ({{ $t('Family', 'Rumpun') }} {{ $objectFamily }})
             </td>
         </tr>
         <tr>
-            <th>Vonis Akhir Berkas</th>
+            <th>{{ $t('Final File Verdict', 'Vonis Akhir Berkas') }}</th>
             <td>
                 <span
                     class="badge {{ $analysis->final_result['summary_color'] == 'success' ? 'bg-success' : ($analysis->final_result['summary_color'] == 'warning' ? 'bg-warning' : 'bg-danger') }}">
@@ -149,73 +179,75 @@
     {{-- KONDISIONAL PERFORMA MATRIKS RISET --}}
     @if ($isDocument)
         {{-- BLOK PRINT DATA KHUSUS DOKUMEN TEKS --}}
-        <div class="section-title">Rincian Komputasi Bahasa (NLP Metrics)</div>
-        <p>Berdasarkan hasil parsing sebaran kalimat menggunakan *RoBERTa-Base OpenAI Text Classification Pipeline*,
-            berikut adalah probabilitas sebaran susunan kata:</p>
+        <div class="section-title">{{ $t('Language Computation Details (NLP Metrics)', 'Rincian Komputasi Bahasa (NLP Metrics)') }}</div>
+        <p>{{ $t(
+            'Based on sentence distribution parsing using the RoBERTa-Base OpenAI Text Classification Pipeline, the following probabilities describe the wording distribution:',
+            'Berdasarkan hasil parsing sebaran kalimat menggunakan *RoBERTa-Base OpenAI Text Classification Pipeline*, berikut adalah probabilitas sebaran susunan kata:'
+        ) }}</p>
         <table>
             <thead>
                 <tr>
-                    <th>Komponen Matriks Linguistik</th>
-                    <th>Kontribusi Persentase</th>
+                    <th>{{ $t('Linguistic Matrix Component', 'Komponen Matriks Linguistik') }}</th>
+                    <th>{{ $t('Percentage Contribution', 'Kontribusi Persentase') }}</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td>Kalimat Orisinal (Murni Buatan Manusia)</td>
+                    <td>{{ $t('Original Sentences (Human-written)', 'Kalimat Orisinal (Murni Buatan Manusia)') }}</td>
                     <td>{{ $analysis->final_result['full_report']['results']['document']['metrics']['human_p'] ?? 0 }}%
                     </td>
                 </tr>
                 <tr>
-                    <td>Kalimat Sintetis (Full AI Generated ChatGPT/Sejenisnya)</td>
+                    <td>{{ $t('Synthetic Sentences (Fully AI-generated)', 'Kalimat Sintetis (Full AI Generated ChatGPT/Sejenisnya)') }}</td>
                     <td>{{ $analysis->final_result['full_report']['results']['document']['metrics']['ai_p'] ?? 0 }}%
                     </td>
                 </tr>
                 <tr>
-                    <td>Kalimat Modifikasi (Hybrid Paraphrased / AI-Refined)</td>
+                    <td>{{ $t('Modified Sentences (Hybrid Paraphrased / AI-Refined)', 'Kalimat Modifikasi (Hybrid Paraphrased / AI-Refined)') }}</td>
                     <td>{{ $analysis->final_result['full_report']['results']['document']['metrics']['hybrid_p'] ?? 0 }}%
                     </td>
                 </tr>
                 <tr style="font-weight: bold; background-color: #f8fafc;">
-                    <td>SKOR TOTAL ORISINALITAS BAHASA (HUMAN SCORE)</td>
+                    <td>{{ $t('TOTAL LANGUAGE ORIGINALITY SCORE (HUMAN SCORE)', 'SKOR TOTAL ORISINALITAS BAHASA (HUMAN SCORE)') }}</td>
                     <td style="color: #1e3a8a;">{{ $analysis->final_result['full_report']['final_score'] ?? 0 }}%</td>
                 </tr>
             </tbody>
         </table>
 
-        <div class="section-title">Interpretasi Pakar Forensik</div>
+        <div class="section-title">{{ $t('Forensic Expert Interpretation', 'Interpretasi Pakar Forensik') }}</div>
         <p
             style="background-color: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-style: italic;">
             "{{ $analysis->final_result['full_report']['results']['document']['interpretation'] ?? '' }}"
         </p>
 
-        <div class="section-title">Alasan Kesimpulan dan Rumus Keputusan</div>
+        <div class="section-title">{{ $t('Conclusion Rationale and Decision Formula', 'Alasan Kesimpulan dan Rumus Keputusan') }}</div>
         <table>
             <tr>
                 <th>Rumus Human Score</th>
-                <td>Human Score = persentase kalimat yang diklasifikasikan sebagai Human-written.</td>
+                <td>{{ $t('Human Score = percentage of sentences classified as Human-written.', 'Human Score = persentase kalimat yang diklasifikasikan sebagai Human-written.') }}</td>
             </tr>
             <tr>
-                <th>Ambang Aman</th>
-                <td>&ge; 80% Human Score dikategorikan AUTHENTIC (HUMAN WRITTEN).</td>
+                <th>{{ $t('Safe Threshold', 'Ambang Aman') }}</th>
+                <td>{{ $t('>= 80% Human Score is categorized as AUTHENTIC (HUMAN WRITTEN).', '>= 80% Human Score dikategorikan AUTHENTIC (HUMAN WRITTEN).') }}</td>
             </tr>
             <tr>
-                <th>Ambang Mixed</th>
-                <td>60% - 79% Human Score dikategorikan MIXED TEXT (AI ASSISTED).</td>
+                <th>{{ $t('Mixed Threshold', 'Ambang Mixed') }}</th>
+                <td>{{ $t('60% - 79% Human Score is categorized as MIXED TEXT (AI ASSISTED).', '60% - 79% Human Score dikategorikan MIXED TEXT (AI ASSISTED).') }}</td>
             </tr>
             <tr>
-                <th>Ambang Mayoritas AI</th>
-                <td>&lt; 60% Human Score dikategorikan MAYORITAS AI GENERATED.</td>
+                <th>{{ $t('Mostly-AI Threshold', 'Ambang Mayoritas AI') }}</th>
+                <td>{{ $t('< 60% Human Score is categorized as MOSTLY AI GENERATED.', '< 60% Human Score dikategorikan MAYORITAS AI GENERATED.') }}</td>
             </tr>
         </table>
     @else
         {{-- BLOK PRINT DATA KHUSUS CITRA GAMBAR --}}
-        <div class="section-title">Kalkulasi Parameter Fisik Citra Digital</div>
+        <div class="section-title">{{ $t('Digital Image Physical Parameter Calculation', 'Kalkulasi Parameter Fisik Citra Digital') }}</div>
         <table>
             <thead>
                 <tr>
-                    <th>Metode Forensik Multimedia</th>
-                    <th>Skor Parameter Mentah</th>
-                    <th>Nilai Integritas</th>
+                    <th>{{ $t('Multimedia Forensic Method', 'Metode Forensik Multimedia') }}</th>
+                    <th>{{ $t('Raw Parameter Score', 'Skor Parameter Mentah') }}</th>
+                    <th>{{ $t('Integrity Value', 'Nilai Integritas') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -233,7 +265,7 @@
                 </tr>
                 <tr>
                     <td>EXIF Metadata Security</td>
-                    <td>{{ $analysis->final_result['full_report']['results']['metadata']['summary']['verdict'] ?? 'N/A' }}
+                    <td>{{ $analysisText($analysis->final_result['full_report']['results']['metadata']['summary']['verdict'] ?? 'N/A') }}
                     </td>
                     <td>{{ number_format($analysis->final_result['full_report']['results']['metadata']['summary']['authenticity_score'] ?? 100, 2) }}%
                     </td>
@@ -241,38 +273,38 @@
             </tbody>
         </table>
 
-        <div class="section-title">Hasil Pemeriksaan Partikel Kebisingan Lensa (Noise Interpretation)</div>
+        <div class="section-title">{{ $t('Lens Noise Particle Inspection Result (Noise Interpretation)', 'Hasil Pemeriksaan Partikel Kebisingan Lensa (Noise Interpretation)') }}</div>
         <p
             style="background-color: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; font-style: italic;">
-            "{{ $analysis->final_result['full_report']['results']['noise']['interpretation'] ?? 'Normal.' }}"
+            "{{ $analysisText($analysis->final_result['full_report']['results']['noise']['interpretation'] ?? 'Normal.') }}"
         </p>
 
-        <div class="section-title">Alasan Kesimpulan Forensik Citra</div>
+        <div class="section-title">{{ $t('Image Forensic Conclusion Rationale', 'Alasan Kesimpulan Forensik Citra') }}</div>
         <table>
             <tr>
                 <th>ELA</th>
-                <td>Semakin kecil anomali ELA, semakin konsisten jejak kompresi piksel pada gambar.</td>
+                <td>{{ $t('Lower ELA anomaly means the image compression traces are more consistent.', 'Semakin kecil anomali ELA, semakin konsisten jejak kompresi piksel pada gambar.') }}</td>
             </tr>
             <tr>
                 <th>Deepfake/GAN</th>
-                <td>GAN score rendah menunjukkan indikasi citra sintetis AI tidak dominan.</td>
+                <td>{{ $t('A low GAN score indicates AI-synthetic image traces are not dominant.', 'GAN score rendah menunjukkan indikasi citra sintetis AI tidak dominan.') }}</td>
             </tr>
             <tr>
                 <th>Noise</th>
-                <td>Noise dinilai sebagai sinyal pendukung dan dikorelasikan dengan ELA, metadata, dan AI detection.</td>
+                <td>{{ $t('Noise is treated as a supporting signal and correlated with ELA, metadata, and AI detection.', 'Noise dinilai sebagai sinyal pendukung dan dikorelasikan dengan ELA, metadata, dan AI detection.') }}</td>
             </tr>
             <tr>
                 <th>Metadata</th>
-                <td>Metadata dipakai untuk melihat jejak perangkat, aplikasi penyunting, serta konsistensi waktu pembuatan file.</td>
+                <td>{{ $t('Metadata is used to inspect device traces, editor applications, and file creation-time consistency.', 'Metadata dipakai untuk melihat jejak perangkat, aplikasi penyunting, serta konsistensi waktu pembuatan file.') }}</td>
             </tr>
         </table>
     @endif
 
     {{-- FOOTER NOTIFIKASI VALIDASI KAMPUS --}}
     <div class="footer">
-        Dokumen ini diterbitkan secara otomatis oleh sistem Veridity Platform Forensik. Dicetak pada
+        {{ $t('This document was automatically issued by the Veridity Forensic Platform. Printed on', 'Dokumen ini diterbitkan secara otomatis oleh sistem Veridity Platform Forensik. Dicetak pada') }}
         {{ $generatedAt }}.<br>
-        <strong>Politeknik Elektronika Negeri Surabaya (PENS) - Jurusan Teknik Informatika</strong>
+        <strong>{{ $t('Politeknik Elektronika Negeri Surabaya (PENS) - Informatics Engineering Department', 'Politeknik Elektronika Negeri Surabaya (PENS) - Jurusan Teknik Informatika') }}</strong>
     </div>
 
 </body>

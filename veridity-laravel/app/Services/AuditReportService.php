@@ -10,7 +10,7 @@ use Throwable;
 
 class AuditReportService
 {
-    private const REPORT_VERSION = 4;
+    private const REPORT_VERSION = 5;
 
     private function evidenceStorage(): EvidenceStorage
     {
@@ -71,6 +71,7 @@ class AuditReportService
         $finalResult = $this->finalResult($analysis);
         $classificationMap = $finalResult['full_report']['classification_map'] ?? [];
         $summaryLabel = $finalResult['summary_label'] ?? 'MIXED TEXT';
+        $language = $this->analysisLanguage($analysis);
         $document = $finalResult['full_report']['results']['document'] ?? [];
         $metrics = $document['metrics'] ?? [];
         $interpretation = $document['interpretation'] ?? '';
@@ -90,6 +91,7 @@ class AuditReportService
                 'extension' => $extension,
                 'document_metrics_str' => json_encode($metrics),
                 'interpretation' => $interpretation,
+                'language' => $language,
             ]);
         } finally {
             if (is_resource($pdfStream)) {
@@ -98,7 +100,9 @@ class AuditReportService
         }
 
         if ($response->failed()) {
-            throw new \RuntimeException('Gagal terhubung dengan Layanan Analisis Forensik (Python Engine).');
+            throw new \RuntimeException($language === 'id'
+                ? 'Gagal terhubung dengan Layanan Analisis Forensik (Python Engine).'
+                : 'Failed to connect to the Forensic Analysis Service (Python Engine).');
         }
 
         return $response->body();
@@ -114,6 +118,7 @@ class AuditReportService
             'fileExtension' => $extension ?: 'unknown',
             'waktuAnalisis' => $this->analyzedAt($analysis),
             'generatedAt' => now('Asia/Jakarta')->format('d M Y, H:i').' WIB',
+            'language' => $this->analysisLanguage($analysis),
         ])->setPaper('a4')->output();
     }
 
@@ -129,7 +134,9 @@ class AuditReportService
             return $fallback;
         }
 
-        throw new \RuntimeException('Berkas fisik dokumen pemeriksaan belum tersedia di server local storage.');
+        throw new \RuntimeException($this->analysisLanguage($analysis) === 'id'
+            ? 'Berkas fisik dokumen pemeriksaan belum tersedia di server local storage.'
+            : 'The physical source document is not available in local server storage.');
     }
 
     private function finalResult(ForensicAnalysis $analysis): array
@@ -141,6 +148,19 @@ class AuditReportService
         }
 
         return is_array($finalResult) ? $finalResult : [];
+    }
+
+    private function analysisLanguage(ForensicAnalysis $analysis): string
+    {
+        $requestLanguage = request('language');
+        if (in_array($requestLanguage, ['en', 'id'], true)) {
+            return $requestLanguage;
+        }
+
+        $finalResult = $this->finalResult($analysis);
+        $language = $finalResult['language'] ?? $finalResult['full_report']['language'] ?? null;
+
+        return $language === 'id' ? 'id' : 'en';
     }
 
     private function analyzedAt(ForensicAnalysis $analysis): string

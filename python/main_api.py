@@ -181,7 +181,8 @@ async def generate_pdf_report_endpoint(
     analyzed_at: str = Form(None),
     extension: str = Form("pdf"),
     document_metrics_str: str = Form("{}"),
-    interpretation: str = Form("")
+    interpretation: str = Form(""),
+    language: str = Form("en")
 ):
     try:
         classification_map = json.loads(classification_map_str)
@@ -198,6 +199,7 @@ async def generate_pdf_report_endpoint(
             document_metrics=document_metrics,
             interpretation=interpretation,
             source_extension=extension,
+            language=language,
         )
         
         return Response(

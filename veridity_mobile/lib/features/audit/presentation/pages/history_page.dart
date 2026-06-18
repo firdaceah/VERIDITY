@@ -164,7 +164,7 @@ class HistoryState extends State<History> {
                   const SizedBox(height: 30),
 
                   _isLoading
-                      ? const Padding(
+                      ? Padding(
                           padding: EdgeInsets.symmetric(vertical: 34),
                           child: Center(
                             child: Column(
@@ -175,7 +175,10 @@ class HistoryState extends State<History> {
                                 ),
                                 SizedBox(height: 14),
                                 Text(
-                                  "Proses mengambil data riwayat...",
+                                  lang.text(
+                                    "Loading analysis history...",
+                                    "Proses mengambil data riwayat...",
+                                  ),
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: Colors.white60,
@@ -187,17 +190,20 @@ class HistoryState extends State<History> {
                           ),
                         )
                       : _filteredHistory.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
-                            "Riwayat tidak ditemukan",
-                            style: TextStyle(color: Colors.white54),
+                            lang.text(
+                              "No history found",
+                              "Riwayat tidak ditemukan",
+                            ),
+                            style: const TextStyle(color: Colors.white54),
                           ),
                         )
                       : Column(
                           children: _filteredHistory.map((item) {
                             final formattedDate = item.createdAt.length >= 10
                                 ? item.createdAt.substring(0, 10)
-                                : "Unknown Date";
+                                : lang.text("Unknown Date", "Tanggal tidak diketahui");
 
                             return _buildHistoryItem(item, formattedDate);
                           }).toList(),
@@ -253,6 +259,8 @@ class HistoryState extends State<History> {
   }
 
   Widget _fileTypeBadge(AuditEntity item) {
+    final lang = AppDependencies.language;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -260,7 +268,7 @@ class HistoryState extends State<History> {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        item.isDocument ? 'Dokumen' : 'Foto',
+        lang.fileTypeLabel(isDocument: item.isDocument),
         style: const TextStyle(color: Colors.white54, fontSize: 10),
       ),
     );
@@ -278,7 +286,7 @@ class HistoryState extends State<History> {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        item.summaryLabel,
+        AppDependencies.language.auditLabel(item.summaryLabel),
         softWrap: true,
         style: TextStyle(
           color: color,
@@ -302,7 +310,16 @@ class HistoryState extends State<History> {
     });
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text("Riwayat berhasil dihapus")));
+    ).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppDependencies.language.text(
+            "History deleted successfully",
+            "Riwayat berhasil dihapus",
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _openDetail(AuditEntity item) async {
@@ -321,6 +338,8 @@ class HistoryState extends State<History> {
   }
 
   Widget _buildHistoryItem(AuditEntity item, String date) {
+    final lang = AppDependencies.language;
+
     return InkWell(
       onTap: () => _openDetail(item),
       borderRadius: BorderRadius.circular(15),
@@ -375,12 +394,12 @@ class HistoryState extends State<History> {
                       _deleteAudit(item);
                     }
                   },
-                  itemBuilder: (context) => const [
+                  itemBuilder: (context) => [
                     PopupMenuItem(
                       value: 'delete',
                       child: Text(
-                        'Hapus Riwayat',
-                        style: TextStyle(color: Colors.redAccent),
+                        lang.text('Delete History', 'Hapus Riwayat'),
+                        style: const TextStyle(color: Colors.redAccent),
                       ),
                     ),
                   ],
@@ -392,9 +411,9 @@ class HistoryState extends State<History> {
             const SizedBox(height: 8),
             _statusBadge(item),
             const SizedBox(height: 10),
-            const Text(
-              "Lihat Detail",
-              style: TextStyle(
+            Text(
+              lang.text("View Details", "Lihat Detail"),
+              style: const TextStyle(
                 color: Color(0xFF7C3AED),
                 fontSize: 12,
                 fontWeight: FontWeight.bold,

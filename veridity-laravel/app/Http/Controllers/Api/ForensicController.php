@@ -715,9 +715,11 @@ class ForensicController extends Controller
                     ],
                     'noise_status' => 'Not Applicable',
                     'final_result' => [
+                        'language' => $language,
                         'summary_label' => $result['summary_label'] ?? ($language === 'id' ? 'TEKS CAMPURAN' : 'MIXED TEXT'),
                         'summary_color' => $result['summary_color'] ?? 'warning',
                         'full_report' => [
+                            'language' => $language,
                             'final_score' => $result['final_score'] ?? 0,
                             'summary_label' => $result['summary_label'] ?? ($language === 'id' ? 'TEKS CAMPURAN' : 'MIXED TEXT'),
                             'summary_color' => $result['summary_color'] ?? 'warning',
@@ -818,9 +820,10 @@ class ForensicController extends Controller
                 'metadata_details' => $result['results']['metadata'],
                 'noise_status' => $result['results']['noise']['warnings'][0] ?? ($isNoiseInconsistent ? 'Inconsistent Noise Detected' : 'Normal'),
                 'final_result' => [
+                    'language' => $language,
                     'summary_label' => $statusLabel,
                     'summary_color' => $statusColor,
-                    'full_report' => $result,
+                    'full_report' => array_merge($result, ['language' => $language]),
                 ],
             ]);
 
