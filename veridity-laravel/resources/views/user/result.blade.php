@@ -97,7 +97,7 @@
                         {{-- Tampilan Viewport Khusus Citra Gambar --}}
                         <p class="text-[10px] uppercase font-bold text-slate-500 mb-4 px-4 tracking-widest italic">Visual Analysis Viewport</p>
                         <div class="relative overflow-hidden rounded-2xl bg-slate-950 flex items-center justify-center min-h-[300px]">
-                            @if ($analysis->s3_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($analysis->s3_path))
+                            @if (app(\App\Services\EvidenceStorage::class)->exists($analysis->s3_path))
                                 <img id="mainViewport" src="{{ route('files.public', ['path' => $analysis->s3_path]) }}"
                                     class="w-full h-auto max-h-[500px] object-contain transition-all duration-500 shadow-2xl" alt="Analyzed Image">
                             @else

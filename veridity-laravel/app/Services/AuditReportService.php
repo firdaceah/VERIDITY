@@ -12,12 +12,17 @@ class AuditReportService
 {
     private const REPORT_VERSION = 4;
 
+    private function evidenceStorage(): EvidenceStorage
+    {
+        return app(EvidenceStorage::class);
+    }
+
     public function ensureReport(ForensicAnalysis $analysis): ?string
     {
         if (
             $analysis->report_pdf_path
             && (int) $analysis->report_version >= self::REPORT_VERSION
-            && Storage::disk('public')->exists($analysis->report_pdf_path)
+            && $this->evidenceStorage()->exists($analysis->report_pdf_path)
         ) {
             return $analysis->report_pdf_path;
         }
@@ -42,7 +47,7 @@ class AuditReportService
             : $this->generateSummaryReport($analysis, $extension);
 
         $path = 'reports/'.$analysis->user_id.'/REPORT_VERIDITY_VRD-'.$analysis->id.'.pdf';
-        Storage::disk('public')->put($path, $content);
+        $this->evidenceStorage()->put($path, $content);
 
         $analysis->forceFill([
             'report_pdf_path' => $path,

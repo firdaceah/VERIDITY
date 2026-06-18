@@ -21,7 +21,7 @@
                     <p class="text-[10px] font-bold text-slate-500 uppercase mb-4 italic tracking-widest">Evidence Preview</p>
                     
                     <div class="overflow-hidden rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center min-h-[150px] mb-4">
-                        @if ($audit->s3_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($audit->s3_path))
+                        @if (app(\App\Services\EvidenceStorage::class)->exists($audit->s3_path))
                             <img src="{{ route('files.public', ['path' => $audit->s3_path]) }}" class="w-full h-auto object-contain shadow-inner">
                         @else
                             <div class="flex flex-col items-center justify-center gap-2 py-10 text-slate-500">

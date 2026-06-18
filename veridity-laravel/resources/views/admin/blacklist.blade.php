@@ -25,7 +25,7 @@
                             {{-- Bukti Visual Gambar --}}
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-4">
-                                    @if ($case->s3_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($case->s3_path))
+                                    @if (app(\App\Services\EvidenceStorage::class)->exists($case->s3_path))
                                         <img src="{{ route('files.public', ['path' => $case->s3_path]) }}" class="w-14 h-14 object-cover rounded-2xl border border-slate-800 shadow-md">
                                     @else
                                         <div class="w-14 h-14 rounded-2xl border border-slate-800 bg-slate-950 flex items-center justify-center text-slate-500">

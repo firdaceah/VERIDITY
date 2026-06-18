@@ -7,12 +7,12 @@ use App\Http\Resources\ForensicResource;
 use App\Models\ForensicAnalysis;
 use App\Models\User;
 use App\Services\AuditReportService;
+use App\Services\EvidenceStorage;
 use App\Services\PaymentProofContentValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -53,9 +53,41 @@ class ForensicController extends Controller
         return app(AuditReportService::class);
     }
 
+    private function evidenceStorage(): EvidenceStorage
+    {
+        return app(EvidenceStorage::class);
+    }
+
     private function paymentProofValidator(): PaymentProofContentValidator
     {
         return app(PaymentProofContentValidator::class);
+    }
+
+    private function storeEvidenceFile(string $path, string $localPath): string
+    {
+        if (! $this->evidenceStorage()->putLocalFile($path, $localPath)) {
+            throw new \RuntimeException('Gagal menyimpan file permanen ke Supabase Storage.');
+        }
+
+        return $path;
+    }
+
+    private function storeImageAnalysisAssets(array $result, int $userId, string $outputFolder): void
+    {
+        foreach (['ela', 'noise'] as $key) {
+            $fileName = $result['results'][$key]['image_url'] ?? null;
+            if (! $fileName) {
+                continue;
+            }
+
+            $localPath = $outputFolder.DIRECTORY_SEPARATOR.basename($fileName);
+            if (! file_exists($localPath)) {
+                continue;
+            }
+
+            $this->storeEvidenceFile('results/'.$userId.'/'.basename($fileName), $localPath);
+            @unlink($localPath);
+        }
     }
 
     private function integrationUserId(): ?int
@@ -256,11 +288,16 @@ class ForensicController extends Controller
             'image' => 'required|image|mimes:jpeg,png,jpg|max:15000',
         ]);
 
-        $path = $request->file('image')->store('forensics', 'public');
+        $file = $request->file('image');
+        $temporaryPath = $file->storeAs('tmp/uploads', time().'_'.$file->getClientOriginalName(), 'public');
+        $fullTemporaryPath = storage_path('app/public/'.$temporaryPath);
+        $path = $this->evidenceStorage()->makePath('forensics/original', auth()->id(), $file->getClientOriginalName());
+        $this->storeEvidenceFile($path, $fullTemporaryPath);
+        Storage::disk('public')->delete($temporaryPath);
 
         $analysis = ForensicAnalysis::create([
             'user_id' => auth()->id(),
-            'image_name' => $request->file('image')->getClientOriginalName(),
+            'image_name' => $file->getClientOriginalName(),
             's3_path' => $path,
             'final_result' => 'Mencurigakan',
         ]);
@@ -436,8 +473,8 @@ class ForensicController extends Controller
             $extension = strtolower($file->getClientOriginalExtension());
             $filename = time().'_'.$file->getClientOriginalName();
 
-            // Simpan file asli ke dalam storage lokal public/uploads
-            $path = $file->storeAs('uploads', $filename, 'public');
+            // Simpan sementara agar Python dapat membaca file melalui path lokal.
+            $path = $file->storeAs('tmp/uploads', $filename, 'public');
             $fullPathFile = storage_path('app/public/'.$path);
 
             // =========================================================================
@@ -531,8 +568,14 @@ class ForensicController extends Controller
                     ],
                 ]);
 
-                $this->reportService()->ensureReport($analysis);
+                $reportPath = $this->reportService()->ensureReport($analysis);
                 $analysis->refresh();
+
+                if ($reportPath) {
+                    Storage::disk('public')->delete($path);
+                    $analysis->forceFill(['s3_path' => null])->save();
+                    $analysis->refresh();
+                }
 
                 if (! $request->expectsJson()) {
                     return redirect()->route('user.result', $analysis->id)->with('success', 'Analisis Dokumen Selesai!');
@@ -594,10 +637,15 @@ class ForensicController extends Controller
                 $result['results']['noise']['researcher_note'] = 'Noise diperlakukan sebagai sinyal pendukung dan telah diselaraskan dengan keputusan akhir analisis citra.';
             }
 
+            $evidenceOriginalPath = $this->evidenceStorage()->makePath('forensics/original', Auth::id(), $filename);
+            $this->storeEvidenceFile($evidenceOriginalPath, $fullPathFile);
+            $this->storeImageAnalysisAssets($result, (int) Auth::id(), $outputFolder);
+            Storage::disk('public')->delete($path);
+
             $analysis = ForensicAnalysis::create([
                 'user_id' => Auth::id(),
                 'image_name' => $filename,
-                's3_path' => $path,
+                's3_path' => $evidenceOriginalPath,
                 'ela_score' => $elaScore,
                 'is_deepfake' => ($ganScore > 0.5),
                 'metadata_details' => $result['results']['metadata'],
@@ -673,9 +721,7 @@ class ForensicController extends Controller
             return redirect()->back()->with('error', 'Kamu tidak punya akses!');
         }
 
-        if ($analysis->s3_path && Storage::disk('public')->exists($analysis->s3_path)) {
-            Storage::disk('public')->delete($analysis->s3_path);
-        }
+        $this->evidenceStorage()->delete($analysis->s3_path);
 
         $reportData = $analysis->final_result;
         if (isset($reportData['full_report']['results']['ela'])) {
@@ -684,21 +730,15 @@ class ForensicController extends Controller
 
             if ($elaFile) {
                 $elaPath = 'results/'.$analysis->user_id.'/'.$elaFile;
-                if (Storage::disk('public')->exists($elaPath)) {
-                    Storage::disk('public')->delete($elaPath);
-                }
+                $this->evidenceStorage()->delete($elaPath);
             }
             if ($noiseFile) {
                 $noisePath = 'results/'.$analysis->user_id.'/'.$noiseFile;
-                if (Storage::disk('public')->exists($noisePath)) {
-                    Storage::disk('public')->delete($noisePath);
-                }
+                $this->evidenceStorage()->delete($noisePath);
             }
         }
 
-        if ($analysis->report_pdf_path && Storage::disk('public')->exists($analysis->report_pdf_path)) {
-            Storage::disk('public')->delete($analysis->report_pdf_path);
-        }
+        $this->evidenceStorage()->delete($analysis->report_pdf_path);
 
         $analysis->delete();
 
@@ -734,7 +774,7 @@ class ForensicController extends Controller
                 return back()->with('error', 'Laporan PDF belum tersedia. Silakan coba unduh kembali beberapa saat lagi.');
             }
 
-            return Storage::disk('public')->download(
+            return $this->evidenceStorage()->downloadResponse(
                 $reportPath,
                 $this->reportService()->reportFileName($audit),
                 ['Content-Type' => 'application/pdf']
@@ -772,14 +812,8 @@ class ForensicController extends Controller
         $path = ltrim($path, '/');
 
         abort_if(str_contains($path, '..'), 404);
-        abort_unless(Storage::disk('public')->exists($path), 404);
+        abort_unless($this->evidenceStorage()->exists($path), 404);
 
-        $fullPath = Storage::disk('public')->path($path);
-        $mimeType = Storage::disk('public')->mimeType($path) ?: 'application/octet-stream';
-
-        return Response::file($fullPath, [
-            'Content-Type' => $mimeType,
-            'Cache-Control' => 'public, max-age=604800',
-        ]);
+        return $this->evidenceStorage()->fileResponse($path);
     }
 }

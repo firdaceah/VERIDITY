@@ -5,17 +5,22 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ForensicAnalysis;
 use App\Models\User;
+use App\Services\EvidenceStorage;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
+    private function evidenceStorage(): EvidenceStorage
+    {
+        return app(EvidenceStorage::class);
+    }
+
     private function tokenResponse(User $user, string $tokenName, string $message, int $statusCode = 200)
     {
         $token = $user->createToken($tokenName)->plainTextToken;
@@ -142,11 +147,11 @@ class AuthController extends Controller
                 return back()->withErrors(['photo' => 'Foto profil harus berupa JPG, JPEG, atau PNG.']);
             }
 
-            if ($user->profile_photo_path && Storage::disk('public')->exists($user->profile_photo_path)) {
-                Storage::disk('public')->delete($user->profile_photo_path);
-            }
+            $this->evidenceStorage()->delete($user->profile_photo_path);
 
-            $user->update(['profile_photo_path' => $file->store('profile-photos', 'public')]);
+            $path = $this->evidenceStorage()->makePath('profile-photos', $user->id, $file->getClientOriginalName());
+            $this->evidenceStorage()->putLocalFile($path, $file->getRealPath());
+            $user->update(['profile_photo_path' => $path]);
         }
 
         return back()->with('success', 'Profil berhasil diperbarui.');
@@ -249,11 +254,10 @@ class AuthController extends Controller
             ], 422);
         }
 
-        if ($user->profile_photo_path && Storage::disk('public')->exists($user->profile_photo_path)) {
-            Storage::disk('public')->delete($user->profile_photo_path);
-        }
+        $this->evidenceStorage()->delete($user->profile_photo_path);
 
-        $path = $file->store('profile-photos', 'public');
+        $path = $this->evidenceStorage()->makePath('profile-photos', $user->id, $file->getClientOriginalName());
+        $this->evidenceStorage()->putLocalFile($path, $file->getRealPath());
         $user->update(['profile_photo_path' => $path]);
 
         return response()->json([
