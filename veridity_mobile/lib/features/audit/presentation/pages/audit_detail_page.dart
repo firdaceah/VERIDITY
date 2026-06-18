@@ -53,7 +53,7 @@ class _AuditDetailState extends State<AuditDetail> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
           _handleBack();
         }

@@ -22,6 +22,7 @@ class LoginState extends State<Login> {
   bool _isLoading = false;
 
   Future<void> loginUser() async {
+    final lang = AppDependencies.language;
     setState(() => _isLoading = true);
 
     try {
@@ -52,9 +53,13 @@ class LoginState extends State<Login> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Server tidak merespon")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            lang.text("Server is not responding", "Server tidak merespon"),
+          ),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -74,6 +79,7 @@ class LoginState extends State<Login> {
   }
 
   Future<void> _showForgotPasswordDialog() async {
+    final lang = AppDependencies.language;
     _forgotEmailController.text = _emailController.text.trim();
     _resetTokenController.clear();
     _resetPasswordController.clear();
@@ -99,8 +105,13 @@ class LoginState extends State<Login> {
                 }
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Instruksi reset password berhasil dibuat"),
+                    SnackBar(
+                      content: Text(
+                        lang.text(
+                          "Password reset instructions have been created",
+                          "Instruksi reset password berhasil dibuat",
+                        ),
+                      ),
                     ),
                   );
                 }
@@ -127,9 +138,12 @@ class LoginState extends State<Login> {
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text(
-                        "Password berhasil direset. Silakan login.",
+                        lang.text(
+                          "Password reset successfully. Please log in.",
+                          "Password berhasil direset. Silakan login.",
+                        ),
                       ),
                     ),
                   );
@@ -147,9 +161,9 @@ class LoginState extends State<Login> {
 
             return AlertDialog(
               backgroundColor: const Color(0xFF1D143E),
-              title: const Text(
-                "Lupa Password",
-                style: TextStyle(color: Colors.white),
+              title: Text(
+                lang.text("Forgot Password", "Lupa Password"),
+                style: const TextStyle(color: Colors.white),
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -157,11 +171,14 @@ class LoginState extends State<Login> {
                   children: [
                     _dialogField(_forgotEmailController, "Email"),
                     const SizedBox(height: 10),
-                    _dialogField(_resetTokenController, "Token reset"),
+                    _dialogField(
+                      _resetTokenController,
+                      lang.text("Reset token", "Token reset"),
+                    ),
                     const SizedBox(height: 10),
                     _dialogPasswordField(
                       _resetPasswordController,
-                      "Password baru",
+                      lang.text("New password", "Password baru"),
                       hidden: resetPasswordHidden,
                       onToggle: () => setDialogState(
                         () => resetPasswordHidden = !resetPasswordHidden,
@@ -170,7 +187,7 @@ class LoginState extends State<Login> {
                     const SizedBox(height: 10),
                     _dialogPasswordField(
                       _resetConfirmController,
-                      "Konfirmasi password",
+                      lang.text("Confirm password", "Konfirmasi password"),
                       hidden: resetConfirmHidden,
                       onToggle: () => setDialogState(
                         () => resetConfirmHidden = !resetConfirmHidden,
@@ -184,11 +201,15 @@ class LoginState extends State<Login> {
                   onPressed: requesting || resetting
                       ? null
                       : () => Navigator.pop(context),
-                  child: const Text("Batal"),
+                  child: Text(lang.text("Cancel", "Batal")),
                 ),
                 TextButton(
                   onPressed: requesting ? null : requestReset,
-                  child: Text(requesting ? "Meminta..." : "Minta Token"),
+                  child: Text(
+                    requesting
+                        ? lang.text("Requesting...", "Meminta...")
+                        : lang.text("Request Token", "Minta Token"),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed: resetting ? null : resetPassword,
@@ -204,6 +225,8 @@ class LoginState extends State<Login> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
+
     return Scaffold(
       backgroundColor: const Color(0xFF111028),
       body: SingleChildScrollView(
@@ -213,17 +236,20 @@ class LoginState extends State<Login> {
           children: [
             const SizedBox(height: 30),
             Image.asset("assets/images/logo.png", width: 57),
-            const Text(
-              "Login",
+            Text(
+              lang.text("Login", "Masuk"),
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 36,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const Text(
-              "Silahkan masuk ke akun anda",
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+            Text(
+              lang.text(
+                "Sign in to continue to your account",
+                "Silakan masuk ke akun anda",
+              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
             ),
             const SizedBox(height: 40),
 
@@ -232,7 +258,10 @@ class LoginState extends State<Login> {
               style: TextStyle(color: Colors.white, fontSize: 16),
             ),
             const SizedBox(height: 10),
-            _buildTextField(_emailController, "Masukkan email anda"),
+            _buildTextField(
+              _emailController,
+              lang.text("Enter your email", "Masukkan email anda"),
+            ),
 
             const SizedBox(height: 20),
             const Text(
@@ -240,47 +269,74 @@ class LoginState extends State<Login> {
               style: TextStyle(color: Colors.white, fontSize: 16),
             ),
             const SizedBox(height: 10),
-            _buildPasswordField(_passController, "Masukkan password"),
+            _buildPasswordField(
+              _passController,
+              lang.text("Enter your password", "Masukkan password"),
+            ),
 
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: _showForgotPasswordDialog,
-                child: const Text(
-                  "Lupa password?",
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                child: Text(
+                  lang.text("Forgot password?", "Lupa password?"),
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
               ),
             ),
 
             const SizedBox(height: 20),
-            InkWell(
-              onTap: _isLoading ? null : loginUser,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4338CA),
+            ElevatedButton(
+              onPressed: _isLoading ? null : loginUser,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4338CA),
+                disabledBackgroundColor: const Color(0xFF1D1B3D),
+                minimumSize: const Size(double.infinity, 55),
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Center(
-                  child: Text(
-                    "Masuk",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
               ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      lang.text("Login", "Masuk"),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
             Center(
               child: TextButton(
                 onPressed: () => Navigator.pushNamed(context, '/SignUp'),
-                child: const Text(
-                  "Belum punya akun? Daftar",
-                  style: TextStyle(color: Colors.white70),
+                child: Text.rich(
+                  TextSpan(
+                    style: const TextStyle(color: Colors.white70),
+                    children: [
+                      TextSpan(
+                        text: lang.text(
+                          "Don't have an account? ",
+                          "Belum punya akun? ",
+                        ),
+                      ),
+                      TextSpan(
+                        text: lang.text("Sign up", "Daftar"),
+                        style: const TextStyle(
+                          color: Color(0xFF39D2DD),
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

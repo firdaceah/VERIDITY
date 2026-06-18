@@ -10,7 +10,8 @@ class ApiConfig {
 
   static Uri get privacyPolicyUri => Uri.parse('$webBaseUrl/privacy-policy');
 
-  static Uri get accountDeletionUri => Uri.parse('$webBaseUrl/account-deletion');
+  static Uri get accountDeletionUri =>
+      Uri.parse('$webBaseUrl/account-deletion');
 
   static Uri get dataDeletionUri => Uri.parse('$webBaseUrl/data-deletion');
 }

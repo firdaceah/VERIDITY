@@ -17,6 +17,7 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
     String userName =
         AppDependencies.sessionStore.session?.user.name ??
         widget.userData?['name'] ??
@@ -46,9 +47,12 @@ class _HomeState extends State<Home> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "Halo,",
-                            style: TextStyle(color: Colors.white, fontSize: 18),
+                          Text(
+                            lang.text("Hello,", "Halo,"),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                            ),
                           ),
                           Text(
                             userName,
@@ -76,12 +80,15 @@ class _HomeState extends State<Home> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Analisis Foto & Dokumen",
+                                lang.text(
+                                  "Photo & Document Analysis",
+                                  "Analisis Foto & Dokumen",
+                                ),
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
@@ -89,7 +96,10 @@ class _HomeState extends State<Home> {
                                 ),
                               ),
                               Text(
-                                "Verifikasi keaslian citra dan PDF",
+                                lang.text(
+                                  "Verify image and PDF authenticity",
+                                  "Verifikasi keaslian citra dan PDF",
+                                ),
                                 style: TextStyle(
                                   color: Colors.white60,
                                   fontSize: 13,
@@ -104,9 +114,9 @@ class _HomeState extends State<Home> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF39D2DD),
                           ),
-                          child: const Text(
-                            "Scan",
-                            style: TextStyle(
+                          child: Text(
+                            lang.text("Scan", "Scan"),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
@@ -116,15 +126,30 @@ class _HomeState extends State<Home> {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  const Text(
-                    "Our Method",
+                  Text(
+                    lang.text(
+                      "Our Detection Methods",
+                      "Metode Deteksi VERIDITY",
+                    ),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 8),
+                  Text(
+                    lang.text(
+                      "VERIDITY combines several forensic methods to help explain why a file is considered safe, suspicious, or risky.",
+                      "VERIDITY menggabungkan beberapa metode forensik untuk menjelaskan mengapa file dinilai aman, mencurigakan, atau berisiko.",
+                    ),
+                    style: const TextStyle(
+                      color: Colors.white60,
+                      height: 1.5,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
                   GridView.count(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -136,28 +161,79 @@ class _HomeState extends State<Home> {
                       _buildMethodItem(
                         Icons.face,
                         "Deepfake AI",
-                        "Deteksi wajah dan citra sintetis",
-                        "Menganalisis pola frekuensi dan ciri visual yang sering muncul pada gambar sintetis atau hasil generator AI.",
+                        lang.text(
+                          "Synthetic image screening",
+                          "Deteksi wajah dan citra sintetis",
+                        ),
+                        lang.text(
+                          "Analyzes visual patterns that often appear in synthetic images or AI-generated outputs.",
+                          "Menganalisis pola visual yang sering muncul pada gambar sintetis atau hasil generator AI.",
+                        ),
                       ),
                       _buildMethodItem(
                         Icons.layers,
                         "ELA Visual",
                         "Error Level Analysis",
-                        "Membandingkan level kompresi piksel untuk menemukan area yang punya jejak penyuntingan berbeda dari bagian lain.",
+                        lang.text(
+                          "Compares pixel compression levels to find areas with editing traces that differ from the rest of the image.",
+                          "Membandingkan level kompresi piksel untuk menemukan area yang punya jejak penyuntingan berbeda dari bagian lain.",
+                        ),
                       ),
                       _buildMethodItem(
                         Icons.description_outlined,
-                        "NLP Dokumen",
-                        "Pola kalimat manusia vs AI",
-                        "Mengukur distribusi kalimat human-written, AI-generated, dan hybrid pada dokumen PDF.",
+                        lang.text("Document NLP", "NLP Dokumen"),
+                        lang.text(
+                          "Human vs AI sentence patterns",
+                          "Pola kalimat manusia vs AI",
+                        ),
+                        lang.text(
+                          "Measures the distribution of human-written, AI-generated, and hybrid text in PDF documents.",
+                          "Mengukur distribusi kalimat human-written, AI-generated, dan hybrid pada dokumen PDF.",
+                        ),
                       ),
                       _buildMethodItem(
                         Icons.info_outline,
                         "Metadata",
-                        "Metadata Forensik",
-                        "Membaca jejak EXIF, perangkat, software, waktu, dan indikasi pengolahan file.",
+                        lang.text("Forensic metadata", "Metadata Forensik"),
+                        lang.text(
+                          "Reads EXIF traces, device/software information, timestamps, and file processing indications.",
+                          "Membaca jejak EXIF, perangkat, software, waktu, dan indikasi pengolahan file.",
+                        ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 22),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0E0E20),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.route_outlined,
+                          color: Color(0xFF39D2DD),
+                          size: 28,
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Text(
+                            lang.text(
+                              "Workflow: upload a file, wait for forensic analysis, then review the result and download the PDF report.",
+                              "Alur kerja: unggah file, tunggu analisis forensik, lalu lihat detail hasil dan unduh laporan PDF.",
+                            ),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              height: 1.45,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

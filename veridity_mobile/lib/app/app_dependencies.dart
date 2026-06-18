@@ -1,4 +1,5 @@
 import '../core/config/api_config.dart';
+import '../core/localization/app_language.dart';
 import '../core/network/api_client.dart';
 import '../core/storage/session_store.dart';
 import '../features/audit/data/repositories/audit_repository.dart';
@@ -9,6 +10,7 @@ class AppDependencies {
   AppDependencies._();
 
   static final SessionStore sessionStore = SessionStore.instance;
+  static final AppLanguage language = AppLanguage.instance;
   static final ApiClient apiClient = ApiClient(baseUrl: ApiConfig.baseUrl);
   static final AuthRepository authRepository = AuthRepository(
     apiClient: apiClient,
@@ -24,6 +26,7 @@ class AppDependencies {
   );
 
   static Future<void> initialize() async {
+    await language.load();
     await sessionStore.load();
   }
 }

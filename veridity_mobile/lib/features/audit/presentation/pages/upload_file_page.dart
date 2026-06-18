@@ -41,7 +41,9 @@ class _UploadFotoState extends State<UploadFoto> {
           : 'Foto gagal diunggah. Pastikan file JPG/JPEG/PNG tidak lebih dari 15MB. Jika ukuran sudah benar, coba kompres foto atau ulangi setelah server aktif.';
     }
 
-    if (normalized.contains('server mengirim respons yang tidak dapat dibaca')) {
+    if (normalized.contains(
+      'server mengirim respons yang tidak dapat dibaca',
+    )) {
       return _isDocument
           ? 'Analisis dokumen belum dapat diproses. Gunakan PDF dokumen teks, bukan file presentasi/slide yang dijadikan PDF.'
           : message;
@@ -150,7 +152,11 @@ class _UploadFotoState extends State<UploadFoto> {
             const SizedBox(height: 40),
             const Text(
               "Format: JPG, JPEG, PNG, atau PDF dokumen teks. PDF dari PPT/slide atau hasil scan gambar belum didukung untuk analisis teks.",
-              style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.5),
+              style: TextStyle(
+                color: Colors.white60,
+                fontSize: 12,
+                height: 1.5,
+              ),
             ),
             const SizedBox(height: 14),
             GestureDetector(

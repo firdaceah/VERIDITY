@@ -30,10 +30,7 @@ class AuthSession {
   }
 
   Map<String, dynamic> toStoredJson() {
-    return {
-      'token': token,
-      'user': user.toJson(),
-    };
+    return {'token': token, 'user': user.toJson()};
   }
 
   Map<String, dynamic> asRouteArguments() {

@@ -25,10 +25,16 @@ class SignUpState extends State<SignUp> {
   bool _acceptedPrivacyPolicy = false;
 
   Future<void> registerUser() async {
+    final lang = AppDependencies.language;
     if (!_acceptedPrivacyPolicy) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Setujui Kebijakan Privasi terlebih dahulu."),
+        SnackBar(
+          content: Text(
+            lang.text(
+              "Please accept the Privacy Policy first.",
+              "Setujui Kebijakan Privasi terlebih dahulu.",
+            ),
+          ),
         ),
       );
       return;
@@ -48,9 +54,13 @@ class SignUpState extends State<SignUp> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Registrasi berhasil!")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            lang.text("Registration successful!", "Registrasi berhasil!"),
+          ),
+        ),
+      );
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
@@ -62,16 +72,23 @@ class SignUpState extends State<SignUp> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Gagal: ${e.message}")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(lang.text("Failed: ", "Gagal: ") + e.message)),
+      );
     } catch (e) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Koneksi ke server gagal!")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            lang.text(
+              "Unable to connect to server.",
+              "Koneksi ke server gagal!",
+            ),
+          ),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -90,6 +107,8 @@ class SignUpState extends State<SignUp> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
+
     return Scaffold(
       backgroundColor: const Color(0xFF111028),
       body: SingleChildScrollView(
@@ -100,30 +119,39 @@ class SignUpState extends State<SignUp> {
             const SizedBox(height: 20),
             Image.asset("assets/images/logo.png", width: 60),
             const SizedBox(height: 15),
-            const Text(
-              "Register",
+            Text(
+              lang.text("Sign up", "Daftar"),
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const Text(
-              "Silahkan daftarkan akun anda",
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+            Text(
+              lang.text(
+                "Create your VERIDITY account",
+                "Silahkan daftarkan akun anda",
+              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 35),
 
-            _buildInputLabel("Nama Lengkap"),
-            _buildTextField(_nameController, "Masukkan nama anda"),
+            _buildInputLabel(lang.text("Full Name", "Nama Lengkap")),
+            _buildTextField(
+              _nameController,
+              lang.text("Enter your name", "Masukkan nama anda"),
+            ),
 
             _buildInputLabel("Email"),
-            _buildTextField(_emailController, "Masukkan email anda"),
+            _buildTextField(
+              _emailController,
+              lang.text("Enter your email", "Masukkan email anda"),
+            ),
 
             _buildInputLabel("Password"),
             _buildPasswordField(
               _passController,
-              "Masukkan password",
+              lang.text("Enter your password", "Masukkan password"),
               _isObscure,
               () {
                 setState(() {
@@ -132,10 +160,12 @@ class SignUpState extends State<SignUp> {
               },
             ),
 
-            _buildInputLabel("Konfirmasi Password"),
+            _buildInputLabel(
+              lang.text("Confirm Password", "Konfirmasi Password"),
+            ),
             _buildPasswordField(
               _confirmPassController,
-              "Ulangi password",
+              lang.text("Repeat your password", "Ulangi password"),
               _isObscureConfirm,
               () {
                 setState(() {
@@ -153,27 +183,55 @@ class SignUpState extends State<SignUp> {
                   : registerUser,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4338CA),
-                disabledBackgroundColor: const Color(0xFF312E81),
+                disabledBackgroundColor: const Color(0xFF1D1B3D),
                 minimumSize: const Size(double.infinity, 55),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: Text(
-                _isLoading ? "Mendaftar..." : "Daftar",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      lang.text("Sign up", "Daftar"),
+                      style: TextStyle(
+                        color: _acceptedPrivacyPolicy
+                            ? Colors.white
+                            : Colors.white38,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
             Center(
               child: TextButton(
                 onPressed: () => Navigator.pushNamed(context, '/Login'),
-                child: const Text(
-                  "Sudah punya akun? Masuk",
-                  style: TextStyle(color: Colors.white70),
+                child: Text.rich(
+                  TextSpan(
+                    style: const TextStyle(color: Colors.white70),
+                    children: [
+                      TextSpan(
+                        text: lang.text(
+                          "Already have an account? ",
+                          "Sudah punya akun? ",
+                        ),
+                      ),
+                      TextSpan(
+                        text: lang.text("Login", "Masuk"),
+                        style: const TextStyle(
+                          color: Color(0xFF39D2DD),
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -194,6 +252,8 @@ class SignUpState extends State<SignUp> {
   }
 
   Widget _buildPrivacyConsent() {
+    final lang = AppDependencies.language;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -227,7 +287,12 @@ class SignUpState extends State<SignUp> {
                   height: 1.5,
                 ),
                 children: [
-                  const TextSpan(text: 'Saya telah membaca dan menyetujui '),
+                  TextSpan(
+                    text: lang.text(
+                      'I have read and agree to the ',
+                      'Saya telah membaca dan menyetujui ',
+                    ),
+                  ),
                   WidgetSpan(
                     alignment: PlaceholderAlignment.middle,
                     child: GestureDetector(
@@ -235,9 +300,9 @@ class SignUpState extends State<SignUp> {
                         context,
                         ApiConfig.privacyPolicyUri,
                       ),
-                      child: const Text(
-                        'Kebijakan Privasi',
-                        style: TextStyle(
+                      child: Text(
+                        lang.text('Privacy Policy', 'Kebijakan Privasi'),
+                        style: const TextStyle(
                           color: Color(0xFF39D2DD),
                           fontSize: 12,
                           fontWeight: FontWeight.bold,

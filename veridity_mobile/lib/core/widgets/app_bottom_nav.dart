@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../app/app_dependencies.dart';
+
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
     super.key,
@@ -16,6 +18,7 @@ class AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
     final navHeight = 80.0 + bottomInset;
 
@@ -42,7 +45,7 @@ class AppBottomNav extends StatelessWidget {
               children: [
                 _NavItem(
                   icon: Icons.home,
-                  label: 'Home',
+                  label: lang.text('Home', 'Beranda'),
                   index: 0,
                   route: '/Home',
                   activeIndex: activeIndex,
@@ -50,7 +53,7 @@ class AppBottomNav extends StatelessWidget {
                 ),
                 _NavItem(
                   icon: Icons.history,
-                  label: 'History',
+                  label: lang.text('History', 'Riwayat'),
                   index: 1,
                   route: '/History',
                   activeIndex: activeIndex,
@@ -59,7 +62,7 @@ class AppBottomNav extends StatelessWidget {
                 const SizedBox(width: 60),
                 _NavItem(
                   icon: Icons.help_outline,
-                  label: 'Help',
+                  label: lang.text('Help', 'Bantuan'),
                   index: 2,
                   route: '/Help',
                   activeIndex: activeIndex,
@@ -67,7 +70,7 @@ class AppBottomNav extends StatelessWidget {
                 ),
                 _NavItem(
                   icon: Icons.person_outline,
-                  label: 'Profile',
+                  label: lang.text('Profile', 'Profil'),
                   index: 3,
                   route: '/Profil',
                   activeIndex: activeIndex,

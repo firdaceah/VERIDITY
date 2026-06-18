@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/config/api_config.dart';
-import '../../../../core/utils/legal_link_launcher.dart';
+import '../../../../app/app_dependencies.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 
 class Help extends StatefulWidget {
@@ -17,6 +16,8 @@ class HelpState extends State<Help> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
+
     return Scaffold(
       backgroundColor: const Color(0xFF111028),
       body: Stack(
@@ -32,8 +33,8 @@ class HelpState extends State<Help> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Bantuan",
+                  Text(
+                    lang.text("Help", "Bantuan"),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 32,
@@ -41,47 +42,73 @@ class HelpState extends State<Help> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    "Pertanyaan umum tentang penggunaan VERIDITY.",
-                    style: TextStyle(color: Colors.white60),
+                  Text(
+                    lang.text(
+                      "Common questions about using VERIDITY.",
+                      "Pertanyaan umum tentang penggunaan VERIDITY.",
+                    ),
+                    style: const TextStyle(color: Colors.white60),
                   ),
                   const SizedBox(height: 25),
-                  _legalLinkCard(
-                    icon: Icons.privacy_tip_outlined,
-                    title: "Kebijakan Privasi",
-                    subtitle: "Lihat cara VERIDITY mengelola data pengguna.",
-                    uri: ApiConfig.privacyPolicyUri,
-                  ),
-                  _legalLinkCard(
-                    icon: Icons.delete_outline,
-                    title: "Penghapusan Akun & Data",
-                    subtitle: "Panduan meminta penghapusan akun atau data analisis.",
-                    uri: ApiConfig.accountDeletionUri,
-                  ),
-                  const SizedBox(height: 8),
                   _faq(
-                    "Bagaimana cara analisis file?",
-                    "Ketuk tombol tambah di navigasi bawah, pilih foto/PDF, cek preview, lalu tekan Unggah & Analisis.",
+                    lang.text(
+                      "How do I analyze a file?",
+                      "Bagaimana cara analisis file?",
+                    ),
+                    lang.text(
+                      "Tap the add button in the bottom navigation, choose a photo/PDF, check the preview, then tap Upload & Analyze.",
+                      "Ketuk tombol tambah di navigasi bawah, pilih foto/PDF, cek preview, lalu tekan Unggah & Analisis.",
+                    ),
                   ),
                   _faq(
-                    "Format apa yang didukung?",
-                    "VERIDITY mendukung JPG, JPEG, PNG untuk foto serta PDF dokumen teks. PDF hasil ekspor PPT/slide atau scan gambar belum didukung untuk analisis teks.",
+                    lang.text(
+                      "What formats are supported?",
+                      "Format apa yang didukung?",
+                    ),
+                    lang.text(
+                      "VERIDITY supports JPG, JPEG, PNG for photos and text-based PDF documents. PDFs exported from PPT/slides or scanned images are not supported for text analysis yet.",
+                      "VERIDITY mendukung JPG, JPEG, PNG untuk foto serta PDF dokumen teks. PDF hasil ekspor PPT/slide atau scan gambar belum didukung untuk analisis teks.",
+                    ),
                   ),
                   _faq(
-                    "Apa arti hasil Aman, Mencurigakan, dan Berbahaya?",
-                    "Aman berarti pola file cenderung natural. Mencurigakan berarti ada indikasi campuran/manipulasi. Berbahaya berarti indikasi AI, deepfake, atau rekayasa cukup kuat.",
+                    lang.text(
+                      "What do Safe, Suspicious, and Dangerous mean?",
+                      "Apa arti hasil Aman, Mencurigakan, dan Berbahaya?",
+                    ),
+                    lang.text(
+                      "Safe means the file pattern tends to be natural. Suspicious means there are mixed/manipulation indications. Dangerous means AI, deepfake, or strong editing indications are found.",
+                      "Aman berarti pola file cenderung natural. Mencurigakan berarti ada indikasi campuran/manipulasi. Berbahaya berarti indikasi AI, deepfake, atau rekayasa cukup kuat.",
+                    ),
                   ),
                   _faq(
-                    "Apa perbedaan analisis foto dan dokumen?",
-                    "Foto dianalisis memakai ELA, noise, metadata, dan AI/deepfake detection. Dokumen dianalisis memakai pemetaan teks manusia, AI, dan hybrid.",
+                    lang.text(
+                      "What is the difference between photo and document analysis?",
+                      "Apa perbedaan analisis foto dan dokumen?",
+                    ),
+                    lang.text(
+                      "Photos are analyzed using ELA, noise, metadata, and AI/deepfake detection. Documents are analyzed using human, AI, and hybrid text mapping.",
+                      "Foto dianalisis memakai ELA, noise, metadata, dan AI/deepfake detection. Dokumen dianalisis memakai pemetaan teks manusia, AI, dan hybrid.",
+                    ),
                   ),
                   _faq(
-                    "Di mana melihat hasil sebelumnya?",
-                    "Buka halaman Riwayat. Kamu bisa mencari nama file dan memfilter Semua, Foto, atau Dokumen.",
+                    lang.text(
+                      "Where can I see previous results?",
+                      "Di mana melihat hasil sebelumnya?",
+                    ),
+                    lang.text(
+                      "Open the History page. You can search by file name and filter All, Photos, or Documents.",
+                      "Buka halaman Riwayat. Kamu bisa mencari nama file dan memfilter Semua, Foto, atau Dokumen.",
+                    ),
                   ),
                   _faq(
-                    "Bagaimana jika lupa password?",
-                    "Gunakan fitur Lupa password di halaman login agar aplikasi membuat token reset melalui email. Jika masih login tetapi benar-benar lupa password lama, keluar dari akun lalu gunakan Lupa password. Menu Edit Data hanya dipakai jika masih ingat password lama dan ingin menggantinya.",
+                    lang.text(
+                      "What if I forgot my password?",
+                      "Bagaimana jika lupa password?",
+                    ),
+                    lang.text(
+                      "Use Forgot password on the login page to create a reset token by email. If you are still logged in but forgot your old password, log out first and use Forgot password. Edit Profile is only for changing the password when you still remember the old password.",
+                      "Gunakan fitur Lupa password di halaman login agar aplikasi membuat token reset melalui email. Jika masih login tetapi benar-benar lupa password lama, keluar dari akun lalu gunakan Lupa password. Menu Edit Profile hanya dipakai jika masih ingat password lama dan ingin menggantinya.",
+                    ),
                   ),
                 ],
               ),
@@ -123,61 +150,6 @@ class HelpState extends State<Help> {
                 fontSize: 13,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _legalLinkCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Uri uri,
-  }) {
-    return InkWell(
-      onTap: () => LegalLinkLauncher.open(context, uri),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1D143E),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white10),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: const Color(0xFF39D2DD).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: const Color(0xFF39D2DD)),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(color: Colors.white60, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.open_in_new, color: Colors.white54, size: 18),
           ],
         ),
       ),

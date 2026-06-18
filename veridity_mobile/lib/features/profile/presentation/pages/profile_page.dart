@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/app_dependencies.dart';
 import '../../../../core/config/api_config.dart';
+import '../../../../core/localization/app_language.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/legal_link_launcher.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
@@ -76,6 +77,7 @@ class ProfilState extends State<Profil> {
   }
 
   Future<void> _saveProfile() async {
+    final lang = AppDependencies.language;
     setState(() => _isSaving = true);
 
     try {
@@ -117,7 +119,14 @@ class ProfilState extends State<Profil> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profil berhasil diperbarui")),
+        SnackBar(
+          content: Text(
+            lang.text(
+              "Profile updated successfully",
+              "Profil berhasil diperbarui",
+            ),
+          ),
+        ),
       );
     } on ApiException catch (e) {
       if (!mounted) {
@@ -130,9 +139,13 @@ class ProfilState extends State<Profil> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Gagal memperbarui profil")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            lang.text("Failed to update profile", "Gagal memperbarui profil"),
+          ),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -148,8 +161,24 @@ class ProfilState extends State<Profil> {
     Navigator.pushNamedAndRemoveUntil(context, '/Login', (r) => false);
   }
 
+  void _resetProfileForm() {
+    final profile = AppDependencies.profileRepository.currentProfile();
+    _nameController.text = profile?.name ?? widget.userData?['name'] ?? "User";
+    _emailController.text =
+        profile?.email ?? widget.userData?['email'] ?? "email@example.com";
+    _photoUrl =
+        profile?.profilePhotoUrl ??
+        widget.userData?['profile_photo_url']?.toString();
+    _currentPasswordController.clear();
+    _newPasswordController.clear();
+    _confirmPasswordController.clear();
+    _pendingPhoto = null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
+
     return Scaffold(
       backgroundColor: const Color(0xFF111028),
       body: Stack(
@@ -169,119 +198,149 @@ class ProfilState extends State<Profil> {
                     alignment: Alignment.bottomRight,
                     children: [
                       _buildAvatarPreview(),
-                      if (_isEditing)
-                        Container(
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF39D2DD),
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            onPressed: _pickPhoto,
-                            icon: const Icon(
-                              Icons.camera_alt,
-                              color: Colors.white,
-                            ),
+                      Container(
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF39D2DD),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          onPressed: _isEditing
+                              ? _pickPhoto
+                              : () => setState(() => _isEditing = true),
+                          icon: Icon(
+                            _isEditing ? Icons.camera_alt : Icons.edit,
+                            color: Colors.white,
                           ),
                         ),
+                      ),
                     ],
                   ),
                   if (_isEditing)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 10),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
                       child: Text(
-                        "Foto profil maksimal 4 MB, format JPG, JPEG, atau PNG.",
+                        lang.text(
+                          "Profile photo max 4 MB, JPG, JPEG, or PNG.",
+                          "Foto profil maksimal 4 MB, format JPG, JPEG, atau PNG.",
+                        ),
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   if (_pendingPhoto != null)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 10),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
                       child: Text(
-                        "Foto baru dipilih, simpan untuk mengunggah.",
-                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                        lang.text(
+                          "New photo selected. Save to upload it.",
+                          "Foto baru dipilih, simpan untuk mengunggah.",
+                        ),
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   const SizedBox(height: 30),
-                  _buildProfileField("Nama Lengkap", _nameController),
+                  _buildProfileField(
+                    lang.text("Full Name", "Nama Lengkap"),
+                    _nameController,
+                  ),
                   _buildProfileField("Email", _emailController),
-                  _buildDisplayField("Password", "********"),
                   if (_isEditing) ...[
                     const SizedBox(height: 12),
                     _buildProfileField(
-                      "Password Lama",
+                      lang.text("Current Password", "Password Lama"),
                       _currentPasswordController,
                       obscure: true,
-                      hint: "Isi jika ingin ganti password",
+                      hint: lang.text(
+                        "Fill only if you want to change password",
+                        "Isi jika ingin ganti password",
+                      ),
                     ),
                     _buildProfileField(
-                      "Password Baru",
+                      lang.text("New Password", "Password Baru"),
                       _newPasswordController,
                       obscure: true,
-                      hint: "Minimal 8 karakter",
+                      hint: lang.text(
+                        "Minimum 8 characters",
+                        "Minimal 8 karakter",
+                      ),
                     ),
                     _buildProfileField(
-                      "Konfirmasi Password",
+                      lang.text("Confirm Password", "Konfirmasi Password"),
                       _confirmPasswordController,
                       obscure: true,
-                      hint: "Ulangi password baru",
+                      hint: lang.text(
+                        "Repeat new password",
+                        "Ulangi password baru",
+                      ),
                     ),
                   ],
-                  const SizedBox(height: 30),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _isSaving
-                              ? null
-                              : (_isEditing
-                                    ? _saveProfile
-                                    : () => setState(() => _isEditing = true)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4338CA),
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                          ),
-                          child: Text(
-                            _isSaving
-                                ? "Menyimpan..."
-                                : (_isEditing ? "Simpan" : "Edit Profile"),
-                            style: const TextStyle(color: Colors.white),
+                  if (_isEditing) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _isSaving ? null : _saveProfile,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4338CA),
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                            ),
+                            child: Text(
+                              _isSaving
+                                  ? lang.text("Saving...", "Menyimpan...")
+                                  : lang.text("Save", "Simpan"),
+                              style: const TextStyle(color: Colors.white),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _isSaving
-                              ? null
-                              : (_isEditing
-                                    ? () => setState(() => _isEditing = false)
-                                    : _logout),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _isEditing
-                                ? Colors.white12
-                                : const Color(0xFFEF4444),
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                          ),
-                          child: Text(
-                            _isEditing ? "Batal" : "Logout",
-                            style: const TextStyle(color: Colors.white),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _isSaving
+                                ? null
+                                : () => setState(() {
+                                    _resetProfileForm();
+                                    _isEditing = false;
+                                  }),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white12,
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                            ),
+                            child: Text(
+                              lang.text("Cancel", "Batal"),
+                              style: const TextStyle(color: Colors.white),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 18),
-                  _buildLegalLink(
-                    icon: Icons.privacy_tip_outlined,
-                    title: "Kebijakan Privasi",
-                    uri: ApiConfig.privacyPolicyUri,
+                  _buildMenuTile(
+                    icon: Icons.settings_outlined,
+                    title: lang.text("Settings", "Pengaturan"),
+                    subtitle: lang.text(
+                      "Language, privacy, and data deletion",
+                      "Bahasa, privasi, dan penghapusan data",
+                    ),
+                    onTap: _showSettingsSheet,
                   ),
                   const SizedBox(height: 12),
-                  _buildLegalLink(
-                    icon: Icons.delete_outline,
-                    title: "Penghapusan Akun & Data",
-                    uri: ApiConfig.accountDeletionUri,
+                  _buildMenuTile(
+                    icon: Icons.logout,
+                    title: "Logout",
+                    subtitle: lang.text(
+                      "Sign out from this device",
+                      "Keluar dari perangkat ini",
+                    ),
+                    danger: true,
+                    onTap: _logout,
                   ),
                 ],
               ),
@@ -320,13 +379,145 @@ class ProfilState extends State<Profil> {
     return ProfileAvatar(photoUrl: _photoUrl, radius: 60, onTap: _pickPhoto);
   }
 
-  Widget _buildLegalLink({
-    required IconData icon,
+  Future<void> _showSettingsSheet() async {
+    final lang = AppDependencies.language;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF1D143E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            Future<void> setLanguage(AppLocale locale) async {
+              await AppDependencies.language.setLocale(locale);
+              if (mounted) {
+                setState(() {});
+              }
+              setSheetState(() {});
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(22, 22, 22, 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      lang.text("Settings", "Pengaturan"),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      lang.text("Language", "Bahasa"),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    _languageOption(
+                      title: "English",
+                      selected: AppDependencies.language.value == AppLocale.en,
+                      onTap: () => setLanguage(AppLocale.en),
+                    ),
+                    _languageOption(
+                      title: "Indonesia",
+                      selected: AppDependencies.language.value == AppLocale.id,
+                      onTap: () => setLanguage(AppLocale.id),
+                    ),
+                    const Divider(color: Colors.white12),
+                    _settingsLink(
+                      Icons.privacy_tip_outlined,
+                      lang.text("Privacy Policy", "Kebijakan Privasi"),
+                      ApiConfig.privacyPolicyUri,
+                    ),
+                    _settingsLink(
+                      Icons.delete_outline,
+                      lang.text(
+                        "Delete Account & Data",
+                        "Penghapusan Akun & Data",
+                      ),
+                      ApiConfig.accountDeletionUri,
+                    ),
+                    _settingsLink(
+                      Icons.cleaning_services_outlined,
+                      lang.text("Delete Data Only", "Hapus Data Saja"),
+                      ApiConfig.dataDeletionUri,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _settingsLink(IconData icon, String title, Uri uri) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon, color: const Color(0xFF39D2DD)),
+      title: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      trailing: const Icon(Icons.open_in_new, color: Colors.white54, size: 18),
+      onTap: () => LegalLinkLauncher.open(context, uri),
+    );
+  }
+
+  Widget _languageOption({
     required String title,
-    required Uri uri,
+    required bool selected,
+    required VoidCallback onTap,
   }) {
     return InkWell(
-      onTap: () => LegalLinkLauncher.open(context, uri),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              selected
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_unchecked,
+              color: selected ? const Color(0xFF39D2DD) : Colors.white54,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: TextStyle(
+                color: selected ? Colors.white : Colors.white70,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool danger = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
         width: double.infinity,
@@ -338,30 +529,33 @@ class ProfilState extends State<Profil> {
         ),
         child: Row(
           children: [
-            Icon(icon, color: const Color(0xFF39D2DD)),
+            Icon(
+              icon,
+              color: danger ? const Color(0xFFEF4444) : const Color(0xFF39D2DD),
+            ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                ],
               ),
             ),
-            const Icon(Icons.open_in_new, color: Colors.white54, size: 18),
+            const Icon(Icons.chevron_right, color: Colors.white54, size: 22),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildDisplayField(String label, String value) {
-    return _FieldShell(
-      label: label,
-      child: Text(
-        value,
-        style: const TextStyle(color: Colors.white, fontSize: 15),
       ),
     );
   }

@@ -16,20 +16,29 @@ class SplashScreen2State extends State<SplashScreen2> {
   final List<_OnboardingItem> _items = const [
     _OnboardingItem(
       icon: Icons.verified_user_rounded,
-      title: 'Deteksi Keaslian File',
-      subtitle:
+      titleEn: 'File Authenticity Detection',
+      titleId: 'Deteksi Keaslian File',
+      subtitleEn:
+          'Check photos and documents with digital forensic methods to spot original, edited, or AI-assisted content.',
+      subtitleId:
           'Periksa foto dan dokumen dengan metode forensik digital untuk melihat indikasi asli, editan, atau campur tangan AI.',
     ),
     _OnboardingItem(
       icon: Icons.analytics_rounded,
-      title: 'Metode Berlapis',
-      subtitle:
+      titleEn: 'Layered Analysis',
+      titleId: 'Metode Berlapis',
+      subtitleEn:
+          'Images are analyzed through ELA, noise, metadata, and AI detection. Documents are checked through language patterns and sentence mapping.',
+      subtitleId:
           'Foto dianalisis melalui ELA, noise, metadata, dan deteksi AI. Dokumen dianalisis melalui pola bahasa dan pemetaan kalimat.',
     ),
     _OnboardingItem(
       icon: Icons.picture_as_pdf_rounded,
-      title: 'Riwayat & Laporan PDF',
-      subtitle:
+      titleEn: 'History & PDF Reports',
+      titleId: 'Riwayat & Laporan PDF',
+      subtitleEn:
+          'Analysis results are saved in history and can be downloaded as investigation reports for review or presentation.',
+      subtitleId:
           'Hasil analisis tersimpan di riwayat dan dapat diunduh sebagai laporan investigasi untuk kebutuhan review atau presentasi.',
     ),
   ];
@@ -61,6 +70,8 @@ class SplashScreen2State extends State<SplashScreen2> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A1A),
       body: SafeArea(
@@ -84,9 +95,9 @@ class SplashScreen2State extends State<SplashScreen2> {
                   const Spacer(),
                   TextButton(
                     onPressed: _finish,
-                    child: const Text(
-                      'Lewati',
-                      style: TextStyle(color: Colors.white60),
+                    child: Text(
+                      lang.text('Skip', 'Lewati'),
+                      style: const TextStyle(color: Colors.white60),
                     ),
                   ),
                 ],
@@ -120,7 +131,7 @@ class SplashScreen2State extends State<SplashScreen2> {
                         ),
                         const SizedBox(height: 34),
                         Text(
-                          item.title,
+                          lang.text(item.titleEn, item.titleId),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Colors.white,
@@ -131,7 +142,7 @@ class SplashScreen2State extends State<SplashScreen2> {
                         ),
                         const SizedBox(height: 18),
                         Text(
-                          item.subtitle,
+                          lang.text(item.subtitleEn, item.subtitleId),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Colors.white70,
@@ -175,7 +186,9 @@ class SplashScreen2State extends State<SplashScreen2> {
                     ),
                   ),
                   child: Text(
-                    _index == _items.length - 1 ? 'Mulai' : 'Lanjut',
+                    _index == _items.length - 1
+                        ? lang.text('Start', 'Mulai')
+                        : lang.text('Continue', 'Lanjut'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -195,11 +208,15 @@ class SplashScreen2State extends State<SplashScreen2> {
 class _OnboardingItem {
   const _OnboardingItem({
     required this.icon,
-    required this.title,
-    required this.subtitle,
+    required this.titleEn,
+    required this.titleId,
+    required this.subtitleEn,
+    required this.subtitleId,
   });
 
   final IconData icon;
-  final String title;
-  final String subtitle;
+  final String titleEn;
+  final String titleId;
+  final String subtitleEn;
+  final String subtitleId;
 }
