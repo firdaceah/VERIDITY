@@ -19,6 +19,12 @@ return [
 
     'evidence_public_url' => env('SUPABASE_STORAGE_URL'),
 
+    'supabase_project_url' => env('SUPABASE_PROJECT_URL'),
+
+    'supabase_service_key' => env('SUPABASE_SERVICE_ROLE_KEY'),
+
+    'supabase_bucket' => env('SUPABASE_STORAGE_BUCKET', 'veridity-files'),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks
