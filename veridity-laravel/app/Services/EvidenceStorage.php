@@ -17,13 +17,7 @@ class EvidenceStorage
     public function exists(?string $path): bool
     {
         if ($this->usesSupabaseRest()) {
-            if (! $path) {
-                return false;
-            }
-
-            return Http::withHeaders($this->supabaseHeaders())
-                ->head($this->supabaseObjectUrl($path))
-                ->successful();
+            return filled($path);
         }
 
         return $path ? Storage::disk($this->diskName())->exists($path) : false;
@@ -92,6 +86,10 @@ class EvidenceStorage
 
         if ($baseUrl !== '') {
             return $baseUrl.'/'.ltrim($path, '/');
+        }
+
+        if ($this->usesSupabaseRest()) {
+            return $this->supabasePublicObjectUrl($path);
         }
 
         return Storage::disk($this->diskName())->url($path);
@@ -163,5 +161,13 @@ class EvidenceStorage
         $bucket = trim((string) config('filesystems.supabase_bucket'), '/');
 
         return $projectUrl.'/storage/v1/object/'.$bucket.'/'.ltrim($path, '/');
+    }
+
+    private function supabasePublicObjectUrl(string $path): string
+    {
+        $projectUrl = rtrim((string) config('filesystems.supabase_project_url'), '/');
+        $bucket = trim((string) config('filesystems.supabase_bucket'), '/');
+
+        return $projectUrl.'/storage/v1/object/public/'.$bucket.'/'.ltrim($path, '/');
     }
 }
