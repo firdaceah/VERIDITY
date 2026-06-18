@@ -12,20 +12,51 @@ from analysis.metadata_analysis import full_metadata_analysis
 from analysis.noise_map import generate_noise_map
 from analysis.deepfake_detector import detect_gan_fingerprint
 
-def run_full_investigation(image_path, output_dir):
+MESSAGES = {
+    "cancelled": {
+        "en": "Analysis was cancelled.",
+        "id": "Analisis dibatalkan.",
+    },
+}
+
+
+def normalize_language(language):
+    return "id" if str(language).lower() == "id" else "en"
+
+
+def _cancelled(language):
+    return {
+        "status": "cancelled",
+        "message": MESSAGES["cancelled"][normalize_language(language)],
+    }
+
+
+def run_full_investigation(image_path, output_dir, language="en", is_cancelled=None):
+    language = normalize_language(language)
+    is_cancelled = is_cancelled or (lambda: False)
+
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     try:
+        if is_cancelled():
+            return _cancelled(language)
+
         time_suffix = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         # --- 1. METADATA ANALYSIS ---
         meta_report = full_metadata_analysis(image_path)
 
+        if is_cancelled():
+            return _cancelled(language)
+
         # --- 2. ELA ANALYSIS ---
         report_forensic = forensic_analysis(image_path)
         ela_img = report_forensic['ela_90']
         ela_metrics = report_forensic['ela_90_metrics']
+
+        if is_cancelled():
+            return _cancelled(language)
         
         # Mengambil skor keaslian ELA murni dari sub-modul
         ela_auth_score = ela_metrics['ela_authenticity_score']
@@ -44,6 +75,9 @@ def run_full_investigation(image_path, output_dir):
         is_deepfake_positive = gan_score > 0.5
         # Mengambil skor keaslian AI murni dari sub-modul
         ai_auth_score = ai_results['metrics']['ai_authenticity_score']
+
+        if is_cancelled():
+            return _cancelled(language)
 
         # --- 4. NOISE ANALYSIS ---
         noise_results = generate_noise_map(
@@ -66,6 +100,9 @@ def run_full_investigation(image_path, output_dir):
         # Mengambil skor keaslian Noise murni dari sub-modul
         noise_auth_score = noise_results.get('metrics', {}).get('noise_authenticity_score', 100.0)
         meta_auth_score = meta_report['summary']['authenticity_score']
+
+        if is_cancelled():
+            return _cancelled(language)
 
         # --- 5. RUMUS HARMONISASI BOBOT MATEMATIS SEIMBANG (30% + 30% + 20% + 20%) ---
         final_score = (ela_auth_score * 0.3) + (noise_auth_score * 0.3) + (meta_auth_score * 0.2) + (ai_auth_score * 0.2)
@@ -114,9 +151,9 @@ def run_full_investigation(image_path, output_dir):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def run_full_investigation_quiet(image_path, output_dir):
+def run_full_investigation_quiet(image_path, output_dir, language="en", is_cancelled=None):
     with contextlib.redirect_stdout(io.StringIO()):
-        return run_full_investigation(image_path, output_dir)
+        return run_full_investigation(image_path, output_dir, language=language, is_cancelled=is_cancelled)
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:

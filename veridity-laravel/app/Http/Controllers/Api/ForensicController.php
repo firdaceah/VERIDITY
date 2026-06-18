@@ -11,6 +11,7 @@ use App\Services\EvidenceStorage;
 use App\Services\PaymentProofContentValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -18,9 +19,90 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class ForensicController extends Controller
 {
+    private const ANALYSIS_CANCEL_TTL_SECONDS = 1800;
+
+    private const MESSAGES = [
+        'analysis_cancel_requested' => [
+            'en' => 'Analysis cancellation requested.',
+            'id' => 'Permintaan pembatalan analisis diterima.',
+        ],
+        'analysis_cancelled' => [
+            'en' => 'Analysis was cancelled.',
+            'id' => 'Analisis dibatalkan.',
+        ],
+        'analysis_token_required' => [
+            'en' => 'Analysis token is required.',
+            'id' => 'Token analisis wajib dikirim.',
+        ],
+        'document_busy' => [
+            'en' => 'The forensic document analysis service is busy or waking up. Please wait 30-60 seconds, then try again.',
+            'id' => 'Layanan analisis dokumen forensik sedang sibuk atau baru aktif. Silakan tunggu 30-60 detik lalu coba lagi.',
+        ],
+        'document_failed' => [
+            'en' => 'Document analysis failed: ',
+            'id' => 'Analisis dokumen gagal: ',
+        ],
+        'document_success' => [
+            'en' => 'Document analysis completed successfully!',
+            'id' => 'Analisis dokumen berhasil selesai!',
+        ],
+        'image_failed' => [
+            'en' => 'Image analysis failed: ',
+            'id' => 'Analisis gambar gagal: ',
+        ],
+        'image_success' => [
+            'en' => 'Image analysis completed!',
+            'id' => 'Analisis citra selesai!',
+        ],
+    ];
+
     private function pythonEngineUrl(): string
     {
         return rtrim((string) config('services.veridity.python_engine_url', 'http://127.0.0.1:8001'), '/');
+    }
+
+    private function normalizeLanguage(?string $language): string
+    {
+        return strtolower((string) $language) === 'id' ? 'id' : 'en';
+    }
+
+    private function message(string $key, ?string $language): string
+    {
+        $locale = $this->normalizeLanguage($language);
+
+        return self::MESSAGES[$key][$locale] ?? self::MESSAGES[$key]['en'] ?? $key;
+    }
+
+    private function cancellationCacheKey(string $token): string
+    {
+        return 'veridity:analysis:cancelled:'.$token;
+    }
+
+    private function markAnalysisCancelled(string $token): void
+    {
+        Cache::put($this->cancellationCacheKey($token), true, self::ANALYSIS_CANCEL_TTL_SECONDS);
+    }
+
+    private function isAnalysisCancelled(?string $token): bool
+    {
+        return is_string($token)
+            && $token !== ''
+            && Cache::get($this->cancellationCacheKey($token)) === true;
+    }
+
+    private function cancelledResponse(?string $language)
+    {
+        return response()->json([
+            'status' => 'cancelled',
+            'message' => $this->message('analysis_cancelled', $language),
+        ], 499);
+    }
+
+    private function shouldCallRemotePython(): bool
+    {
+        $engineUrl = $this->pythonEngineUrl();
+
+        return $engineUrl !== '' && ! str_contains($engineUrl, '127.0.0.1') && ! str_contains($engineUrl, 'localhost');
     }
 
     private function userCanAccessAudit(ForensicAnalysis $analysis): bool
@@ -101,9 +183,50 @@ class ForensicController extends Controller
         return User::orderBy('id')->value('id');
     }
 
-    private function runImageAnalysisCommand(string $fullPathFile, string $outputFolder): array
+    public function cancelAnalysis(Request $request)
     {
-        $serviceResult = $this->runImageAnalysisService($fullPathFile, $outputFolder);
+        $language = $this->normalizeLanguage($request->input('language'));
+
+        $validated = $request->validate([
+            'analysis_token' => 'required|string|max:120',
+            'language' => 'nullable|string|in:en,id',
+        ], [
+            'analysis_token.required' => $this->message('analysis_token_required', $language),
+        ]);
+
+        $token = $validated['analysis_token'];
+        $this->markAnalysisCancelled($token);
+
+        if ($this->shouldCallRemotePython()) {
+            try {
+                Http::timeout(8)->post($this->pythonEngineUrl().'/cancel-analysis', [
+                    'analysis_token' => $token,
+                    'language' => $language,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to forward analysis cancellation to Python engine', [
+                    'engine_url' => $this->pythonEngineUrl(),
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $this->message('analysis_cancel_requested', $language),
+        ]);
+    }
+
+    private function runImageAnalysisCommand(string $fullPathFile, string $outputFolder, string $language = 'en', ?string $analysisToken = null): array
+    {
+        if ($this->isAnalysisCancelled($analysisToken)) {
+            return [
+                'status' => 'cancelled',
+                'message' => $this->message('analysis_cancelled', $language),
+            ];
+        }
+
+        $serviceResult = $this->runImageAnalysisService($fullPathFile, $outputFolder, $language, $analysisToken);
         if ($serviceResult !== null) {
             return $serviceResult;
         }
@@ -207,13 +330,13 @@ class ForensicController extends Controller
         return $result;
     }
 
-    private function runImageAnalysisService(string $fullPathFile, string $outputFolder): ?array
+    private function runImageAnalysisService(string $fullPathFile, string $outputFolder, string $language = 'en', ?string $analysisToken = null): ?array
     {
-        $engineUrl = $this->pythonEngineUrl();
-
-        if ($engineUrl === '' || str_contains($engineUrl, '127.0.0.1') || str_contains($engineUrl, 'localhost')) {
+        if (! $this->shouldCallRemotePython()) {
             return null;
         }
+
+        $engineUrl = $this->pythonEngineUrl();
 
         try {
             $fileStream = fopen($fullPathFile, 'r');
@@ -227,9 +350,23 @@ class ForensicController extends Controller
 
             $response = Http::timeout(600)
                 ->attach('file', $fileStream, basename($fullPathFile))
-                ->post($engineUrl.'/analyze-image');
+                ->post($engineUrl.'/analyze-image', array_filter([
+                    'language' => $language,
+                    'analysis_token' => $analysisToken,
+                ]));
 
             fclose($fileStream);
+
+            if ($response->status() === 499) {
+                $cancelledResult = $response->json();
+
+                return is_array($cancelledResult)
+                    ? $cancelledResult
+                    : [
+                        'status' => 'cancelled',
+                        'message' => $this->message('analysis_cancelled', $language),
+                    ];
+            }
 
             if ($response->failed()) {
                 $pythonMessage = $response->json('message')
@@ -456,17 +593,29 @@ class ForensicController extends Controller
     {
         // Memberikan napas waktu lebih panjang untuk komputasi teks intensif model AI Hugging Face via CPU.
         set_time_limit(600);
+        $language = $this->normalizeLanguage($request->input('language'));
+        $analysisToken = $request->input('analysis_token');
 
         // 1. Validasi Fleksibel: Menerima rumpun Gambar (Citra) ATAU Dokumen Teks
         $request->validate([
             'image' => 'required|file|mimes:jpeg,png,jpg,pdf|max:15000',
+            'language' => 'nullable|string|in:en,id',
+            'analysis_token' => 'nullable|string|max:120',
         ], [
-            'image.required' => 'File analisis wajib dipilih.',
-            'image.file' => 'File analisis tidak valid.',
-            'image.uploaded' => 'File gagal diunggah. Pastikan ukuran file maksimal 15MB dan formatnya JPG, JPEG, PNG, atau PDF dokumen teks.',
-            'image.mimes' => 'Format file belum didukung. Gunakan JPG, JPEG, PNG, atau PDF dokumen teks.',
-            'image.max' => 'Ukuran file maksimal 15MB.',
+            'image.required' => $language === 'id' ? 'File analisis wajib dipilih.' : 'Analysis file is required.',
+            'image.file' => $language === 'id' ? 'File analisis tidak valid.' : 'Analysis file is invalid.',
+            'image.uploaded' => $language === 'id'
+                ? 'File gagal diunggah. Pastikan ukuran file maksimal 15MB dan formatnya JPG, JPEG, PNG, atau PDF dokumen teks.'
+                : 'File upload failed. Make sure the file is under 15MB and uses JPG, JPEG, PNG, or text-based PDF format.',
+            'image.mimes' => $language === 'id'
+                ? 'Format file belum didukung. Gunakan JPG, JPEG, PNG, atau PDF dokumen teks.'
+                : 'Unsupported file format. Use JPG, JPEG, PNG, or text-based PDF documents.',
+            'image.max' => $language === 'id' ? 'Ukuran file maksimal 15MB.' : 'Maximum file size is 15MB.',
         ]);
+
+        if ($this->isAnalysisCancelled($analysisToken)) {
+            return $this->cancelledResponse($language);
+        }
 
         try {
             $file = $request->file('image');
@@ -490,9 +639,11 @@ class ForensicController extends Controller
                         ->timeout(600)
                         ->retry(2, 8000)
                         ->attach('file', $fileStream, $filename)
-                        ->post($this->pythonEngineUrl().'/analyze-document', [
+                        ->post($this->pythonEngineUrl().'/analyze-document', array_filter([
                             'extension' => $extension,
-                        ]);
+                            'language' => $language,
+                            'analysis_token' => $analysisToken,
+                        ]));
                 } catch (\Throwable $pythonException) {
                     if (is_resource($fileStream)) {
                         fclose($fileStream);
@@ -506,12 +657,16 @@ class ForensicController extends Controller
 
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'Layanan analisis dokumen forensik sedang sibuk atau baru aktif. Silakan tunggu 30-60 detik lalu coba lagi.',
+                        'message' => $this->message('document_busy', $language),
                     ], 503);
                 }
 
                 if (is_resource($fileStream)) {
                     fclose($fileStream);
+                }
+
+                if ($response->status() === 499) {
+                    return $this->cancelledResponse($language);
                 }
 
                 if ($response->failed()) {
@@ -524,17 +679,21 @@ class ForensicController extends Controller
 
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'Layanan analisis dokumen forensik sedang sibuk atau baru aktif. Silakan tunggu 30-60 detik lalu coba lagi.',
+                        'message' => $this->message('document_busy', $language),
                     ], 500);
                 }
 
                 $result = $response->json();
 
+                if ($this->isAnalysisCancelled($analysisToken) || ($result['status'] ?? null) === 'cancelled') {
+                    return $this->cancelledResponse($language);
+                }
+
                 // Proteksi Fail-Safe untuk Output JSON Dokumen
                 if (! isset($result['status']) || $result['status'] === 'error') {
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'Analisis Dokumen Gagal: '.($result['message'] ?? 'Output data kosong'),
+                        'message' => $this->message('document_failed', $language).($result['message'] ?? ($language === 'id' ? 'Output data kosong' : 'No output data')),
                     ], 500);
                 }
 
@@ -550,17 +709,17 @@ class ForensicController extends Controller
                     'is_deepfake' => (($result['summary_color'] ?? '') === 'danger'),
                     'metadata_details' => [
                         'summary' => [
-                            'status' => $result['summary_label'] ?? 'MIXED TEXT',
-                            'verdict' => $result['summary_label'] ?? 'MIXED TEXT',
+                            'status' => $result['summary_label'] ?? ($language === 'id' ? 'TEKS CAMPURAN' : 'MIXED TEXT'),
+                            'verdict' => $result['summary_label'] ?? ($language === 'id' ? 'TEKS CAMPURAN' : 'MIXED TEXT'),
                         ],
                     ],
                     'noise_status' => 'Not Applicable',
                     'final_result' => [
-                        'summary_label' => $result['summary_label'] ?? 'MIXED TEXT',
+                        'summary_label' => $result['summary_label'] ?? ($language === 'id' ? 'TEKS CAMPURAN' : 'MIXED TEXT'),
                         'summary_color' => $result['summary_color'] ?? 'warning',
                         'full_report' => [
                             'final_score' => $result['final_score'] ?? 0,
-                            'summary_label' => $result['summary_label'] ?? 'MIXED TEXT',
+                            'summary_label' => $result['summary_label'] ?? ($language === 'id' ? 'TEKS CAMPURAN' : 'MIXED TEXT'),
                             'summary_color' => $result['summary_color'] ?? 'warning',
                             'results' => $result['results'] ?? [],
                             'classification_map' => $classificationMapData,
@@ -578,12 +737,12 @@ class ForensicController extends Controller
                 }
 
                 if (! $request->expectsJson()) {
-                    return redirect()->route('user.result', $analysis->id)->with('success', 'Analisis Dokumen Selesai!');
+                    return redirect()->route('user.result', $analysis->id)->with('success', $this->message('document_success', $language));
                 }
 
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Analisis Dokumen Berhasil Selesai!',
+                    'message' => $this->message('document_success', $language),
                     'data' => new ForensicResource($analysis),
                 ]);
             }
@@ -596,12 +755,16 @@ class ForensicController extends Controller
                 mkdir($outputFolder, 0777, true);
             }
 
-            $result = $this->runImageAnalysisCommand($fullPathFile, $outputFolder);
+            $result = $this->runImageAnalysisCommand($fullPathFile, $outputFolder, $language, $analysisToken);
+
+            if (($result['status'] ?? null) === 'cancelled' || $this->isAnalysisCancelled($analysisToken)) {
+                return $this->cancelledResponse($language);
+            }
 
             if (! $result || $result['status'] === 'error') {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Analisis gambar gagal: '.($result['message'] ?? 'Output Python tidak tersedia'),
+                    'message' => $this->message('image_failed', $language).($result['message'] ?? ($language === 'id' ? 'Output Python tidak tersedia' : 'Python output is unavailable')),
                 ], 500);
             }
 
@@ -614,27 +777,31 @@ class ForensicController extends Controller
             $isNoiseInconsistent = str_contains($noiseInterpretation, 'tidak rata') || str_contains($noiseInterpretation, 'keanehan');
             $isMetaManipulated = ($metaVerdict === 'REKAYASA DIGITAL / EDITING' || $metaVerdict === 'REKAYASA DIGITAL / GENERATOR AI (SANGAT BERBAHAYA)' || str_contains($metaVerdict, 'EDITING'));
 
-            $statusLabel = 'FOTO ASLI / JEPRETAN MURNI';
+            $statusLabel = $language === 'id' ? 'FOTO ASLI / JEPRETAN MURNI' : 'AUTHENTIC PHOTO / ORIGINAL CAPTURE';
             $statusColor = 'success';
 
             if ($ganScore > 0.5 || ($result['verdict'] ?? '') === 'DEEPFAKE / AI GENERATED') {
-                $statusLabel = 'SANGAT BERBAHAYA (DEEPFAKE AI)';
+                $statusLabel = $language === 'id' ? 'SANGAT BERBAHAYA (DEEPFAKE AI)' : 'HIGH RISK (AI DEEPFAKE)';
                 $statusColor = 'danger';
             } elseif ($elaScore <= 5.0 && $ganScore <= 0.4) {
-                $statusLabel = 'FOTO ASLI / JEPRETAN MURNI';
+                $statusLabel = $language === 'id' ? 'FOTO ASLI / JEPRETAN MURNI' : 'AUTHENTIC PHOTO / ORIGINAL CAPTURE';
                 $statusColor = 'success';
             } elseif ($finalScore < 45 || $elaScore > 45 || $ganScore > 0.85 || ($result['verdict'] ?? '') === 'MANIPULATED') {
-                $statusLabel = 'SANGAT BERBAHAYA';
+                $statusLabel = $language === 'id' ? 'SANGAT BERBAHAYA' : 'HIGH RISK';
                 $statusColor = 'danger';
             } elseif ($elaScore > 15 || $ganScore > 0.4 || ($isNoiseInconsistent && $elaScore > 8.0) || $isMetaManipulated) {
-                $statusLabel = 'MENCURIGAKAN (TERINDIKASI REKAYASA)';
+                $statusLabel = $language === 'id' ? 'MENCURIGAKAN (TERINDIKASI REKAYASA)' : 'SUSPICIOUS (MANIPULATION INDICATED)';
                 $statusColor = 'warning';
             }
 
             if ($statusColor === 'success' && isset($result['results']['noise'])) {
                 $result['results']['noise']['warnings'] = [];
-                $result['results']['noise']['interpretation'] = 'Pola noise memiliki variasi lokal yang masih berada dalam toleransi hasil akhir. Tidak ditemukan korelasi kuat dengan ELA, metadata, atau deteksi AI untuk menyimpulkan manipulasi.';
-                $result['results']['noise']['researcher_note'] = 'Noise diperlakukan sebagai sinyal pendukung dan telah diselaraskan dengan keputusan akhir analisis citra.';
+                $result['results']['noise']['interpretation'] = $language === 'id'
+                    ? 'Pola noise memiliki variasi lokal yang masih berada dalam toleransi hasil akhir. Tidak ditemukan korelasi kuat dengan ELA, metadata, atau deteksi AI untuk menyimpulkan manipulasi.'
+                    : 'The noise pattern has local variation within the final tolerance range. No strong correlation with ELA, metadata, or AI detection was found to conclude manipulation.';
+                $result['results']['noise']['researcher_note'] = $language === 'id'
+                    ? 'Noise diperlakukan sebagai sinyal pendukung dan telah diselaraskan dengan keputusan akhir analisis citra.'
+                    : 'Noise is treated as a supporting signal and aligned with the final image-analysis decision.';
             }
 
             $evidenceOriginalPath = $this->evidenceStorage()->makePath('forensics/original', Auth::id(), $filename);
@@ -661,12 +828,12 @@ class ForensicController extends Controller
             $analysis->refresh();
 
             if (! $request->expectsJson()) {
-                return redirect()->route('user.result', $analysis->id)->with('success', 'Analisis Citra Selesai!');
+                return redirect()->route('user.result', $analysis->id)->with('success', $this->message('image_success', $language));
             }
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Analisis citra selesai!',
+                'message' => $this->message('image_success', $language),
                 'data' => new ForensicResource($analysis),
                 'visual_results' => [
                     'ela' => route('files.public', ['path' => 'results/'.Auth::id().'/'.$result['results']['ela']['image_url']]),

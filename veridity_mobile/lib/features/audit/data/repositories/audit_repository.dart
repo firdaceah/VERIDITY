@@ -30,7 +30,11 @@ class AuditRepository {
         .toList();
   }
 
-  Future<AuditEntity> uploadFile(PlatformFile file) async {
+  Future<AuditEntity> uploadFile(
+    PlatformFile file, {
+    required String languageCode,
+    required String analysisToken,
+  }) async {
     final token = _sessionStore.token;
     if (token == null || token.isEmpty) {
       throw StateError('User belum login');
@@ -46,9 +50,32 @@ class AuditRepository {
       fieldName: 'image',
       fileName: file.name,
       bytes: bytes,
+      fields: {
+        'language': languageCode,
+        'analysis_token': analysisToken,
+      },
       token: token,
     );
     return AuditEntity.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> cancelAnalysis({
+    required String analysisToken,
+    required String languageCode,
+  }) async {
+    final token = _sessionStore.token;
+    if (token == null || token.isEmpty) {
+      throw StateError('User belum login');
+    }
+
+    await _apiClient.postJson(
+      '/audits/cancel',
+      body: {
+        'analysis_token': analysisToken,
+        'language': languageCode,
+      },
+      token: token,
+    );
   }
 
   Future<AuditEntity> detail(int id) async {

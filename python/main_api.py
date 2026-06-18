@@ -1,5 +1,6 @@
-from fastapi import FastAPI, UploadFile, File, Form, Response
+from fastapi import FastAPI, UploadFile, File, Form, Response, Request
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 from analyze_all import run_full_investigation_quiet
 from analyze_document import run_document_analysis
 from analysis.document_pdf_utils import generate_annotated_pdf, extract_any_document
@@ -8,9 +9,55 @@ import json
 import os
 import tempfile
 import traceback
+import time
 from PIL import Image, ImageOps
 
 app = FastAPI(title="Veridity Document Forensic API")
+
+CANCELLED_TOKENS = {}
+CANCEL_TOKEN_TTL_SECONDS = 1800
+
+MESSAGES = {
+    "cancel_requested": {
+        "en": "Analysis cancellation requested.",
+        "id": "Permintaan pembatalan analisis diterima.",
+    },
+    "cancelled": {
+        "en": "Analysis was cancelled.",
+        "id": "Analisis dibatalkan.",
+    },
+}
+
+
+def normalize_language(language: str | None) -> str:
+    return "id" if str(language).lower() == "id" else "en"
+
+
+def message(key: str, language: str | None) -> str:
+    locale = normalize_language(language)
+    return MESSAGES[key].get(locale, MESSAGES[key]["en"])
+
+
+def prune_cancelled_tokens() -> None:
+    now = time.time()
+    expired = [
+        token for token, cancelled_at in CANCELLED_TOKENS.items()
+        if now - cancelled_at > CANCEL_TOKEN_TTL_SECONDS
+    ]
+    for token in expired:
+        CANCELLED_TOKENS.pop(token, None)
+
+
+def is_cancelled_token(token: str | None) -> bool:
+    prune_cancelled_tokens()
+    return bool(token) and token in CANCELLED_TOKENS
+
+
+def cancelled_response(language: str | None) -> dict:
+    return {
+        "status": "cancelled",
+        "message": message("cancelled", language),
+    }
 
 def prepare_image_for_render_free(source_path: str, target_path: str) -> None:
     max_side = int(os.environ.get("VERIDITY_IMAGE_MAX_SIDE", "1600"))
@@ -24,22 +71,60 @@ def prepare_image_for_render_free(source_path: str, target_path: str) -> None:
 def health_check():
     return {"status": "ok", "message": "Veridity Document API is running"}
 
+
+@app.post("/cancel-analysis")
+async def cancel_analysis_endpoint(request: Request):
+    payload = await request.json()
+    token = str(payload.get("analysis_token") or "").strip()
+    language = normalize_language(payload.get("language"))
+
+    if token:
+        prune_cancelled_tokens()
+        CANCELLED_TOKENS[token] = time.time()
+
+    return JSONResponse(content={
+        "status": "success",
+        "message": message("cancel_requested", language),
+    })
+
 @app.post("/analyze-document")
 async def analyze_document_endpoint(
     file: UploadFile = File(...), 
-    extension: str = Form(...)
+    extension: str = Form(...),
+    language: str = Form("en"),
+    analysis_token: str = Form("")
 ):
     try:
         file_bytes = await file.read()
-        report = run_document_analysis(file_bytes, extension)
+        language = normalize_language(language)
+        if is_cancelled_token(analysis_token):
+            return JSONResponse(status_code=499, content=cancelled_response(language))
+
+        report = await run_in_threadpool(
+            run_document_analysis,
+            file_bytes,
+            extension,
+            language,
+            lambda: is_cancelled_token(analysis_token),
+        )
+        if report.get("status") == "cancelled":
+            return JSONResponse(status_code=499, content=report)
         return JSONResponse(content=report)
     except Exception as e:
         traceback.print_exc()
         return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
 @app.post("/analyze-image")
-async def analyze_image_endpoint(file: UploadFile = File(...)):
+async def analyze_image_endpoint(
+    file: UploadFile = File(...),
+    language: str = Form("en"),
+    analysis_token: str = Form("")
+):
     try:
+        language = normalize_language(language)
+        if is_cancelled_token(analysis_token):
+            return JSONResponse(status_code=499, content=cancelled_response(language))
+
         suffix = os.path.splitext(file.filename or "image.jpg")[1] or ".jpg"
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -52,7 +137,16 @@ async def analyze_image_endpoint(file: UploadFile = File(...)):
 
             prepare_image_for_render_free(raw_image_path, image_path)
 
-            report = run_full_investigation_quiet(image_path, output_dir)
+            report = await run_in_threadpool(
+                run_full_investigation_quiet,
+                image_path,
+                output_dir,
+                language,
+                lambda: is_cancelled_token(analysis_token),
+            )
+
+            if report.get("status") == "cancelled":
+                return JSONResponse(status_code=499, content=report)
 
             if report.get("status") != "success":
                 return JSONResponse(status_code=500, content=report)

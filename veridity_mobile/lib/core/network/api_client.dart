@@ -120,6 +120,7 @@ class ApiClient {
     required String fieldName,
     required String fileName,
     required Uint8List bytes,
+    Map<String, String> fields = const {},
     String? token,
   }) async {
     var response = await _sendMultipartBytes(
@@ -127,6 +128,7 @@ class ApiClient {
       fieldName: fieldName,
       fileName: fileName,
       bytes: bytes,
+      fields: fields,
       token: token,
     );
 
@@ -137,6 +139,7 @@ class ApiClient {
         fieldName: fieldName,
         fileName: fileName,
         bytes: bytes,
+        fields: fields,
         token: token,
       );
     }
@@ -149,6 +152,7 @@ class ApiClient {
     required String fieldName,
     required String fileName,
     required Uint8List bytes,
+    Map<String, String> fields = const {},
     String? token,
   }) async {
     final request = http.MultipartRequest('POST', _uri(path));
@@ -156,6 +160,7 @@ class ApiClient {
       'Accept': 'application/json',
       if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     });
+    request.fields.addAll(fields);
     request.files.add(
       http.MultipartFile.fromBytes(
         fieldName,

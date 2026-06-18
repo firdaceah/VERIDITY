@@ -13,6 +13,7 @@ Route::post('/integrations/distri/analyze-proof', [ForensicController::class, 'a
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/audits', [ForensicController::class, 'analyze']);
+    Route::post('/audits/cancel', [ForensicController::class, 'cancelAnalysis']);
     Route::get('/audits', [ForensicController::class, 'history']);
     Route::get('/audits/{id}', [ForensicController::class, 'show']);
     Route::delete('/audits/{id}', [ForensicController::class, 'destroy']);

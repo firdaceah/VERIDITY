@@ -24,4 +24,35 @@ class AppLanguage extends ValueNotifier<AppLocale> {
   }
 
   String text(String en, String id) => isEnglish ? en : id;
+
+  String auditLabel(String value) {
+    final normalized = value.toLowerCase().trim();
+
+    if (normalized.contains('aman') ||
+        normalized.contains('safe') ||
+        normalized.contains('asli')) {
+      return text('Safe / likely authentic', 'Aman / cenderung asli');
+    }
+
+    if (normalized.contains('bahaya') ||
+        normalized.contains('danger') ||
+        normalized.contains('beresiko') ||
+        normalized.contains('berisiko')) {
+      return text('High risk', 'Berisiko tinggi');
+    }
+
+    if (normalized.contains('ai') ||
+        normalized.contains('mixed') ||
+        normalized.contains('hybrid')) {
+      return text('Mixed / AI assisted', 'Campuran / dibantu AI');
+    }
+
+    if (normalized.contains('mencurigakan') ||
+        normalized.contains('suspicious') ||
+        normalized.contains('rekayasa')) {
+      return text('Suspicious', 'Mencurigakan');
+    }
+
+    return value;
+  }
 }

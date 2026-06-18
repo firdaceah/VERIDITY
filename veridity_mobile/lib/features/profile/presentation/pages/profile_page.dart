@@ -321,27 +321,29 @@ class ProfilState extends State<Profil> {
                       ],
                     ),
                   ],
-                  const SizedBox(height: 18),
-                  _buildMenuTile(
-                    icon: Icons.settings_outlined,
-                    title: lang.text("Settings", "Pengaturan"),
-                    subtitle: lang.text(
-                      "Language, privacy, and data deletion",
-                      "Bahasa, privasi, dan penghapusan data",
+                  if (!_isEditing) ...[
+                    const SizedBox(height: 18),
+                    _buildMenuTile(
+                      icon: Icons.settings_outlined,
+                      title: lang.text("Settings", "Pengaturan"),
+                      subtitle: lang.text(
+                        "Language, privacy, and data deletion",
+                        "Bahasa, privasi, dan penghapusan data",
+                      ),
+                      onTap: _showSettingsSheet,
                     ),
-                    onTap: _showSettingsSheet,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildMenuTile(
-                    icon: Icons.logout,
-                    title: "Logout",
-                    subtitle: lang.text(
-                      "Sign out from this device",
-                      "Keluar dari perangkat ini",
+                    const SizedBox(height: 12),
+                    _buildMenuTile(
+                      icon: Icons.logout,
+                      title: "Logout",
+                      subtitle: lang.text(
+                        "Sign out from this device",
+                        "Keluar dari perangkat ini",
+                      ),
+                      danger: true,
+                      onTap: _logout,
                     ),
-                    danger: true,
-                    onTap: _logout,
-                  ),
+                  ],
                 ],
               ),
             ),

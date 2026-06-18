@@ -9,6 +9,53 @@ use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
+test('authenticated user can cancel analysis with english message by default', function () {
+    config()->set('cache.default', 'array');
+    config()->set('services.veridity.python_engine_url', 'http://python-engine.test');
+    Http::fake([
+        'http://python-engine.test/cancel-analysis' => Http::response([
+            'status' => 'success',
+            'message' => 'Analysis cancellation requested.',
+        ]),
+    ]);
+
+    $user = User::factory()->create();
+
+    $this
+        ->actingAs($user, 'sanctum')
+        ->postJson('/api/audits/cancel', [
+            'analysis_token' => 'analysis-token-123',
+        ])
+        ->assertOk()
+        ->assertJsonPath('status', 'success')
+        ->assertJsonPath('message', 'Analysis cancellation requested.');
+
+    Http::assertSent(fn ($request) => $request->url() === 'http://python-engine.test/cancel-analysis');
+});
+
+test('authenticated user can cancel analysis with indonesian message', function () {
+    config()->set('cache.default', 'array');
+    config()->set('services.veridity.python_engine_url', 'http://python-engine.test');
+    Http::fake([
+        'http://python-engine.test/cancel-analysis' => Http::response([
+            'status' => 'success',
+            'message' => 'Permintaan pembatalan analisis diterima.',
+        ]),
+    ]);
+
+    $user = User::factory()->create();
+
+    $this
+        ->actingAs($user, 'sanctum')
+        ->postJson('/api/audits/cancel', [
+            'analysis_token' => 'analysis-token-456',
+            'language' => 'id',
+        ])
+        ->assertOk()
+        ->assertJsonPath('status', 'success')
+        ->assertJsonPath('message', 'Permintaan pembatalan analisis diterima.');
+});
+
 test('authenticated user can analyze a document through the audits endpoint using configured python engine url', function () {
     config()->set('services.veridity.python_engine_url', 'http://python-engine.test');
     Http::fake([

@@ -17,15 +17,15 @@ class HistoryState extends State<History> {
   final FocusNode _searchFocusNode = FocusNode();
   List<AuditEntity> _historyData = [];
   bool _isLoading = true;
-  String _activeFilter = 'Semua';
+  String _activeFilter = 'all';
 
   List<AuditEntity> get _filteredHistory {
     final query = _searchController.text.trim().toLowerCase();
     return _historyData.where((item) {
       final matchesFilter =
-          _activeFilter == 'Semua' ||
-          (_activeFilter == 'Foto' && item.isImage) ||
-          (_activeFilter == 'Dokumen' && item.isDocument);
+          _activeFilter == 'all' ||
+          (_activeFilter == 'photo' && item.isImage) ||
+          (_activeFilter == 'document' && item.isDocument);
       final matchesSearch =
           query.isEmpty ||
           item.fileName.toLowerCase().contains(query) ||
@@ -72,13 +72,22 @@ class HistoryState extends State<History> {
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Gagal mengambil riwayat analisis")),
+        SnackBar(
+          content: Text(
+            AppDependencies.language.text(
+              "Failed to load analysis history",
+              "Gagal mengambil riwayat analisis",
+            ),
+          ),
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
+
     return Scaffold(
       backgroundColor: const Color(0xFF111028),
       body: Stack(
@@ -94,16 +103,19 @@ class HistoryState extends State<History> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Riwayat Analisis",
-                    style: TextStyle(
+                  Text(
+                    lang.text("Analysis History", "Riwayat Analisis"),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    "${_historyData.length} file telah dianalisis",
+                    lang.text(
+                      "${_historyData.length} files analyzed",
+                      "${_historyData.length} file telah dianalisis",
+                    ),
                     style: const TextStyle(color: Colors.white70, fontSize: 15),
                   ),
                   const SizedBox(height: 25),
@@ -120,10 +132,10 @@ class HistoryState extends State<History> {
                       controller: _searchController,
                       focusNode: _searchFocusNode,
                       style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        icon: Icon(Icons.search, color: Colors.white54),
-                        hintText: "Cari riwayat...",
-                        hintStyle: TextStyle(color: Colors.white24),
+                      decoration: InputDecoration(
+                        icon: const Icon(Icons.search, color: Colors.white54),
+                        hintText: lang.text("Search history...", "Cari riwayat..."),
+                        hintStyle: const TextStyle(color: Colors.white24),
                         border: InputBorder.none,
                       ),
                     ),
@@ -135,9 +147,12 @@ class HistoryState extends State<History> {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      _buildFilterChip("Semua"),
-                      _buildFilterChip("Foto"),
-                      _buildFilterChip("Dokumen"),
+                      _buildFilterChip("all", lang.text("All", "Semua")),
+                      _buildFilterChip("photo", lang.text("Photo", "Foto")),
+                      _buildFilterChip(
+                        "document",
+                        lang.text("Document", "Dokumen"),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 30),

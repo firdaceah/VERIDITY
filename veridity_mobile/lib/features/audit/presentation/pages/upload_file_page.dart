@@ -1,7 +1,10 @@
+import 'dart:math';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/app_dependencies.dart';
+import '../../../../core/localization/app_language.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/widgets/analysis_loading_screen.dart';
 
@@ -15,7 +18,10 @@ class UploadFoto extends StatefulWidget {
 class _UploadFotoState extends State<UploadFoto> {
   PlatformFile? _selectedFile;
   bool _isLoading = false;
+  bool _isCancelling = false;
+  bool _cancelRequested = false;
   String? _errorMessage;
+  String? _analysisToken;
 
   bool get _hasSelectedFile =>
       _selectedFile?.bytes != null && _selectedFile!.bytes!.isNotEmpty;
@@ -25,27 +31,44 @@ class _UploadFotoState extends State<UploadFoto> {
     return extension == 'pdf';
   }
 
+  String get _languageCode =>
+      AppDependencies.language.value == AppLocale.id ? 'id' : 'en';
+
+  String _newAnalysisToken() {
+    final randomPart = Random.secure().nextInt(1 << 32);
+    return '${DateTime.now().microsecondsSinceEpoch}-$randomPart';
+  }
+
   bool get _isImage {
     final extension = _selectedFile?.extension?.toLowerCase();
     return ['jpg', 'jpeg', 'png'].contains(extension);
   }
 
   String _friendlyUploadError(String message) {
+    final lang = AppDependencies.language;
     final normalized = message.toLowerCase();
 
     if (normalized.contains('image failed to upload') ||
         normalized.contains('file failed to upload') ||
         normalized.contains('failed to upload')) {
       return _isDocument
-          ? 'Dokumen gagal diunggah. Pastikan file PDF tidak lebih dari 15MB dan berisi teks dokumen, bukan slide/presentasi yang diekspor menjadi PDF.'
-          : 'Foto gagal diunggah. Pastikan file JPG/JPEG/PNG tidak lebih dari 15MB. Jika ukuran sudah benar, coba kompres foto atau ulangi setelah server aktif.';
+          ? lang.text(
+              'Document upload failed. Make sure the PDF is under 15MB and contains text content, not slides/presentations exported as PDF.',
+              'Dokumen gagal diunggah. Pastikan file PDF tidak lebih dari 15MB dan berisi teks dokumen, bukan slide/presentasi yang diekspor menjadi PDF.',
+            )
+          : lang.text(
+              'Photo upload failed. Make sure the JPG/JPEG/PNG file is under 15MB. If the size is valid, try compressing the photo or retry after the server is active.',
+              'Foto gagal diunggah. Pastikan file JPG/JPEG/PNG tidak lebih dari 15MB. Jika ukuran sudah benar, coba kompres foto atau ulangi setelah server aktif.',
+            );
     }
 
-    if (normalized.contains(
-      'server mengirim respons yang tidak dapat dibaca',
-    )) {
+    if (normalized.contains('server mengirim respons yang tidak dapat dibaca') ||
+        normalized.contains('server sent a response')) {
       return _isDocument
-          ? 'Analisis dokumen belum dapat diproses. Gunakan PDF dokumen teks, bukan file presentasi/slide yang dijadikan PDF.'
+          ? lang.text(
+              'Document analysis cannot be processed yet. Use a text-based PDF document, not a presentation/slide file exported as PDF.',
+              'Analisis dokumen belum dapat diproses. Gunakan PDF dokumen teks, bukan file presentasi/slide yang dijadikan PDF.',
+            )
           : message;
     }
 
@@ -70,23 +93,44 @@ class _UploadFotoState extends State<UploadFoto> {
   }
 
   Future<void> _uploadAndAnalyze() async {
+    final lang = AppDependencies.language;
     final file = _selectedFile;
     if (file == null || file.bytes == null || file.bytes!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Pilih file terlebih dahulu")),
+        SnackBar(
+          content: Text(lang.text("Please choose a file first", "Pilih file terlebih dahulu")),
+        ),
       );
       return;
     }
 
-    setState(() => _isLoading = true);
+    final analysisToken = _newAnalysisToken();
+    setState(() {
+      _analysisToken = analysisToken;
+      _cancelRequested = false;
+      _isCancelling = false;
+      _isLoading = true;
+    });
 
     try {
-      final audit = await AppDependencies.auditRepository.uploadFile(file);
+      final audit = await AppDependencies.auditRepository.uploadFile(
+        file,
+        languageCode: _languageCode,
+        analysisToken: analysisToken,
+      );
       if (!mounted) {
         return;
       }
+      if (_cancelRequested || _analysisToken != analysisToken) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Analisis selesai: ${audit.summaryLabel}")),
+        SnackBar(
+          content: Text(
+            lang.text("Analysis complete: ", "Analisis selesai: ") +
+                lang.auditLabel(audit.summaryLabel),
+          ),
+        ),
       );
       Navigator.pushReplacementNamed(
         context,
@@ -95,6 +139,9 @@ class _UploadFotoState extends State<UploadFoto> {
       );
     } on ApiException catch (e) {
       if (!mounted) {
+        return;
+      }
+      if (_cancelRequested || _analysisToken != analysisToken) {
         return;
       }
       final message = _friendlyUploadError(e.message);
@@ -106,24 +153,88 @@ class _UploadFotoState extends State<UploadFoto> {
       if (!mounted) {
         return;
       }
-      final message = _friendlyUploadError("Gagal mengunggah file: $e");
+      if (_cancelRequested || _analysisToken != analysisToken) {
+        return;
+      }
+      final message = _friendlyUploadError(
+        lang.text("Failed to upload file: $e", "Gagal mengunggah file: $e"),
+      );
       setState(() => _errorMessage = message);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
-      if (mounted) {
+      if (mounted && _analysisToken == analysisToken && !_cancelRequested) {
         setState(() => _isLoading = false);
       }
     }
   }
 
+  Future<void> _cancelAnalysis() async {
+    final lang = AppDependencies.language;
+    final token = _analysisToken;
+    if (token == null || token.isEmpty || _isCancelling) {
+      return;
+    }
+
+    setState(() {
+      _isCancelling = true;
+      _cancelRequested = true;
+    });
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await AppDependencies.auditRepository.cancelAnalysis(
+        analysisToken: token,
+        languageCode: _languageCode,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+        _isCancelling = false;
+        _analysisToken = null;
+      });
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            lang.text('Analysis cancelled.', 'Analisis dibatalkan.'),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+        _isCancelling = false;
+        _analysisToken = null;
+      });
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            lang.text(
+              'Cancellation requested, but the server response could not be confirmed.',
+              'Pembatalan diminta, tetapi respons server belum dapat dipastikan.',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
+
     if (_isLoading) {
       return AnalysisLoadingScreen(
         isDocument: _isDocument,
-        fileName: _selectedFile?.name ?? 'File analisis',
+        fileName: _selectedFile?.name ?? lang.text('Analysis file', 'File analisis'),
+        isCancelling: _isCancelling,
+        onCancel: _cancelAnalysis,
       );
     }
 
@@ -141,18 +252,21 @@ class _UploadFotoState extends State<UploadFoto> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(30, 0, 30, 28),
           children: [
-            const Text(
-              "Unggah File",
-              style: TextStyle(
+            Text(
+              lang.text("Upload File", "Unggah File"),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 40),
-            const Text(
-              "Format: JPG, JPEG, PNG, atau PDF dokumen teks. PDF dari PPT/slide atau hasil scan gambar belum didukung untuk analisis teks.",
-              style: TextStyle(
+            Text(
+              lang.text(
+                "Format: JPG, JPEG, PNG, or text-based PDF documents. PDFs exported from PPT/slides or scanned images are not supported for text analysis yet.",
+                "Format: JPG, JPEG, PNG, atau PDF dokumen teks. PDF dari PPT/slide atau hasil scan gambar belum didukung untuk analisis teks.",
+              ),
+              style: const TextStyle(
                 color: Colors.white60,
                 fontSize: 12,
                 height: 1.5,
@@ -211,7 +325,9 @@ class _UploadFotoState extends State<UploadFoto> {
                 ),
               ),
               child: Text(
-                _isLoading ? "Menganalisis..." : "Unggah & Analisis",
+                _isLoading
+                    ? lang.text("Analyzing...", "Menganalisis...")
+                    : lang.text("Upload & Analyze", "Unggah & Analisis"),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -226,21 +342,29 @@ class _UploadFotoState extends State<UploadFoto> {
   }
 
   Widget _buildEmptyPicker() {
-    return const Column(
+    final lang = AppDependencies.language;
+
+    return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.cloud_upload_outlined, color: Color(0xFF39D2DD), size: 64),
-        SizedBox(height: 15),
+        const Icon(Icons.cloud_upload_outlined, color: Color(0xFF39D2DD), size: 64),
+        const SizedBox(height: 15),
         Text(
-          "Ketuk untuk memilih foto atau dokumen",
+          lang.text(
+            "Tap to choose a photo or document",
+            "Ketuk untuk memilih foto atau dokumen",
+          ),
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Text(
-          "PNG, JPG, JPEG, PDF dokumen teks (max. 15MB)",
+          lang.text(
+            "PNG, JPG, JPEG, text-based PDF (max. 15MB)",
+            "PNG, JPG, JPEG, PDF dokumen teks (max. 15MB)",
+          ),
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white54, fontSize: 12),
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
         ),
       ],
     );
