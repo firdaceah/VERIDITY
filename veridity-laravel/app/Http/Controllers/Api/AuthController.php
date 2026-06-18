@@ -128,8 +128,10 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'photo' => ['nullable', 'file', 'max:4096'],
         ]);
 
+        unset($validated['photo']);
         $user->update($validated);
 
         if ($request->hasFile('photo')) {

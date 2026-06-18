@@ -3,6 +3,6 @@ class ApiConfig {
 
   static const String baseUrl = String.fromEnvironment(
     'VERIDITY_API_BASE_URL',
-    defaultValue: 'http://54.169.169.253/api',
+    defaultValue: 'https://veridity-laravel.onrender.com/api',
   );
 }

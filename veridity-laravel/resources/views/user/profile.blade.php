@@ -39,6 +39,7 @@
                     <label class="block text-xs uppercase tracking-wider text-slate-500 font-bold mb-2">Foto Profil</label>
                     <input type="file" name="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png"
                         class="block w-full text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-bold file:text-white">
+                    <p class="mt-2 text-xs text-slate-500">Maksimal 4 MB. Format JPG, JPEG, atau PNG.</p>
                 </div>
             </div>
 

@@ -25,6 +25,7 @@ class ForensicResource extends JsonResource
             'file_name' => $this->image_name,
             'file_extension' => $extension,
             'file_type' => $isDocument ? 'document' : 'image',
+            'storage_path' => $this->s3_path,
             'file_url' => $this->s3_path ? route('files.public', ['path' => $this->s3_path]) : null,
             'image_url' => $this->s3_path ? route('files.public', ['path' => $this->s3_path]) : null,
             'ela_image_url' => isset($results['ela']['image_url'])

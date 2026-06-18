@@ -1,3 +1,5 @@
+import '../../../../core/config/api_config.dart';
+
 class AuditEntity {
   const AuditEntity({
     required this.id,
@@ -7,6 +9,7 @@ class AuditEntity {
     required this.finalScore,
     required this.createdAt,
     this.fileUrl,
+    this.storagePath,
     this.elaImageUrl,
     this.noiseImageUrl,
     required this.metadataDetails,
@@ -20,6 +23,7 @@ class AuditEntity {
   final double finalScore;
   final String createdAt;
   final String? fileUrl;
+  final String? storagePath;
   final String? elaImageUrl;
   final String? noiseImageUrl;
   final Map<String, dynamic> metadataDetails;
@@ -126,6 +130,12 @@ class AuditEntity {
         json['color']?.toString() ??
         (isDeepfake ? 'danger' : 'success');
 
+    final storagePath = json['storage_path']?.toString();
+    final fileUrl =
+        _nonEmpty(json['file_url']) ??
+        _nonEmpty(json['image_url']) ??
+        _publicFileUrl(storagePath);
+
     return AuditEntity(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       fileName:
@@ -143,7 +153,8 @@ class AuditEntity {
           ) ??
           0,
       createdAt: json['created_at']?.toString() ?? '',
-      fileUrl: json['file_url']?.toString() ?? json['image_url']?.toString(),
+      fileUrl: fileUrl,
+      storagePath: storagePath,
       elaImageUrl: json['ela_image_url']?.toString(),
       noiseImageUrl: json['noise_image_url']?.toString(),
       metadataDetails: json['metadata_details'] is Map<String, dynamic>
@@ -153,6 +164,27 @@ class AuditEntity {
           ? json['final_result'] as Map<String, dynamic>
           : <String, dynamic>{},
     );
+  }
+
+  static String? _publicFileUrl(String? path) {
+    if (path == null || path.isEmpty) {
+      return null;
+    }
+
+    final apiBase = ApiConfig.baseUrl.endsWith('/api')
+        ? ApiConfig.baseUrl.substring(0, ApiConfig.baseUrl.length - 4)
+        : ApiConfig.baseUrl;
+    final normalizedBase = apiBase.endsWith('/')
+        ? apiBase.substring(0, apiBase.length - 1)
+        : apiBase;
+    final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+
+    return Uri.encodeFull('$normalizedBase/files/$normalizedPath');
+  }
+
+  static String? _nonEmpty(Object? value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
   }
 }
 

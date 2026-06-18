@@ -183,6 +183,15 @@ class ProfilState extends State<Profil> {
                         ),
                     ],
                   ),
+                  if (_isEditing)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 10),
+                      child: Text(
+                        "Foto profil maksimal 4 MB, format JPG, JPEG, atau PNG.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                    ),
                   if (_pendingPhoto != null)
                     const Padding(
                       padding: EdgeInsets.only(top: 10),
@@ -233,7 +242,7 @@ class ProfilState extends State<Profil> {
                           child: Text(
                             _isSaving
                                 ? "Menyimpan..."
-                                : (_isEditing ? "Simpan" : "Edit Data"),
+                                : (_isEditing ? "Simpan" : "Edit Profile"),
                             style: const TextStyle(color: Colors.white),
                           ),
                         ),

@@ -5,9 +5,14 @@ import '../../../../app/app_dependencies.dart';
 import '../../domain/entities/audit_entity.dart';
 
 class AuditDetail extends StatefulWidget {
-  const AuditDetail({super.key, required this.audit});
+  const AuditDetail({
+    super.key,
+    required this.audit,
+    this.returnToHistory = false,
+  });
 
   final AuditEntity audit;
+  final bool returnToHistory;
 
   @override
   State<AuditDetail> createState() => _AuditDetailState();
@@ -31,54 +36,79 @@ class _AuditDetailState extends State<AuditDetail> {
     };
   }
 
+  void _handleBack() {
+    if (widget.returnToHistory) {
+      Navigator.pushReplacementNamed(
+        context,
+        '/History',
+        arguments: AppDependencies.sessionStore.session?.asRouteArguments(),
+      );
+      return;
+    }
+
+    Navigator.pop(context, true);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF111028),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          "Detail Analisis",
-          style: TextStyle(color: Colors.white),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          _handleBack();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF111028),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new),
+            onPressed: _handleBack,
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
+          title: const Text(
+            "Detail Analisis",
+            style: TextStyle(color: Colors.white),
+          ),
         ),
-      ),
-      body: FutureBuilder<AuditEntity>(
-        future: _futureAudit,
-        initialData: widget.audit,
-        builder: (context, snapshot) {
-          final audit = snapshot.data ?? widget.audit;
-          final statusColor = _statusColor(audit.summaryColor);
+        body: FutureBuilder<AuditEntity>(
+          future: _futureAudit,
+          initialData: widget.audit,
+          builder: (context, snapshot) {
+            final audit = snapshot.data ?? widget.audit;
+            final statusColor = _statusColor(audit.summaryColor);
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
-            children: [
-              _HeaderCard(audit: audit, statusColor: statusColor),
-              const SizedBox(height: 18),
-              _PreviewCard(audit: audit),
-              const SizedBox(height: 18),
-              if (audit.isDocument)
-                _DocumentDetailCard(audit: audit)
-              else
-                _ImageDetailCard(audit: audit),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () => _downloadReport(context, audit),
-                icon: const Icon(Icons.picture_as_pdf_outlined),
-                label: const Text("Download PDF"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4338CA),
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 52),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
+              children: [
+                _HeaderCard(audit: audit, statusColor: statusColor),
+                const SizedBox(height: 18),
+                _PreviewCard(audit: audit),
+                const SizedBox(height: 18),
+                if (audit.isDocument)
+                  _DocumentDetailCard(audit: audit)
+                else
+                  _ImageDetailCard(audit: audit),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => _downloadReport(context, audit),
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text("Download PDF"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4338CA),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 52),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -205,6 +235,12 @@ class _PreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageUrls = [
+      audit.fileUrl,
+      audit.elaImageUrl,
+      audit.noiseImageUrl,
+    ].whereType<String>().where((url) => url.isNotEmpty).toList();
+
     return Container(
       height: audit.isImage ? 260 : 180,
       decoration: BoxDecoration(
@@ -213,16 +249,8 @@ class _PreviewCard extends StatelessWidget {
         border: Border.all(color: Colors.white10),
       ),
       clipBehavior: Clip.antiAlias,
-      child: audit.isImage && audit.fileUrl != null
-          ? Image.network(
-              audit.fileUrl!,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => const Icon(
-                Icons.broken_image,
-                color: Colors.white54,
-                size: 54,
-              ),
-            )
+      child: audit.isImage && imageUrls.isNotEmpty
+          ? _NetworkImageFallback(urls: imageUrls)
           : Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -245,6 +273,62 @@ class _PreviewCard extends StatelessWidget {
                 ),
               ],
             ),
+    );
+  }
+}
+
+class _NetworkImageFallback extends StatefulWidget {
+  const _NetworkImageFallback({required this.urls});
+
+  final List<String> urls;
+
+  @override
+  State<_NetworkImageFallback> createState() => _NetworkImageFallbackState();
+}
+
+class _NetworkImageFallbackState extends State<_NetworkImageFallback> {
+  int _index = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = widget.urls[_index];
+
+    return Image.network(
+      url,
+      width: double.infinity,
+      fit: BoxFit.contain,
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) {
+          return child;
+        }
+        return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF39D2DD)),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        if (_index < widget.urls.length - 1) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() => _index += 1);
+            }
+          });
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF39D2DD)),
+          );
+        }
+
+        return const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.broken_image, color: Colors.white54, size: 54),
+            SizedBox(height: 10),
+            Text(
+              'Gambar tidak tersedia',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ],
+        );
+      },
     );
   }
 }

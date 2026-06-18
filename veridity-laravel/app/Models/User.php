@@ -65,6 +65,6 @@ class User extends Authenticatable
             return null;
         }
 
-        return asset('storage/'.$this->profile_photo_path);
+        return route('files.public', ['path' => $this->profile_photo_path]);
     }
 }

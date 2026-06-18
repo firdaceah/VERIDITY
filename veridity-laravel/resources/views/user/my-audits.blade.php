@@ -52,12 +52,22 @@
         {{-- ========================================================================= --}}
         <div x-show="activeTab === 'images'" x-transition:enter="transition ease-out duration-300" class="grid grid-cols-1 md:grid-cols-3 gap-8">
             @forelse($imageAudits as $audit)
+                @php
+                    $auditFileExists = $audit->s3_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($audit->s3_path);
+                @endphp
                 <div x-show="'{{ strtolower($audit->image_name.' '.($audit->final_result['summary_label'] ?? '')) }}'.includes(query.toLowerCase())" class="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden group hover:border-blue-500/50 transition-all duration-300 shadow-xl flex flex-col justify-between">
                     <div>
                         <div class="aspect-video bg-slate-950 relative overflow-hidden border-b border-slate-800/40">
-                            <img src="{{ route('files.public', ['path' => $audit->s3_path]) }}"
-                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                alt="{{ $audit->image_name }}">
+                            @if ($auditFileExists)
+                                <img src="{{ route('files.public', ['path' => $audit->s3_path]) }}"
+                                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    alt="{{ $audit->image_name }}">
+                            @else
+                                <div class="w-full h-full flex flex-col items-center justify-center gap-3 text-slate-500">
+                                    <i class="fa-regular fa-image text-4xl"></i>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider">File gambar tidak tersedia</span>
+                                </div>
+                            @endif
 
                             <div class="absolute top-4 right-4">
                                 <span class="px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider shadow-2xl text-white

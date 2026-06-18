@@ -37,7 +37,13 @@ class AppRoutes {
       help: (context) => Help(userData: _mapArguments(context)),
       profile: (context) => Profil(userData: _mapArguments(context)),
       upload: (context) => const UploadFoto(),
-      auditDetail: (context) => AuditDetail(audit: _auditArgument(context)),
+      auditDetail: (context) {
+        final args = _auditDetailArguments(context);
+        return AuditDetail(
+          audit: args.audit,
+          returnToHistory: args.returnToHistory,
+        );
+      },
     };
   }
 
@@ -45,7 +51,30 @@ class AppRoutes {
     return ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
   }
 
-  static AuditEntity _auditArgument(BuildContext context) {
-    return ModalRoute.of(context)?.settings.arguments as AuditEntity;
+  static _AuditDetailArguments _auditDetailArguments(BuildContext context) {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+
+    if (arguments is AuditEntity) {
+      return _AuditDetailArguments(audit: arguments);
+    }
+
+    if (arguments is Map) {
+      return _AuditDetailArguments(
+        audit: arguments['audit'] as AuditEntity,
+        returnToHistory: arguments['returnToHistory'] == true,
+      );
+    }
+
+    throw ArgumentError('Audit detail membutuhkan data audit.');
   }
+}
+
+class _AuditDetailArguments {
+  const _AuditDetailArguments({
+    required this.audit,
+    this.returnToHistory = false,
+  });
+
+  final AuditEntity audit;
+  final bool returnToHistory;
 }

@@ -86,7 +86,11 @@ class _UploadFotoState extends State<UploadFoto> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Analisis selesai: ${audit.summaryLabel}")),
       );
-      Navigator.pushReplacementNamed(context, '/AuditDetail', arguments: audit);
+      Navigator.pushReplacementNamed(
+        context,
+        '/AuditDetail',
+        arguments: {'audit': audit, 'returnToHistory': true},
+      );
     } on ApiException catch (e) {
       if (!mounted) {
         return;

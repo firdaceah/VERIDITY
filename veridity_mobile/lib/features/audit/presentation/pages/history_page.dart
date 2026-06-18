@@ -14,6 +14,7 @@ class History extends StatefulWidget {
 class HistoryState extends State<History> {
   final int _selectedIndex = 1; // Index 1 untuk History
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   List<AuditEntity> _historyData = [];
   bool _isLoading = true;
   String _activeFilter = 'Semua';
@@ -42,12 +43,18 @@ class HistoryState extends State<History> {
 
   @override
   void dispose() {
+    _searchFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
   // Fungsi untuk mengambil data dari kolom forensic_analyses di Laravel
-  Future<void> _fetchHistory() async {
+  Future<void> _fetchHistory({bool showLoading = false}) async {
+    _dismissSearchKeyboard();
+    if (showLoading && mounted) {
+      setState(() => _isLoading = true);
+    }
+
     try {
       final history = await AppDependencies.auditRepository.history();
       if (!mounted) {
@@ -111,6 +118,7 @@ class HistoryState extends State<History> {
                     ),
                     child: TextField(
                       controller: _searchController,
+                      focusNode: _searchFocusNode,
                       style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
                         icon: Icon(Icons.search, color: Colors.white54),
@@ -135,9 +143,26 @@ class HistoryState extends State<History> {
                   const SizedBox(height: 30),
 
                   _isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF39D2DD),
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 34),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(
+                                  color: Color(0xFF39D2DD),
+                                ),
+                                SizedBox(height: 14),
+                                Text(
+                                  "Proses mengambil data riwayat...",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         )
                       : _filteredHistory.isEmpty
@@ -259,10 +284,24 @@ class HistoryState extends State<History> {
     ).showSnackBar(const SnackBar(content: Text("Riwayat berhasil dihapus")));
   }
 
+  Future<void> _openDetail(AuditEntity item) async {
+    _dismissSearchKeyboard();
+    await Navigator.pushNamed(context, '/AuditDetail', arguments: item);
+    if (!mounted) {
+      return;
+    }
+    _dismissSearchKeyboard();
+    await _fetchHistory(showLoading: true);
+  }
+
+  void _dismissSearchKeyboard() {
+    _searchFocusNode.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   Widget _buildHistoryItem(AuditEntity item, String date) {
     return InkWell(
-      onTap: () =>
-          Navigator.pushNamed(context, '/AuditDetail', arguments: item),
+      onTap: () => _openDetail(item),
       borderRadius: BorderRadius.circular(15),
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
