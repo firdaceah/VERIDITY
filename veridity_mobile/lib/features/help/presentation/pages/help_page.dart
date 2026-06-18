@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/config/api_config.dart';
+import '../../../../core/utils/legal_link_launcher.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 
 class Help extends StatefulWidget {
@@ -44,6 +46,19 @@ class HelpState extends State<Help> {
                     style: TextStyle(color: Colors.white60),
                   ),
                   const SizedBox(height: 25),
+                  _legalLinkCard(
+                    icon: Icons.privacy_tip_outlined,
+                    title: "Kebijakan Privasi",
+                    subtitle: "Lihat cara VERIDITY mengelola data pengguna.",
+                    uri: ApiConfig.privacyPolicyUri,
+                  ),
+                  _legalLinkCard(
+                    icon: Icons.delete_outline,
+                    title: "Penghapusan Akun & Data",
+                    subtitle: "Panduan meminta penghapusan akun atau data analisis.",
+                    uri: ApiConfig.accountDeletionUri,
+                  ),
+                  const SizedBox(height: 8),
                   _faq(
                     "Bagaimana cara analisis file?",
                     "Ketuk tombol tambah di navigasi bawah, pilih foto/PDF, cek preview, lalu tekan Unggah & Analisis.",
@@ -108,6 +123,61 @@ class HelpState extends State<Help> {
                 fontSize: 13,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _legalLinkCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Uri uri,
+  }) {
+    return InkWell(
+      onTap: () => LegalLinkLauncher.open(context, uri),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1D143E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFF39D2DD).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: const Color(0xFF39D2DD)),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.white60, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.open_in_new, color: Colors.white54, size: 18),
           ],
         ),
       ),

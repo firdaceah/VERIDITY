@@ -2,7 +2,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/app_dependencies.dart';
+import '../../../../core/config/api_config.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/utils/legal_link_launcher.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
 import '../../../../core/widgets/profile_avatar.dart';
 
@@ -269,6 +271,18 @@ class ProfilState extends State<Profil> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 18),
+                  _buildLegalLink(
+                    icon: Icons.privacy_tip_outlined,
+                    title: "Kebijakan Privasi",
+                    uri: ApiConfig.privacyPolicyUri,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildLegalLink(
+                    icon: Icons.delete_outline,
+                    title: "Penghapusan Akun & Data",
+                    uri: ApiConfig.accountDeletionUri,
+                  ),
                 ],
               ),
             ),
@@ -304,6 +318,42 @@ class ProfilState extends State<Profil> {
     }
 
     return ProfileAvatar(photoUrl: _photoUrl, radius: 60, onTap: _pickPhoto);
+  }
+
+  Widget _buildLegalLink({
+    required IconData icon,
+    required String title,
+    required Uri uri,
+  }) {
+    return InkWell(
+      onTap: () => LegalLinkLauncher.open(context, uri),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white10,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: const Color(0xFF39D2DD)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const Icon(Icons.open_in_new, color: Colors.white54, size: 18),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildDisplayField(String label, String value) {

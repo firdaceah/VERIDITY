@@ -58,6 +58,17 @@
                 </div>
             </div>
 
+            <label class="md:col-span-2 flex items-start gap-3 text-left text-xs text-slate-400 leading-relaxed">
+                <input type="checkbox" name="privacy_policy" required
+                    class="mt-1 h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500">
+                <span>
+                    Saya telah membaca dan menyetujui
+                    <a href="{{ route('privacy-policy') }}" target="_blank" rel="noopener"
+                        class="text-blue-400 font-bold hover:underline">Kebijakan Privasi</a>
+                    VERIDITY.
+                </span>
+            </label>
+
             <div class="md:col-span-2 mt-2">
                 <button type="submit"
                     class="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-xl font-bold transition shadow-lg shadow-blue-600/20">

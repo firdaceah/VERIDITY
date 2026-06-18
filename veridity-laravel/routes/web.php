@@ -16,6 +16,10 @@ Route::get('/login', function () {
     return view('auth.login');
 })->name('login');
 
+Route::view('/privacy-policy', 'legal.privacy-policy')->name('privacy-policy');
+Route::view('/account-deletion', 'legal.account-deletion')->name('account-deletion');
+Route::view('/data-deletion', 'legal.data-deletion')->name('data-deletion');
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/forgot-password', [AuthController::class, 'webForgotPassword'])->name('password.request');

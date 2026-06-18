@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/app_dependencies.dart';
+import '../../../../core/config/api_config.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/utils/legal_link_launcher.dart';
 import '../../../audit/presentation/pages/home_page.dart';
 
 class SignUp extends StatefulWidget {
@@ -20,8 +22,18 @@ class SignUpState extends State<SignUp> {
   bool _isObscure = true; // State untuk sembunyikan password
   bool _isObscureConfirm = true;
   bool _isLoading = false;
+  bool _acceptedPrivacyPolicy = false;
 
   Future<void> registerUser() async {
+    if (!_acceptedPrivacyPolicy) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Setujui Kebijakan Privasi terlebih dahulu."),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -132,19 +144,24 @@ class SignUpState extends State<SignUp> {
               },
             ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 22),
+            _buildPrivacyConsent(),
+            const SizedBox(height: 22),
             ElevatedButton(
-              onPressed: _isLoading ? null : registerUser,
+              onPressed: _isLoading || !_acceptedPrivacyPolicy
+                  ? null
+                  : registerUser,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4338CA),
+                disabledBackgroundColor: const Color(0xFF312E81),
                 minimumSize: const Size(double.infinity, 55),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: const Text(
-                "Daftar",
-                style: TextStyle(
+              child: Text(
+                _isLoading ? "Mendaftar..." : "Daftar",
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -172,6 +189,69 @@ class SignUpState extends State<SignUp> {
       child: Text(
         label,
         style: const TextStyle(color: Colors.white, fontSize: 15),
+      ),
+    );
+  }
+
+  Widget _buildPrivacyConsent() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 28,
+            height: 28,
+            child: Checkbox(
+              value: _acceptedPrivacyPolicy,
+              activeColor: const Color(0xFF39D2DD),
+              checkColor: const Color(0xFF111028),
+              side: const BorderSide(color: Colors.white54),
+              onChanged: (value) {
+                setState(() => _acceptedPrivacyPolicy = value ?? false);
+              },
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  height: 1.5,
+                ),
+                children: [
+                  const TextSpan(text: 'Saya telah membaca dan menyetujui '),
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: GestureDetector(
+                      onTap: () => LegalLinkLauncher.open(
+                        context,
+                        ApiConfig.privacyPolicyUri,
+                      ),
+                      child: const Text(
+                        'Kebijakan Privasi',
+                        style: TextStyle(
+                          color: Color(0xFF39D2DD),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const TextSpan(text: ' VERIDITY.'),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
