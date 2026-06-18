@@ -147,11 +147,17 @@ class HistoryState extends State<History> {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      _buildFilterChip("all", lang.text("All", "Semua")),
-                      _buildFilterChip("photo", lang.text("Photo", "Foto")),
                       _buildFilterChip(
-                        "document",
-                        lang.text("Document", "Dokumen"),
+                        value: "all",
+                        label: lang.text("All", "Semua"),
+                      ),
+                      _buildFilterChip(
+                        value: "photo",
+                        label: lang.text("Photo", "Foto"),
+                      ),
+                      _buildFilterChip(
+                        value: "document",
+                        label: lang.text("Document", "Dokumen"),
                       ),
                     ],
                   ),
@@ -208,10 +214,10 @@ class HistoryState extends State<History> {
     );
   }
 
-  Widget _buildFilterChip(String label) {
-    final isActive = _activeFilter == label;
+  Widget _buildFilterChip({required String value, required String label}) {
+    final isActive = _activeFilter == value;
     return InkWell(
-      onTap: () => setState(() => _activeFilter = label),
+      onTap: () => setState(() => _activeFilter = value),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
