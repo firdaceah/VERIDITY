@@ -97,7 +97,18 @@ class EvidenceStorage
 
     public function fileResponse(string $path)
     {
-        if ($this->usesSupabaseRest() || $this->diskName() !== 'public') {
+        if ($this->usesSupabaseRest()) {
+            $response = Http::withHeaders($this->supabaseHeaders())->get($this->supabaseObjectUrl($path));
+
+            abort_unless($response->successful(), 404);
+
+            return Response::make($response->body(), 200, [
+                'Content-Type' => $response->header('Content-Type') ?: 'application/octet-stream',
+                'Cache-Control' => 'public, max-age=604800',
+            ]);
+        }
+
+        if ($this->diskName() !== 'public') {
             return redirect()->away($this->publicUrl($path));
         }
 
