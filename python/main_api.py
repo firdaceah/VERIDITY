@@ -2,8 +2,6 @@ from fastapi import FastAPI, UploadFile, File, Form, Response, Request
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from analyze_all import run_full_investigation_quiet
-from analyze_document import run_document_analysis
-from analysis.document_pdf_utils import generate_annotated_pdf, extract_any_document
 import base64
 import json
 import os
@@ -100,6 +98,8 @@ async def analyze_document_endpoint(
         if is_cancelled_token(analysis_token):
             return JSONResponse(status_code=499, content=cancelled_response(language))
 
+        from analyze_document import run_document_analysis
+
         report = await run_in_threadpool(
             run_document_analysis,
             file_bytes,
@@ -189,6 +189,8 @@ async def generate_pdf_report_endpoint(
         classification_map = json.loads(classification_map_str)
         document_metrics = json.loads(document_metrics_str)
         pdf_bytes = await file.read()
+
+        from analysis.document_pdf_utils import generate_annotated_pdf
         
         # Memanggil utilitas eksternal yang sudah diperbaiki
         annotated_pdf_stream = generate_annotated_pdf(

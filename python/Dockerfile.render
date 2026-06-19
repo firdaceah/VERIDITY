@@ -3,8 +3,8 @@ FROM python:3.11-slim
 WORKDIR /app
 
 ENV HF_HOME=/app/.cache/huggingface
-ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
 ENV NLTK_DATA=/app/nltk_data
+ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -28,4 +28,4 @@ RUN python -c "import nltk; nltk.download('punkt', download_dir='/app/nltk_data'
 
 EXPOSE 10000
 
-CMD ["sh", "-c", "uvicorn main_api:app --host 0.0.0.0 --port ${PORT:-10000}"]
+CMD ["sh", "-c", "exec python -m uvicorn main_api:app --host 0.0.0.0 --port ${PORT:-10000}"]
