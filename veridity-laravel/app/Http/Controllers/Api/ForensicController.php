@@ -882,13 +882,11 @@ class ForensicController extends Controller
             if ($ganScore > 0.5 || $pythonVerdict === 'DEEPFAKE / AI GENERATED') {
                 $statusLabel = $language === 'id' ? 'SANGAT BERBAHAYA (DEEPFAKE AI)' : 'HIGH RISK (AI DEEPFAKE)';
                 $statusColor = 'danger';
-            } elseif ($elaScore <= 5 && $ganScore <= 0.4) {
-                $statusLabel = $language === 'id' ? 'FOTO ASLI / JEPRETAN MURNI' : 'AUTHENTIC PHOTO / ORIGINAL CAPTURE';
-                $statusColor = 'success';
             } elseif ($finalScore < 45 || $elaScore > 45 || $ganScore > 0.85 || $pythonVerdict === 'MANIPULATED') {
                 $statusLabel = $language === 'id' ? 'SANGAT BERBAHAYA' : 'HIGH RISK';
                 $statusColor = 'danger';
-            } elseif ($elaScore > 15
+            } elseif ($finalScore < 80
+                || $elaScore > 15
                 || $ganScore > 0.4
                 || ($isNoiseInconsistent && $elaScore > 8.0)
                 || $isMetaSuspicious) {

@@ -22,6 +22,8 @@ def perform_ela(image_path, quality=95, error_scale=10, overlay_opacity=0.5):
 
         scale = 255.0 / max_diff * (error_scale / 10.0)
         ela_img = ImageEnhance.Brightness(diff).enhance(scale)
+        ela_img = ImageOps.autocontrast(ela_img, cutoff=0.2)
+        ela_img = ImageEnhance.Contrast(ela_img).enhance(1.35)
         ela_overlay = Image.blend(original, ela_img.convert("RGB"), alpha=overlay_opacity)
 
         diff_np = np.asarray(diff, dtype=np.float32)

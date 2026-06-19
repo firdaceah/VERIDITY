@@ -20,15 +20,11 @@ def _sentences(text):
         return [part.strip() for part in re.split(r"(?<=[.!?])\s+", text) if part.strip()]
 
 def _document_sentences(text):
-    sentences = [
+    return [
         sentence
         for sentence in _sentences(text)
         if not _is_administrative_sentence(sentence)
     ]
-    max_sentences = int(os.environ.get("VERIDITY_DOCUMENT_MAX_SENTENCES", "24"))
-    if max_sentences > 0:
-        sentences = sentences[:max_sentences]
-    return sentences
 
 def _empty_counts():
     return {
@@ -162,10 +158,6 @@ def _classify_text_with_hf(text, threshold):
 def classify_text_hf(text, threshold=0.8):
     """
     Splits text into sentences and classifies each sentence.
-    Default engine uses the original roberta-base-openai-detector pipeline.
-    Set VERIDITY_DOCUMENT_ENGINE=lightweight only when the server cannot load Hugging Face.
+    Uses the original roberta-base-openai-detector pipeline.
     """
-    engine = os.environ.get("VERIDITY_DOCUMENT_ENGINE", "hf").strip().lower()
-    if engine == "hf":
-        return _classify_text_with_hf(text, threshold)
-    return _classify_text_lightweight(text)
+    return _classify_text_with_hf(text, threshold)

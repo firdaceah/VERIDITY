@@ -67,7 +67,7 @@ def run_full_investigation(image_path, output_dir, language="en", is_cancelled=N
 
         ela_filename = f"ela_{time_suffix}.jpg"
         ela_path = os.path.join(output_dir, ela_filename)
-        ela_img.save(ela_path, "JPEG")
+        ela_img.save(ela_path, "JPEG", quality=95)
 
         # --- 3. DEEPFAKE/AI DETECTION ---
         ai_results = detect_gan_fingerprint(image_path)
