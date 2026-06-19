@@ -83,8 +83,8 @@ def run_full_investigation(image_path, output_dir, language="en", is_cancelled=N
         noise_results = generate_noise_map(
             image_path, 
             sigma=2.0, 
-            ela_anomaly_score=0.0, 
-            is_deepfake_positive=False
+            ela_anomaly_score=ela_anomaly_score,
+            is_deepfake_positive=is_deepfake_positive
         )
         noise_filename = f"noise_{time_suffix}.png"
         
@@ -104,14 +104,34 @@ def run_full_investigation(image_path, output_dir, language="en", is_cancelled=N
         if is_cancelled():
             return _cancelled(language)
 
-        # --- 5. RUMUS HARMONISASI BOBOT MATEMATIS SEIMBANG (30% + 30% + 20% + 20%) ---
-        final_score = (ela_auth_score * 0.3) + (noise_auth_score * 0.3) + (meta_auth_score * 0.2) + (ai_auth_score * 0.2)
-        
-        # Penentuan vonis murni berdasarkan ambang batas kumulatif matematika
+        # --- 5. RUMUS HARMONISASI BOBOT FORENSIK ---
+        # ELA dan metadata diberi porsi lebih besar karena keduanya lebih kuat
+        # untuk mendeteksi jejak edit lokal dan riwayat pemrosesan file.
+        final_score = (
+            (ela_auth_score * 0.35)
+            + (noise_auth_score * 0.25)
+            + (meta_auth_score * 0.25)
+            + (ai_auth_score * 0.15)
+        )
+
+        noise_warning_keys = noise_results.get('warning_keys') or []
+        is_metadata_suspicious = meta_auth_score < 85 or meta_report['summary']['verdict'] != "KAMERA FISIK REAL (OTENTIK)"
+        has_noise_warning = bool(noise_warning_keys) or noise_auth_score < 85
+        has_medium_signal = (
+            final_score < 80
+            or ela_anomaly_score > 8
+            or gan_score > 0.25
+            or is_metadata_suspicious
+            or has_noise_warning
+        )
+
+        # Penentuan vonis dibuat konservatif: aman hanya jika semua sinyal utama bersih.
         if is_deepfake_positive:
             verdict = "DEEPFAKE / AI GENERATED"
-        elif final_score < 65 or meta_report['summary']['verdict'] == "REKAYASA DIGITAL / EDITING" or ela_anomaly_score > 30:
+        elif final_score < 45 or ela_anomaly_score > 45 or gan_score > 0.85 or meta_report['summary']['verdict'] == "REKAYASA DIGITAL / EDITING":
             verdict = "MANIPULATED"
+        elif has_medium_signal:
+            verdict = "SUSPICIOUS"
         else:
             verdict = "AUTHENTIC"
 
@@ -122,6 +142,9 @@ def run_full_investigation(image_path, output_dir, language="en", is_cancelled=N
         elif verdict == "MANIPULATED":
             meta_report['summary']['verdict'] = "REKAYASA DIGITAL / EDITING"
             meta_report['summary']['verdict_key'] = "metadata_digital_editing"
+        elif verdict == "SUSPICIOUS":
+            meta_report['summary']['verdict'] = "TERINDIKASI EDITING (MENCURIGAKAN)"
+            meta_report['summary']['verdict_key'] = "metadata_suspicious_editing"
         else:
             meta_report['summary']['verdict'] = "KAMERA FISIK REAL (OTENTIK)"
             meta_report['summary']['verdict_key'] = "metadata_authentic_camera"
@@ -135,14 +158,18 @@ def run_full_investigation(image_path, output_dir, language="en", is_cancelled=N
                 "metadata": meta_report,
                 "ela": {
                     "interpretation": report_forensic['interpretation'],
+                    "interpretation_key": report_forensic.get('interpretation_key'),
                     "image_url": ela_filename,
                     "metrics": ela_metrics
                 },
                 "noise": {
                     "interpretation": noise_results.get('interpretation', 'Normal'),
                     "warnings": noise_results.get('warnings', []),
+                    "warning_keys": noise_results.get('warning_keys', []),
                     "image_url": noise_filename,
                     "researcher_note": noise_results.get('researcher_note'),
+                    "researcher_note_key": noise_results.get('researcher_note_key'),
+                    "interpretation_key": noise_results.get('interpretation_key'),
                     "metrics": noise_results.get('metrics')
                 },
                 "ai_detection": ai_results

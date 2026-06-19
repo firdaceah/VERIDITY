@@ -849,24 +849,42 @@ class ForensicController extends Controller
             $ganScore = $result['results']['ai_detection']['metrics']['gan_score'] ?? 0;
             $metaVerdict = $result['results']['metadata']['summary']['verdict'] ?? 'UNKNOWN';
             $noiseInterpretation = $result['results']['noise']['interpretation'] ?? '';
+            $noiseWarningKeys = $result['results']['noise']['warning_keys'] ?? [];
+            $noiseWarnings = $result['results']['noise']['warnings'] ?? [];
+            $noiseAuthenticityScore = (float) ($result['results']['noise']['metrics']['noise_authenticity_score'] ?? 100);
+            $metaAuthenticityScore = (float) ($result['results']['metadata']['summary']['authenticity_score'] ?? 100);
             $finalScore = $result['final_score'] ?? 0;
 
-            $isNoiseInconsistent = str_contains($noiseInterpretation, 'tidak rata') || str_contains($noiseInterpretation, 'keanehan');
-            $isMetaManipulated = ($metaVerdict === 'REKAYASA DIGITAL / EDITING' || $metaVerdict === 'REKAYASA DIGITAL / GENERATOR AI (SANGAT BERBAHAYA)' || str_contains($metaVerdict, 'EDITING'));
+            $isNoiseInconsistent = ! empty($noiseWarningKeys)
+                || ! empty($noiseWarnings)
+                || $noiseAuthenticityScore < 85
+                || str_contains(strtolower($noiseInterpretation), 'tidak rata')
+                || str_contains(strtolower($noiseInterpretation), 'keanehan')
+                || str_contains(strtolower($noiseInterpretation), 'local variation');
+            $isMetaManipulated = ($metaVerdict === 'REKAYASA DIGITAL / EDITING'
+                || $metaVerdict === 'REKAYASA DIGITAL / GENERATOR AI (SANGAT BERBAHAYA)'
+                || str_contains(strtoupper($metaVerdict), 'EDITING'));
+            $isMetaSuspicious = $isMetaManipulated
+                || $metaAuthenticityScore < 85
+                || str_contains(strtoupper($metaVerdict), 'MENCURIGAKAN')
+                || str_contains(strtoupper($metaVerdict), 'SUSPICIOUS');
+            $pythonVerdict = strtoupper((string) ($result['verdict'] ?? ''));
 
             $statusLabel = $language === 'id' ? 'FOTO ASLI / JEPRETAN MURNI' : 'AUTHENTIC PHOTO / ORIGINAL CAPTURE';
             $statusColor = 'success';
 
-            if ($ganScore > 0.5 || ($result['verdict'] ?? '') === 'DEEPFAKE / AI GENERATED') {
+            if ($ganScore > 0.5 || $pythonVerdict === 'DEEPFAKE / AI GENERATED') {
                 $statusLabel = $language === 'id' ? 'SANGAT BERBAHAYA (DEEPFAKE AI)' : 'HIGH RISK (AI DEEPFAKE)';
                 $statusColor = 'danger';
-            } elseif ($elaScore <= 5.0 && $ganScore <= 0.4) {
-                $statusLabel = $language === 'id' ? 'FOTO ASLI / JEPRETAN MURNI' : 'AUTHENTIC PHOTO / ORIGINAL CAPTURE';
-                $statusColor = 'success';
-            } elseif ($finalScore < 45 || $elaScore > 45 || $ganScore > 0.85 || ($result['verdict'] ?? '') === 'MANIPULATED') {
+            } elseif ($finalScore < 45 || $elaScore > 45 || $ganScore > 0.85 || $pythonVerdict === 'MANIPULATED') {
                 $statusLabel = $language === 'id' ? 'SANGAT BERBAHAYA' : 'HIGH RISK';
                 $statusColor = 'danger';
-            } elseif ($elaScore > 15 || $ganScore > 0.4 || ($isNoiseInconsistent && $elaScore > 8.0) || $isMetaManipulated) {
+            } elseif ($pythonVerdict === 'SUSPICIOUS'
+                || $finalScore < 80
+                || $elaScore > 8
+                || $ganScore > 0.25
+                || $isNoiseInconsistent
+                || $isMetaSuspicious) {
                 $statusLabel = $language === 'id' ? 'MENCURIGAKAN (TERINDIKASI REKAYASA)' : 'SUSPICIOUS (MANIPULATION INDICATED)';
                 $statusColor = 'warning';
             }

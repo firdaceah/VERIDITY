@@ -345,22 +345,22 @@
                                     <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
                                         <p class="text-blue-400 font-bold">A. Integritas ELA</p>
                                         <p class="mt-1">Skor: {{ number_format($elaAuthScore, 2) }}%</p>
-                                        <p class="text-slate-600">Bobot(30%): {{ number_format($elaAuthScore * 0.3, 2) }}%</p>
+                                        <p class="text-slate-600">Bobot(35%): {{ number_format($elaAuthScore * 0.35, 2) }}%</p>
                                     </div>
                                     <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
                                         <p class="text-amber-400 font-bold">B. Kerapatan Noise</p>
                                         <p class="mt-1">Skor: {{ number_format($noiseAuthScore, 2) }}%</p>
-                                        <p class="text-slate-600">Bobot(30%): {{ number_format($noiseAuthScore * 0.3, 2) }}%</p>
+                                        <p class="text-slate-600">Bobot(25%): {{ number_format($noiseAuthScore * 0.25, 2) }}%</p>
                                     </div>
                                     <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
                                         <p class="text-emerald-400 font-bold">C. EXIF Metadata</p>
                                         <p class="mt-1">Skor: {{ number_format($metaScore, 2) }}%</p>
-                                        <p class="text-slate-600">Bobot(20%): {{ number_format($metaScore * 0.2, 2) }}%</p>
+                                        <p class="text-slate-600">Bobot(25%): {{ number_format($metaScore * 0.25, 2) }}%</p>
                                     </div>
                                     <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
                                         <p class="text-purple-400 font-bold">D. Spektral AI</p>
                                         <p class="mt-1">Skor: {{ number_format($aiAuthScore, 2) }}%</p>
-                                        <p class="text-slate-600">Bobot(20%): {{ number_format($aiAuthScore * 0.2, 2) }}%</p>
+                                        <p class="text-slate-600">Bobot(15%): {{ number_format($aiAuthScore * 0.15, 2) }}%</p>
                                     </div>
                                 </div>
 
@@ -386,7 +386,7 @@
                                 </div>
 
                                 <div class="pt-2 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs font-mono border-t border-slate-800/60">
-                                    <span class="text-slate-500">Formulasi Total: <span class="text-slate-600">(A * 0.3) + (B * 0.3) + (C * 0.2) + (D * 0.2)</span></span>
+                                    <span class="text-slate-500">Formulasi Total: <span class="text-slate-600">(A * 0.35) + (B * 0.25) + (C * 0.25) + (D * 0.15)</span></span>
                                     <span class="text-blue-400 font-bold text-sm">Skor Akhir Keaslian Citra: {{ number_format($analysis->final_result['full_report']['final_score'] ?? 0, 2) }}%</span>
                                 </div>
                             </div>
