@@ -56,6 +56,7 @@ class LoginState extends State<Login> {
 
   Future<void> loginUser() async {
     final lang = AppDependencies.language;
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _isLoading = true);
 
     try {
@@ -113,6 +114,7 @@ class LoginState extends State<Login> {
   }
 
   Future<void> _openForgotPassword() async {
+    FocusManager.instance.primaryFocus?.unfocus();
     await Navigator.push<void>(
       context,
       MaterialPageRoute(
@@ -130,9 +132,12 @@ class LoginState extends State<Login> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF111028),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 38, vertical: 60),
-        child: Column(
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 38, vertical: 60),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 30),
@@ -242,6 +247,7 @@ class LoginState extends State<Login> {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -255,6 +261,9 @@ class LoginState extends State<Login> {
       ),
       child: TextField(
         controller: controller,
+        textInputAction: TextInputAction.next,
+        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+        onSubmitted: (_) => FocusScope.of(context).nextFocus(),
         style: const TextStyle(
           color: Color(0xFF111827),
           fontWeight: FontWeight.w600,
@@ -282,6 +291,9 @@ class LoginState extends State<Login> {
       child: TextField(
         controller: controller,
         obscureText: _isObscure,
+        textInputAction: TextInputAction.done,
+        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+        onSubmitted: (_) => loginUser(),
         style: const TextStyle(
           color: Color(0xFF111827),
           fontWeight: FontWeight.w600,
@@ -358,6 +370,7 @@ class _ForgotPasswordFlowPageState extends State<ForgotPasswordFlowPage> {
 
   Future<void> _requestReset() async {
     final lang = AppDependencies.language;
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _requesting = true);
 
     try {
@@ -413,6 +426,7 @@ class _ForgotPasswordFlowPageState extends State<ForgotPasswordFlowPage> {
   Future<void> _resetPassword() async {
     final lang = AppDependencies.language;
     final token = _resetToken;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     if (token == null || token.isEmpty) {
       AppTopSnackBar.error(
@@ -485,9 +499,12 @@ class _ForgotPasswordFlowPageState extends State<ForgotPasswordFlowPage> {
         ),
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(30, 28, 30, 36),
-          children: [
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(30, 28, 30, 36),
+            children: [
             Text(
               _step == 0
                   ? lang.text('Enter your email', 'Masukkan email')
@@ -517,6 +534,8 @@ class _ForgotPasswordFlowPageState extends State<ForgotPasswordFlowPage> {
                 controller: _emailController,
                 hint: 'Email',
                 keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.done,
+                onSubmitted: _requestReset,
               ),
               const SizedBox(height: 18),
               _primaryButton(
@@ -533,6 +552,8 @@ class _ForgotPasswordFlowPageState extends State<ForgotPasswordFlowPage> {
                 obscureText: _passwordHidden,
                 onToggle: () =>
                     setState(() => _passwordHidden = !_passwordHidden),
+                textInputAction: TextInputAction.next,
+                onSubmitted: () => FocusScope.of(context).nextFocus(),
               ),
               const SizedBox(height: 14),
               _resetField(
@@ -541,6 +562,8 @@ class _ForgotPasswordFlowPageState extends State<ForgotPasswordFlowPage> {
                 obscureText: _confirmHidden,
                 onToggle: () =>
                     setState(() => _confirmHidden = !_confirmHidden),
+                textInputAction: TextInputAction.done,
+                onSubmitted: _resetPassword,
               ),
               const SizedBox(height: 18),
               _primaryButton(
@@ -555,7 +578,8 @@ class _ForgotPasswordFlowPageState extends State<ForgotPasswordFlowPage> {
                 child: Text(lang.text('Change email', 'Ganti email')),
               ),
             ],
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -599,6 +623,8 @@ class _ForgotPasswordFlowPageState extends State<ForgotPasswordFlowPage> {
     TextInputType? keyboardType,
     bool obscureText = false,
     VoidCallback? onToggle,
+    TextInputAction textInputAction = TextInputAction.next,
+    VoidCallback? onSubmitted,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -609,6 +635,9 @@ class _ForgotPasswordFlowPageState extends State<ForgotPasswordFlowPage> {
         controller: controller,
         keyboardType: keyboardType,
         obscureText: obscureText,
+        textInputAction: textInputAction,
+        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+        onSubmitted: (_) => onSubmitted?.call(),
         style: const TextStyle(
           color: Color(0xFF111827),
           fontWeight: FontWeight.w600,

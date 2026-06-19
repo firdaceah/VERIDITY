@@ -85,6 +85,7 @@ class ProfilState extends State<Profil> {
 
   Future<void> _saveProfile() async {
     final lang = AppDependencies.language;
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _isSaving = true);
 
     try {
@@ -192,8 +193,11 @@ class ProfilState extends State<Profil> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF111028),
-      body: Stack(
-        children: [
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: Stack(
+          children: [
           Positioned.fill(
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
@@ -325,6 +329,8 @@ class ProfilState extends State<Profil> {
                             onPressed: _isSaving
                                 ? null
                                 : () => setState(() {
+                                    FocusManager.instance.primaryFocus
+                                        ?.unfocus();
                                     _resetProfileForm();
                                     _isEditing = false;
                                   }),
@@ -368,8 +374,9 @@ class ProfilState extends State<Profil> {
               ),
             ),
           ),
-          AppBottomNav(activeIndex: _selectedIndex, userData: widget.userData),
-        ],
+            AppBottomNav(activeIndex: _selectedIndex, userData: widget.userData),
+          ],
+        ),
       ),
     );
   }
@@ -403,6 +410,7 @@ class ProfilState extends State<Profil> {
 
   Future<void> _showSettingsSheet() async {
     final lang = AppDependencies.language;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     await showModalBottomSheet<void>(
       context: context,
@@ -595,6 +603,17 @@ class ProfilState extends State<Profil> {
         controller: controller,
         enabled: _isEditing,
         obscureText: obscure,
+        textInputAction: onToggleObscure == null
+            ? TextInputAction.next
+            : TextInputAction.done,
+        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+        onSubmitted: (_) {
+          if (onToggleObscure == null) {
+            FocusScope.of(context).nextFocus();
+          } else {
+            FocusManager.instance.primaryFocus?.unfocus();
+          }
+        },
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: hint,

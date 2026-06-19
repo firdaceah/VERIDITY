@@ -129,12 +129,32 @@ class HistoryState extends State<History> {
                     child: TextField(
                       controller: _searchController,
                       focusNode: _searchFocusNode,
+                      textInputAction: TextInputAction.search,
+                      onTapOutside: (_) => _dismissSearchKeyboard(),
+                      onSubmitted: (_) => _dismissSearchKeyboard(),
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         icon: const Icon(Icons.search, color: Colors.white54),
                         hintText: lang.text("Search history...", "Cari riwayat..."),
                         hintStyle: const TextStyle(color: Colors.white24),
                         border: InputBorder.none,
+                        suffixIcon: _searchController.text.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: lang.text(
+                                  'Clear search',
+                                  'Hapus pencarian',
+                                ),
+                                onPressed: () {
+                                  _dismissSearchKeyboard();
+                                  _searchController.clear();
+                                },
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.white54,
+                                  size: 20,
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -221,7 +241,10 @@ class HistoryState extends State<History> {
   Widget _buildFilterChip({required String value, required String label}) {
     final isActive = _activeFilter == value;
     return InkWell(
-      onTap: () => setState(() => _activeFilter = value),
+      onTap: () {
+        _dismissSearchKeyboard();
+        setState(() => _activeFilter = value);
+      },
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),

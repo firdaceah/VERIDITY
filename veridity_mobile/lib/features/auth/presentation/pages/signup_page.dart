@@ -26,6 +26,7 @@ class SignUpState extends State<SignUp> {
 
   Future<void> registerUser() async {
     final lang = AppDependencies.language;
+    FocusManager.instance.primaryFocus?.unfocus();
     if (!_acceptedPrivacyPolicy) {
       AppTopSnackBar.error(
         context,
@@ -103,9 +104,12 @@ class SignUpState extends State<SignUp> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF111028),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
-        child: Column(
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
@@ -164,6 +168,7 @@ class SignUpState extends State<SignUp> {
                   _isObscureConfirm = !_isObscureConfirm;
                 });
               },
+              submitOnDone: true,
             ),
 
             const SizedBox(height: 22),
@@ -228,6 +233,7 @@ class SignUpState extends State<SignUp> {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -265,6 +271,7 @@ class SignUpState extends State<SignUp> {
               checkColor: const Color(0xFF111028),
               side: const BorderSide(color: Colors.white54),
               onChanged: (value) {
+                FocusManager.instance.primaryFocus?.unfocus();
                 setState(() => _acceptedPrivacyPolicy = value ?? false);
               },
             ),
@@ -321,6 +328,9 @@ class SignUpState extends State<SignUp> {
       ),
       child: TextField(
         controller: controller,
+        textInputAction: TextInputAction.next,
+        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+        onSubmitted: (_) => FocusScope.of(context).nextFocus(),
         style: const TextStyle(
           color: Color(0xFF111827),
           fontWeight: FontWeight.w600,
@@ -343,8 +353,9 @@ class SignUpState extends State<SignUp> {
     TextEditingController controller,
     String hint,
     bool obscure,
-    VoidCallback toggle,
-  ) {
+    VoidCallback toggle, {
+    bool submitOnDone = false,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -353,6 +364,16 @@ class SignUpState extends State<SignUp> {
       child: TextField(
         controller: controller,
         obscureText: obscure,
+        textInputAction:
+            submitOnDone ? TextInputAction.done : TextInputAction.next,
+        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+        onSubmitted: (_) {
+          if (submitOnDone) {
+            registerUser();
+          } else {
+            FocusScope.of(context).nextFocus();
+          }
+        },
         style: const TextStyle(
           color: Color(0xFF111827),
           fontWeight: FontWeight.w600,
