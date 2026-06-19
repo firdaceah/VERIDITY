@@ -218,18 +218,10 @@ Keterangan:
 - `I_compressed` adalah piksel gambar setelah dikompresi ulang.
 - `D` adalah nilai error kompresi setiap piksel.
 
-### Skor Anomali ELA Global
+### Skor Anomali ELA
 
 ```text
-ELA_global = mean(D) + 2 * std(D)
-```
-
-### Skor Tempelan Lokal
-
-```text
-LocalSpliceScore = fungsi robust dari blok ELA lokal
-
-ELA_anomaly = max(ELA_global, LocalSpliceScore)
+ELA_anomaly = mean(D) + 2 * std(D)
 ```
 
 ### Konversi Menjadi Skor Keaslian
@@ -240,9 +232,8 @@ A_ela = max(0, min(100, 100 - (ELA_anomaly * 3)))
 
 Interpretasi:
 
-- `ELA_global` kecil berarti kompresi umum lebih homogen.
-- `LocalSpliceScore` membantu membaca tempelan kecil yang dapat tenggelam dalam rata-rata global.
-- `ELA_anomaly` besar berarti ada perbedaan kompresi global atau lokal yang perlu diperiksa.
+- `ELA_anomaly` kecil berarti kompresi lebih homogen.
+- `ELA_anomaly` besar berarti ada area dengan perbedaan kompresi tinggi.
 - `A_ela` tinggi berarti gambar lebih konsisten menurut ELA.
 
 ---
@@ -253,10 +244,10 @@ Interpretasi:
 
 | Kondisi | Interpretasi |
 | --- | --- |
-| `ELA_anomaly <= 5` | Sangat rendah, mendukung foto asli jika sinyal lain bersih |
-| `ELA_anomaly > 8` | Sinyal awal, perlu dibandingkan dengan metode lain |
-| `ELA_anomaly > 15` | Mulai perlu dicurigai |
-| `ELA_anomaly > 45` | Python menganggap manipulasi |
+| `ELA_anomaly <= 5` | Sangat rendah, mendukung foto asli |
+| `ELA_anomaly > 8` dan noise tidak konsisten | Mulai perlu dicurigai |
+| `ELA_anomaly > 15` | Mencurigakan |
+| `ELA_anomaly > 30` | Python menganggap manipulasi |
 | `ELA_anomaly > 45` | Laravel memberi status sangat berbahaya |
 
 ### Threshold Mask Visual
@@ -423,10 +414,10 @@ A_metadata = 100
 
 ```text
 jika EXIF, kamera, software, dan timestamp tidak tersedia:
-    A_metadata = A_metadata - 10
+    A_metadata = A_metadata - 30
 
 jika ditemukan software editor:
-    A_metadata = A_metadata - 30
+    A_metadata = A_metadata - 20
 
 A_metadata = max(0, A_metadata)
 ```
@@ -441,7 +432,7 @@ A_metadata = max(0, A_metadata)
 
 **Catatan penting:**
 
-Metadata hilang tidak selalu berarti file palsu. WhatsApp, screenshot, media sosial, atau export ulang dapat menghapus metadata. Karena itu metadata hilang hanya diberi penalti ringan. Jejak software editor diberi penalti lebih besar karena lebih kuat menunjukkan proses edit/export.
+Metadata hilang tidak selalu berarti file palsu. WhatsApp, screenshot, media sosial, atau export ulang dapat menghapus metadata. Karena itu bobot metadata tidak dibuat paling besar.
 
 ---
 
@@ -627,17 +618,10 @@ maka hasil dapat dikategorikan AUTHENTIC.
 jika gan_score > 0.5:
     DEEPFAKE / AI GENERATED
 
-elif FinalScore < 45
+elif FinalScore < 65
      atau metadata = REKAYASA DIGITAL / EDITING
-     atau ELA_anomaly > 45:
+     atau ELA_anomaly > 30:
     MANIPULATED
-
-elif FinalScore < 80
-     atau ELA_anomaly > 15
-     atau gan_score > 0.4
-     atau metadata mencurigakan
-     atau noise warning kuat:
-    SUSPICIOUS
 
 else:
     AUTHENTIC
@@ -648,8 +632,7 @@ else:
 Karena beberapa indikator dianggap kritis:
 
 - `gan_score > 0.5` dapat menunjukkan deepfake walaupun skor lain tinggi.
-- `ELA_anomaly > 45` dapat menunjukkan area kompresi yang sangat tidak wajar.
-- `FinalScore < 80` atau indikator individual yang lebih kuat masuk kategori mencurigakan.
+- `ELA_anomaly > 30` dapat menunjukkan area kompresi yang sangat tidak wajar.
 - Metadata dengan verdict rekayasa digital menjadi tanda tambahan.
 
 Konsep ini disebut **hard rule override**, yaitu kondisi kritis dapat mengalahkan skor rata-rata.
@@ -665,17 +648,18 @@ jika gan_score > 0.5
 atau verdict Python = DEEPFAKE / AI GENERATED:
     SANGAT BERBAHAYA (DEEPFAKE AI)
 
+elif ELA_anomaly <= 5 dan gan_score <= 0.4:
+    FOTO ASLI / JEPRETAN MURNI
+
 elif FinalScore < 45
 atau ELA_anomaly > 45
 atau gan_score > 0.85
 atau verdict Python = MANIPULATED:
     SANGAT BERBAHAYA
 
-elif verdict Python = SUSPICIOUS
-atau FinalScore < 80
-atau ELA_anomaly > 15
+elif ELA_anomaly > 15
 atau gan_score > 0.4
-atau noise warning kuat
+atau noise tidak konsisten dan ELA_anomaly > 8
 atau metadata manipulatif:
     MENCURIGAKAN (TERINDIKASI REKAYASA)
 
@@ -1224,9 +1208,7 @@ tetapi juga menjelaskan alasan di balik label tersebut.
 ```text
 D(x, y) = |I_original(x, y) - I_compressed(x, y)|
 
-ELA_global = mean(D) + 2 * std(D)
-
-ELA_anomaly = max(ELA_global, LocalSpliceScore)
+ELA_anomaly = mean(D) + 2 * std(D)
 
 A_ela = max(0, min(100, 100 - (ELA_anomaly * 3)))
 
@@ -1274,19 +1256,18 @@ DocumentFinalScore = human_p
 | Parameter | Threshold | Fungsi |
 | --- | ---: | --- |
 | ELA mask pixel | `40` | Membuat mask visual ELA |
-| ELA aman kuat | `<= 5` | Mendukung foto asli, jika sinyal lain bersih |
-| ELA suspicious | `> 8` | Sinyal mencurigakan pada Python/Laravel |
-| ELA mencurigakan lama | `> 15` | Referensi heuristik menengah |
-| ELA manipulasi Python | `> 45` | Hard rule manipulasi |
+| ELA aman kuat | `<= 5` | Mendukung foto asli |
+| ELA + noise warning | `> 8` | Warning jika noise tidak konsisten |
+| ELA mencurigakan | `> 15` | Label warning Laravel |
+| ELA manipulasi Python | `> 30` | Hard rule manipulasi |
 | ELA sangat berbahaya | `> 45` | Label danger Laravel |
 | Noise terlalu rendah | `< 2.0` | Indikasi smoothing |
 | Noise tidak konsisten | `std > mean * 1.5` | Variasi antar blok tinggi |
-| GAN warning | `> 0.4` | Sinyal mencurigakan |
+| GAN warning | `> 0.4` | Mencurigakan |
 | GAN positif | `> 0.5` | Deepfake / AI generated |
 | GAN sangat tinggi | `> 0.7` | Likelihood sangat tinggi |
 | GAN danger Laravel | `> 0.85` | Sangat berbahaya |
-| Final score suspicious | `< 80` | Verdict suspicious |
-| Final score manipulasi Python | `< 45` | Verdict manipulated |
+| Final score manipulasi Python | `< 65` | Verdict manipulated |
 | Final score danger Laravel | `< 45` | Label sangat berbahaya |
 
 ## Threshold Dokumen

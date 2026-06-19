@@ -162,10 +162,10 @@ def _classify_text_with_hf(text, threshold):
 def classify_text_hf(text, threshold=0.8):
     """
     Splits text into sentences and classifies each sentence.
-    Default engine is lightweight so Render free does not load torch/Hugging Face into memory.
-    Set VERIDITY_DOCUMENT_ENGINE=hf for the heavier roberta-base-openai-detector pipeline.
+    Default engine uses the original roberta-base-openai-detector pipeline.
+    Set VERIDITY_DOCUMENT_ENGINE=lightweight only when the server cannot load Hugging Face.
     """
-    engine = os.environ.get("VERIDITY_DOCUMENT_ENGINE", "lightweight").strip().lower()
+    engine = os.environ.get("VERIDITY_DOCUMENT_ENGINE", "hf").strip().lower()
     if engine == "hf":
         return _classify_text_with_hf(text, threshold)
     return _classify_text_lightweight(text)

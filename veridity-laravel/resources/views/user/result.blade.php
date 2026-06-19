@@ -218,8 +218,7 @@
                                     <ul class="list-none space-y-1 pl-1">
                                         <li>Rerata Selisih Eror (Mean Diff) : {{ number_format($analysis->final_result['full_report']['results']['ela']['metrics']['mean_diff'] ?? 0, 5) }}</li>
                                         <li>Standar Deviasi Eror (Std Dev) : {{ number_format($analysis->final_result['full_report']['results']['ela']['metrics']['std_diff'] ?? 0, 5) }}</li>
-                                        <li>Skor Tempelan Lokal : {{ number_format($analysis->final_result['full_report']['results']['ela']['metrics']['local_splice_score'] ?? 0, 4) }}%</li>
-                                        <li class="text-blue-400 font-bold">Rumus Deteksi Anomali : max(Global ELA, Local Splice Score)</li>
+                                        <li class="text-blue-400 font-bold">Rumus Deteksi Anomali : Anomaly Score = Mean + (2 * Std Dev)</li>
                                         <li>Hasil Akhir ELA Score Mentah : <span class="text-red-400 font-bold">{{ number_format($analysis->ela_score, 4) }}%</span></li>
                                     </ul>
                                     <div class="pt-2 border-t border-slate-800/60 mt-2">
@@ -314,7 +313,7 @@
                                     <ul class="list-none space-y-1 pl-1">
                                         <li>Kamera/Tipe Manufaktur : {{ $analysis->metadata_details['metadata']['camera']['Make'] ?? 'KOSONG / TIDAK TERDETEKSI' }}</li>
                                         <li>Software Ekspor Vendor  : {{ $analysis->metadata_details['metadata']['software']['Software'] ?? 'MURNI OPTIK / TANPA APPLIKASI' }}</li>
-                                        <li class="text-blue-400 font-bold">Pinalti Pengurangan : Metadata hilang (-10 Poin) | Jejak Aplikasi Editor (-30 Poin)</li>
+                                        <li class="text-blue-400 font-bold">Pinalti Pengurangan : Hilang Kamera (-30 Poin) | Jejak Aplikasi Editor (-20 Poin)</li>
                                     </ul>
                                     <div class="pt-2 border-t border-slate-800/60 mt-2">
                                         <ul class="list-none space-y-1 pl-1 text-white font-bold">
@@ -324,7 +323,7 @@
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] pt-1">
-                                    <p><span class="text-amber-400 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i>Batas Aman Toleransi:</span> Metadata dipakai sebagai sinyal pendukung. EXIF yang hilang diberi penalti ringan karena bisa berasal dari aplikasi pesan, sedangkan jejak aplikasi editor diberi penalti lebih besar.</p>
+                                    <p><span class="text-amber-400 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i>Batas Aman Toleransi:</span> Minimal <span class="font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800 text-slate-300">85 Poin</span>. Jika skor jatuh akibat deteksi riwayat editor, berkas dikategorikan rentan atau pernah mengalami pemrosesan ekspor ulang aplikasi eksternal.</p>
                                     <p><span class="text-emerald-400 font-bold"><i class="fa-solid fa-flask-vial mr-1.5"></i>Kesimpulan Eksperimen:</span>
                                         <span class="text-slate-300 font-semibold">{{ $analysis->metadata_details['summary']['status'] ?? 'No Status' }}.</span> Status vonis integritas riwayat tercatat sebagai berkas <span class="text-blue-400 font-bold">{{ $analysis->final_result['full_report']['results']['metadata']['summary']['verdict'] ?? 'UNKNOWN' }}</span>.
                                     </p>

@@ -114,15 +114,15 @@ def detect_anomalies(metadata):
     ])
 
     if not has_any_metadata:
-        anomalies["warning"].append("Informasi kamera asli hilang - File dapat berasal dari kompresi aplikasi pesan, hasil export, atau proses simpan ulang.")
+        anomalies["critical"].append("Informasi kamera asli hilang - File gambar diproses ulang atau sengaja diekspor tanpa membawa riwayat kamera asli (Stripped)")
         anomalies["metadata_missing"] = True
-        score -= 10
+        score -= 30
         metadata["summary"]["status"] = "Metadata Kamera Hilang / Hasil Export"
     else:
         if metadata["software"]:
             software_used = ", ".join(metadata["software"].values())
             anomalies["warning"].append(f"Terdeteksi jejak modifikasi digital: Berkas pernah disimpan menggunakan aplikasi {software_used}")
-            score -= 30
+            score -= 20
             metadata["summary"]["status"] = "Modifikasi via Aplikasi Editor"
         else:
             metadata["summary"]["status"] = "Metadata Kamera Asli Terverifikasi"
@@ -148,8 +148,8 @@ def full_metadata_analysis(image_path):
     score = anomalies["authenticity_score"]
     
     if anomalies.get("metadata_missing"):
-        verdict = "METADATA TERBATAS / HILANG (PENALTI RINGAN)"
-        verdict_key = "metadata_missing_limited"
+        verdict = "TERINDIKASI EDITING (MENCURIGAKAN)"
+        verdict_key = "metadata_suspicious_editing"
     elif score >= 85: 
         verdict = "KAMERA FISIK REAL (OTENTIK)"
         verdict_key = "metadata_authentic_camera"

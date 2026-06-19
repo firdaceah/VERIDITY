@@ -100,7 +100,6 @@ def run_full_investigation(image_path, output_dir, language="en", is_cancelled=N
         # Mengambil skor keaslian Noise murni dari sub-modul
         noise_auth_score = noise_results.get('metrics', {}).get('noise_authenticity_score', 100.0)
         meta_auth_score = meta_report['summary']['authenticity_score']
-        metadata_missing = bool(meta_report['summary'].get('metadata_missing'))
         effective_meta_auth_score = meta_report['summary'].get('effective_authenticity_score', meta_auth_score)
 
         if is_cancelled():
@@ -116,35 +115,10 @@ def run_full_investigation(image_path, output_dir, language="en", is_cancelled=N
             + (ai_auth_score * 0.20)
         )
 
-        noise_warning_keys = noise_results.get('warning_keys') or []
-        metadata_verdict = meta_report['summary'].get('verdict', '')
-        is_metadata_suspicious = (
-            not metadata_missing
-            and (
-                meta_auth_score < 85
-                or metadata_verdict in ["REKAYASA DIGITAL / EDITING", "TERINDIKASI EDITING (MENCURIGAKAN)"]
-            )
-        )
-        has_noise_warning = (
-            noise_auth_score < 50
-            or (noise_auth_score < 75 and ela_anomaly_score > 8)
-            or ("noise_very_low" in noise_warning_keys)
-        )
-        has_medium_signal = (
-            final_score < 80
-            or ela_anomaly_score > 15
-            or gan_score > 0.4
-            or is_metadata_suspicious
-            or has_noise_warning
-        )
-
-        # Penentuan vonis dibuat konservatif: aman hanya jika semua sinyal utama bersih.
         if is_deepfake_positive:
             verdict = "DEEPFAKE / AI GENERATED"
-        elif final_score < 45 or ela_anomaly_score > 45 or gan_score > 0.85 or meta_report['summary']['verdict'] == "REKAYASA DIGITAL / EDITING":
+        elif final_score < 65 or ela_anomaly_score > 30 or meta_report['summary']['verdict'] == "REKAYASA DIGITAL / EDITING":
             verdict = "MANIPULATED"
-        elif has_medium_signal:
-            verdict = "SUSPICIOUS"
         else:
             verdict = "AUTHENTIC"
 
