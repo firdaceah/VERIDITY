@@ -383,22 +383,24 @@ class AuthController extends Controller
             'dev_reset_token' => $token,
         ];
 
-        try {
-            $resetUrl = url('/reset-password');
-            $emailBody = $language === 'id'
-                ? "Token reset password VERIDITY Anda:\n\n{$token}\n\nBuka {$resetUrl} untuk mengatur password baru."
-                : "Your VERIDITY password reset token:\n\n{$token}\n\nOpen {$resetUrl} to set a new password.";
+        if ((bool) config('services.veridity.send_reset_email', false)) {
+            try {
+                $resetUrl = url('/reset-password');
+                $emailBody = $language === 'id'
+                    ? "Token reset password VERIDITY Anda:\n\n{$token}\n\nBuka {$resetUrl} untuk mengatur password baru."
+                    : "Your VERIDITY password reset token:\n\n{$token}\n\nOpen {$resetUrl} to set a new password.";
 
-            Mail::raw($emailBody, function ($message) use ($validated, $language) {
-                $message
-                    ->to($validated['email'])
-                    ->subject($language === 'id' ? 'Token Reset Password VERIDITY' : 'VERIDITY Password Reset Token');
-            });
-        } catch (\Throwable $e) {
-            Log::warning('Failed to send password reset email', [
-                'email' => $validated['email'],
-                'message' => $e->getMessage(),
-            ]);
+                Mail::raw($emailBody, function ($message) use ($validated, $language) {
+                    $message
+                        ->to($validated['email'])
+                        ->subject($language === 'id' ? 'Token Reset Password VERIDITY' : 'VERIDITY Password Reset Token');
+                });
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send password reset email', [
+                    'email' => $validated['email'],
+                    'message' => $e->getMessage(),
+                ]);
+            }
         }
 
         return response()->json($response);

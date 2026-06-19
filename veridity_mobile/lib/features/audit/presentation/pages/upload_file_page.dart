@@ -7,6 +7,7 @@ import '../../../../app/app_dependencies.dart';
 import '../../../../core/localization/app_language.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/widgets/analysis_loading_screen.dart';
+import '../../../../core/widgets/app_top_snackbar.dart';
 
 class UploadFoto extends StatefulWidget {
   const UploadFoto({super.key});
@@ -96,10 +97,9 @@ class _UploadFotoState extends State<UploadFoto> {
     final lang = AppDependencies.language;
     final file = _selectedFile;
     if (file == null || file.bytes == null || file.bytes!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(lang.text("Please choose a file first", "Pilih file terlebih dahulu")),
-        ),
+      AppTopSnackBar.error(
+        context,
+        lang.text("Please choose a file first", "Pilih file terlebih dahulu"),
       );
       return;
     }
@@ -124,13 +124,10 @@ class _UploadFotoState extends State<UploadFoto> {
       if (_cancelRequested || _analysisToken != analysisToken) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            lang.text("Analysis complete: ", "Analisis selesai: ") +
-                lang.auditLabel(audit.summaryLabel),
-          ),
-        ),
+      AppTopSnackBar.success(
+        context,
+        lang.text("Analysis complete: ", "Analisis selesai: ") +
+            lang.auditLabel(audit.summaryLabel),
       );
       Navigator.pushReplacementNamed(
         context,
@@ -146,9 +143,7 @@ class _UploadFotoState extends State<UploadFoto> {
       }
       final message = _friendlyUploadError(e.message);
       setState(() => _errorMessage = message);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      AppTopSnackBar.error(context, message);
     } catch (e) {
       if (!mounted) {
         return;
@@ -160,9 +155,7 @@ class _UploadFotoState extends State<UploadFoto> {
         lang.text("Failed to upload file: $e", "Gagal mengunggah file: $e"),
       );
       setState(() => _errorMessage = message);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      AppTopSnackBar.error(context, message);
     } finally {
       if (mounted && _analysisToken == analysisToken && !_cancelRequested) {
         setState(() => _isLoading = false);
@@ -182,7 +175,6 @@ class _UploadFotoState extends State<UploadFoto> {
       _cancelRequested = true;
     });
 
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await AppDependencies.auditRepository.cancelAnalysis(
         analysisToken: token,
@@ -196,12 +188,9 @@ class _UploadFotoState extends State<UploadFoto> {
         _isCancelling = false;
         _analysisToken = null;
       });
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            lang.text('Analysis cancelled.', 'Analisis dibatalkan.'),
-          ),
-        ),
+      AppTopSnackBar.info(
+        context,
+        lang.text('Analysis cancelled.', 'Analisis dibatalkan.'),
       );
     } catch (e) {
       if (!mounted) {
@@ -212,14 +201,11 @@ class _UploadFotoState extends State<UploadFoto> {
         _isCancelling = false;
         _analysisToken = null;
       });
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            lang.text(
-              'Cancellation requested, but the server response could not be confirmed.',
-              'Pembatalan diminta, tetapi respons server belum dapat dipastikan.',
-            ),
-          ),
+      AppTopSnackBar.info(
+        context,
+        lang.text(
+          'Cancellation requested, but the server response could not be confirmed.',
+          'Pembatalan diminta, tetapi respons server belum dapat dipastikan.',
         ),
       );
     }

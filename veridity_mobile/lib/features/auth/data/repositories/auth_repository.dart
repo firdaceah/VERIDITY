@@ -42,7 +42,6 @@ class AuthRepository {
       },
     );
     final session = AuthSession.fromJson(response);
-    await _sessionStore.save(session);
     return session;
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/app_dependencies.dart';
 import '../../../../core/localization/app_language.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/widgets/app_top_snackbar.dart';
 import '../../../audit/presentation/pages/home_page.dart';
 
 class Login extends StatefulWidget {
@@ -14,11 +15,6 @@ class Login extends StatefulWidget {
 class LoginState extends State<Login> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passController = TextEditingController();
-  final TextEditingController _forgotEmailController = TextEditingController();
-  final TextEditingController _resetTokenController = TextEditingController();
-  final TextEditingController _resetPasswordController =
-      TextEditingController();
-  final TextEditingController _resetConfirmController = TextEditingController();
   bool _isObscure = true;
   bool _isLoading = false;
 
@@ -73,6 +69,15 @@ class LoginState extends State<Login> {
         return;
       }
 
+      AppTopSnackBar.success(
+        context,
+        lang.text('Login successful.', 'Login berhasil.'),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 450));
+      if (!mounted) {
+        return;
+      }
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
@@ -84,19 +89,14 @@ class LoginState extends State<Login> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_localizedAuthError(e.message))));
+      AppTopSnackBar.error(context, _localizedAuthError(e.message));
     } catch (e) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            lang.text("Server is not responding", "Server tidak merespon"),
-          ),
-        ),
+      AppTopSnackBar.error(
+        context,
+        lang.text("Server is not responding", "Server tidak merespon"),
       );
     } finally {
       if (mounted) {
@@ -109,180 +109,18 @@ class LoginState extends State<Login> {
   void dispose() {
     _emailController.dispose();
     _passController.dispose();
-    _forgotEmailController.dispose();
-    _resetTokenController.dispose();
-    _resetPasswordController.dispose();
-    _resetConfirmController.dispose();
     super.dispose();
   }
 
-  Future<void> _showForgotPasswordDialog() async {
-    final lang = AppDependencies.language;
-    _forgotEmailController.text = _emailController.text.trim();
-    _resetTokenController.clear();
-    _resetPasswordController.clear();
-    _resetConfirmController.clear();
-
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        bool requesting = false;
-        bool resetting = false;
-        bool resetPasswordHidden = true;
-        bool resetConfirmHidden = true;
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            Future<void> requestReset() async {
-              setDialogState(() => requesting = true);
-              try {
-                final token = await AppDependencies.authRepository
-                    .forgotPassword(
-                      _forgotEmailController.text.trim(),
-                      languageCode: _languageCode,
-                    );
-                if (token != null && token.isNotEmpty) {
-                  _resetTokenController.text = token;
-                }
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        token != null && token.isNotEmpty
-                            ? lang.text(
-                                "Reset token created and filled automatically.",
-                                "Token reset dibuat dan terisi otomatis.",
-                              )
-                            : lang.text(
-                                "Reset instructions were sent to your email. Open the link from your email to continue.",
-                                "Instruksi reset dikirim ke email. Buka tautan dari email untuk melanjutkan.",
-                              ),
-                      ),
-                    ),
-                  );
-                }
-              } on ApiException catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(
-                    SnackBar(content: Text(_localizedAuthError(e.message))),
-                  );
-                }
-              } finally {
-                setDialogState(() => requesting = false);
-              }
-            }
-
-            Future<void> resetPassword() async {
-              setDialogState(() => resetting = true);
-              try {
-                await AppDependencies.authRepository.resetPassword(
-                  email: _forgotEmailController.text.trim(),
-                  token: _resetTokenController.text.trim(),
-                  password: _resetPasswordController.text,
-                  passwordConfirmation: _resetConfirmController.text,
-                  languageCode: _languageCode,
-                );
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        lang.text(
-                          "Password reset successfully. Please log in.",
-                          "Password berhasil direset. Silakan login.",
-                        ),
-                      ),
-                    ),
-                  );
-                }
-              } on ApiException catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(
-                    SnackBar(content: Text(_localizedAuthError(e.message))),
-                  );
-                }
-              } finally {
-                setDialogState(() => resetting = false);
-              }
-            }
-
-            return AlertDialog(
-              backgroundColor: const Color(0xFF1D143E),
-              title: Text(
-                lang.text("Forgot Password", "Lupa Password"),
-                style: const TextStyle(color: Colors.white),
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _dialogField(_forgotEmailController, "Email"),
-                    const SizedBox(height: 10),
-                    _dialogField(
-                      _resetTokenController,
-                      lang.text("Reset token", "Token reset"),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      lang.text(
-                        "If the token is not filled automatically, use the reset link sent to your email.",
-                        "Jika token tidak terisi otomatis, gunakan tautan reset yang dikirim ke email.",
-                      ),
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 11,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _dialogPasswordField(
-                      _resetPasswordController,
-                      lang.text("New password", "Password baru"),
-                      hidden: resetPasswordHidden,
-                      onToggle: () => setDialogState(
-                        () => resetPasswordHidden = !resetPasswordHidden,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    _dialogPasswordField(
-                      _resetConfirmController,
-                      lang.text("Confirm password", "Konfirmasi password"),
-                      hidden: resetConfirmHidden,
-                      onToggle: () => setDialogState(
-                        () => resetConfirmHidden = !resetConfirmHidden,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: requesting || resetting
-                      ? null
-                      : () => Navigator.pop(context),
-                  child: Text(lang.text("Cancel", "Batal")),
-                ),
-                TextButton(
-                  onPressed: requesting ? null : requestReset,
-                  child: Text(
-                    requesting
-                        ? lang.text("Requesting...", "Meminta...")
-                        : lang.text("Request Token", "Minta Token"),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: resetting ? null : resetPassword,
-                  child: Text(resetting ? "Reset..." : "Reset"),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  Future<void> _openForgotPassword() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ForgotPasswordFlowPage(
+          initialEmail: _emailController.text.trim(),
+          localizedAuthError: _localizedAuthError,
+        ),
+      ),
     );
   }
 
@@ -340,7 +178,7 @@ class LoginState extends State<Login> {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: _showForgotPasswordDialog,
+                onPressed: _openForgotPassword,
                 child: Text(
                   lang.text("Forgot password?", "Lupa password?"),
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
@@ -473,57 +311,326 @@ class LoginState extends State<Login> {
     );
   }
 
-  Widget _dialogField(
-    TextEditingController controller,
-    String hint, {
-    bool obscure = false,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white38),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.white24),
+}
+
+class ForgotPasswordFlowPage extends StatefulWidget {
+  const ForgotPasswordFlowPage({
+    super.key,
+    required this.initialEmail,
+    required this.localizedAuthError,
+  });
+
+  final String initialEmail;
+  final String Function(String message) localizedAuthError;
+
+  @override
+  State<ForgotPasswordFlowPage> createState() => _ForgotPasswordFlowPageState();
+}
+
+class _ForgotPasswordFlowPageState extends State<ForgotPasswordFlowPage> {
+  late final TextEditingController _emailController;
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmController = TextEditingController();
+
+  bool _requesting = false;
+  bool _resetting = false;
+  bool _passwordHidden = true;
+  bool _confirmHidden = true;
+  int _step = 0;
+  String? _resetToken;
+
+  String get _languageCode =>
+      AppDependencies.language.value == AppLocale.id ? 'id' : 'en';
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.initialEmail);
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _requestReset() async {
+    final lang = AppDependencies.language;
+    setState(() => _requesting = true);
+
+    try {
+      final token = await AppDependencies.authRepository.forgotPassword(
+        _emailController.text.trim(),
+        languageCode: _languageCode,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (token == null || token.isEmpty) {
+        AppTopSnackBar.error(
+          context,
+          lang.text(
+            'Unable to prepare password reset. Please try again.',
+            'Reset password belum dapat disiapkan. Silakan coba lagi.',
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _resetToken = token;
+        _step = 1;
+      });
+      AppTopSnackBar.success(
+        context,
+        lang.text(
+          'Email verified. Create your new password.',
+          'Email terverifikasi. Buat password baru.',
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF39D2DD)),
+      );
+    } on ApiException catch (e) {
+      if (mounted) {
+        AppTopSnackBar.error(context, widget.localizedAuthError(e.message));
+      }
+    } catch (e) {
+      if (mounted) {
+        AppTopSnackBar.error(
+          context,
+          lang.text('Server is not responding', 'Server tidak merespon'),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _requesting = false);
+      }
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    final lang = AppDependencies.language;
+    final token = _resetToken;
+
+    if (token == null || token.isEmpty) {
+      AppTopSnackBar.error(
+        context,
+        lang.text(
+          'Please verify your email first.',
+          'Verifikasi email terlebih dahulu.',
+        ),
+      );
+      return;
+    }
+
+    setState(() => _resetting = true);
+
+    try {
+      await AppDependencies.authRepository.resetPassword(
+        email: _emailController.text.trim(),
+        token: token,
+        password: _passwordController.text,
+        passwordConfirmation: _confirmController.text,
+        languageCode: _languageCode,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      AppTopSnackBar.success(
+        context,
+        lang.text(
+          'Password reset successfully. Please log in.',
+          'Password berhasil direset. Silakan login.',
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 650));
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        AppTopSnackBar.error(context, widget.localizedAuthError(e.message));
+      }
+    } catch (e) {
+      if (mounted) {
+        AppTopSnackBar.error(
+          context,
+          lang.text('Failed to reset password.', 'Gagal reset password.'),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _resetting = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF111028),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          lang.text('Reset Password', 'Reset Password'),
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(30, 28, 30, 36),
+          children: [
+            Text(
+              _step == 0
+                  ? lang.text('Enter your email', 'Masukkan email')
+                  : lang.text('Create new password', 'Buat password baru'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              _step == 0
+                  ? lang.text(
+                      'We will verify your account before you create a new password.',
+                      'Kami akan memverifikasi akun sebelum kamu membuat password baru.',
+                    )
+                  : lang.text(
+                      'Use at least 8 characters for your new password.',
+                      'Gunakan minimal 8 karakter untuk password baru.',
+                    ),
+              style: const TextStyle(color: Colors.white60, height: 1.45),
+            ),
+            const SizedBox(height: 28),
+            if (_step == 0) ...[
+              _resetField(
+                controller: _emailController,
+                hint: 'Email',
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 18),
+              _primaryButton(
+                label: _requesting
+                    ? lang.text('Checking...', 'Memeriksa...')
+                    : lang.text('Continue', 'Lanjut'),
+                loading: _requesting,
+                onPressed: _requesting ? null : _requestReset,
+              ),
+            ] else ...[
+              _resetField(
+                controller: _passwordController,
+                hint: lang.text('New password', 'Password baru'),
+                obscureText: _passwordHidden,
+                onToggle: () =>
+                    setState(() => _passwordHidden = !_passwordHidden),
+              ),
+              const SizedBox(height: 14),
+              _resetField(
+                controller: _confirmController,
+                hint: lang.text('Confirm password', 'Konfirmasi password'),
+                obscureText: _confirmHidden,
+                onToggle: () =>
+                    setState(() => _confirmHidden = !_confirmHidden),
+              ),
+              const SizedBox(height: 18),
+              _primaryButton(
+                label: _resetting
+                    ? lang.text('Saving...', 'Menyimpan...')
+                    : lang.text('Save Password', 'Simpan Password'),
+                loading: _resetting,
+                onPressed: _resetting ? null : _resetPassword,
+              ),
+              TextButton(
+                onPressed: _resetting ? null : () => setState(() => _step = 0),
+                child: Text(lang.text('Change email', 'Ganti email')),
+              ),
+            ],
+          ],
         ),
       ),
     );
   }
 
-  Widget _dialogPasswordField(
-    TextEditingController controller,
-    String hint, {
-    required bool hidden,
-    required VoidCallback onToggle,
+  Widget _primaryButton({
+    required String label,
+    required bool loading,
+    required VoidCallback? onPressed,
   }) {
-    return TextField(
-      controller: controller,
-      obscureText: hidden,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white38),
-        suffixIcon: IconButton(
-          onPressed: onToggle,
-          icon: Icon(
-            hidden ? Icons.visibility : Icons.visibility_off,
-            color: Colors.white54,
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF4338CA),
+        disabledBackgroundColor: const Color(0xFF1D1B3D),
+        minimumSize: const Size(double.infinity, 54),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: loading
+          ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.4,
+                color: Colors.white,
+              ),
+            )
+          : Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+    );
+  }
+
+  Widget _resetField({
+    required TextEditingController controller,
+    required String hint,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    VoidCallback? onToggle,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        obscureText: obscureText,
+        style: const TextStyle(
+          color: Color(0xFF111827),
+          fontWeight: FontWeight.w600,
+        ),
+        cursorColor: const Color(0xFF4338CA),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF6B7280)),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 15,
+            vertical: 15,
           ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.white24),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF39D2DD)),
+          border: InputBorder.none,
+          suffixIcon: onToggle == null
+              ? null
+              : IconButton(
+                  onPressed: onToggle,
+                  icon: Icon(
+                    obscureText ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.grey,
+                  ),
+                ),
         ),
       ),
     );

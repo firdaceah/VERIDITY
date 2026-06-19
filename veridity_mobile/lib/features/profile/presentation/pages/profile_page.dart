@@ -7,6 +7,7 @@ import '../../../../core/localization/app_language.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/legal_link_launcher.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
+import '../../../../core/widgets/app_top_snackbar.dart';
 import '../../../../core/widgets/profile_avatar.dart';
 
 class Profil extends StatefulWidget {
@@ -127,33 +128,25 @@ class ProfilState extends State<Profil> {
         _confirmPasswordController.clear();
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            lang.text(
-              "Profile updated successfully",
-              "Profil berhasil diperbarui",
-            ),
-          ),
+      AppTopSnackBar.success(
+        context,
+        lang.text(
+          "Profile updated successfully",
+          "Profil berhasil diperbarui",
         ),
       );
     } on ApiException catch (e) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      AppTopSnackBar.error(context, e.message);
     } catch (e) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            lang.text("Failed to update profile", "Gagal memperbarui profil"),
-          ),
-        ),
+      AppTopSnackBar.error(
+        context,
+        lang.text("Failed to update profile", "Gagal memperbarui profil"),
       );
     } finally {
       if (mounted) {
@@ -163,7 +156,16 @@ class ProfilState extends State<Profil> {
   }
 
   Future<void> _logout() async {
+    final lang = AppDependencies.language;
     await AppDependencies.authRepository.logout();
+    if (!mounted) {
+      return;
+    }
+    AppTopSnackBar.success(
+      context,
+      lang.text('Logged out successfully.', 'Berhasil keluar.'),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 450));
     if (!mounted) {
       return;
     }
@@ -599,15 +601,26 @@ class ProfilState extends State<Profil> {
           hintStyle: const TextStyle(color: Colors.white30),
           border: InputBorder.none,
           isDense: true,
+          contentPadding: EdgeInsets.zero,
           suffixIcon: onToggleObscure == null
               ? null
               : IconButton(
                   onPressed: onToggleObscure,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 34,
+                    height: 24,
+                  ),
                   icon: Icon(
                     obscure ? Icons.visibility : Icons.visibility_off,
                     color: Colors.white54,
+                    size: 20,
                   ),
                 ),
+          suffixIconConstraints: const BoxConstraints.tightFor(
+            width: 38,
+            height: 24,
+          ),
         ),
       ),
     );
@@ -634,7 +647,7 @@ class _FieldShell extends StatelessWidget {
         ),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(15),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
           decoration: BoxDecoration(
             color: Colors.white10,
             borderRadius: BorderRadius.circular(12),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/app_dependencies.dart';
 import '../../../../core/widgets/app_bottom_nav.dart';
+import '../../../../core/widgets/app_top_snackbar.dart';
 import '../../domain/entities/audit_entity.dart';
 
 class History extends StatefulWidget {
@@ -71,14 +72,11 @@ class HistoryState extends State<History> {
       setState(() {
         _isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppDependencies.language.text(
-              "Failed to load analysis history",
-              "Gagal mengambil riwayat analisis",
-            ),
-          ),
+      AppTopSnackBar.error(
+        context,
+        AppDependencies.language.text(
+          "Failed to load analysis history",
+          "Gagal mengambil riwayat analisis",
         ),
       );
     }
@@ -308,16 +306,11 @@ class HistoryState extends State<History> {
           .where((audit) => audit.id != item.id)
           .toList();
     });
-    ScaffoldMessenger.of(
+    AppTopSnackBar.success(
       context,
-    ).showSnackBar(
-      SnackBar(
-        content: Text(
-          AppDependencies.language.text(
-            "History deleted successfully",
-            "Riwayat berhasil dihapus",
-          ),
-        ),
+      AppDependencies.language.text(
+        "History deleted successfully",
+        "Riwayat berhasil dihapus",
       ),
     );
   }

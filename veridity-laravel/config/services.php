@@ -42,6 +42,7 @@ return [
         'distri_integration_key' => env('DISTRIBUTOR_API_KEY', env('VERIDITY_INTEGRATION_KEY')),
         'integration_user_id' => env('VERIDITY_INTEGRATION_USER_ID'),
         'tesseract_path' => env('TESSERACT_PATH', 'tesseract'),
+        'send_reset_email' => env('VERIDITY_SEND_RESET_EMAIL', false),
     ],
 
 ];

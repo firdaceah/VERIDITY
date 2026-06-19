@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/app_dependencies.dart';
+import '../../../../core/widgets/app_top_snackbar.dart';
 import '../../domain/entities/audit_entity.dart';
 
 class AuditDetail extends StatefulWidget {
@@ -133,18 +134,17 @@ class _AuditDetailState extends State<AuditDetail> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          opened
-              ? lang.text("Opening PDF report...", "Membuka laporan PDF...")
-              : lang.text(
-                  "Unable to open PDF report.",
-                  "Tidak dapat membuka laporan PDF.",
-                ),
-        ),
-      ),
-    );
+    final message = opened
+        ? lang.text("Opening PDF report...", "Membuka laporan PDF...")
+        : lang.text(
+            "Unable to open PDF report.",
+            "Tidak dapat membuka laporan PDF.",
+          );
+    if (opened) {
+      AppTopSnackBar.success(context, message);
+    } else {
+      AppTopSnackBar.error(context, message);
+    }
   }
 }
 

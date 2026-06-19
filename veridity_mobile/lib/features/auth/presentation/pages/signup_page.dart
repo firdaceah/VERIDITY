@@ -4,7 +4,7 @@ import '../../../../app/app_dependencies.dart';
 import '../../../../core/config/api_config.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/legal_link_launcher.dart';
-import '../../../audit/presentation/pages/home_page.dart';
+import '../../../../core/widgets/app_top_snackbar.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -27,14 +27,11 @@ class SignUpState extends State<SignUp> {
   Future<void> registerUser() async {
     final lang = AppDependencies.language;
     if (!_acceptedPrivacyPolicy) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            lang.text(
-              "Please accept the Privacy Policy first.",
-              "Setujui Kebijakan Privasi terlebih dahulu.",
-            ),
-          ),
+      AppTopSnackBar.error(
+        context,
+        lang.text(
+          "Please accept the Privacy Policy first.",
+          "Setujui Kebijakan Privasi terlebih dahulu.",
         ),
       );
       return;
@@ -43,7 +40,7 @@ class SignUpState extends State<SignUp> {
     setState(() => _isLoading = true);
 
     try {
-      final session = await AppDependencies.authRepository.register(
+      await AppDependencies.authRepository.register(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passController.text,
@@ -54,39 +51,34 @@ class SignUpState extends State<SignUp> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            lang.text("Registration successful!", "Registrasi berhasil!"),
-          ),
-        ),
-      );
-      Navigator.pushAndRemoveUntil(
+      AppTopSnackBar.success(
         context,
-        MaterialPageRoute(
-          builder: (context) => Home(userData: session.asRouteArguments()),
+        lang.text(
+          "Registration successful. Please log in.",
+          "Registrasi berhasil. Silakan masuk.",
         ),
-        (route) => false,
       );
+      await Future<void>.delayed(const Duration(milliseconds: 650));
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/Login', (route) => false);
+      }
     } on ApiException catch (e) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(lang.text("Failed: ", "Gagal: ") + e.message)),
+      AppTopSnackBar.error(
+        context,
+        lang.text("Failed: ", "Gagal: ") + e.message,
       );
     } catch (e) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            lang.text(
-              "Unable to connect to server.",
-              "Koneksi ke server gagal!",
-            ),
-          ),
+      AppTopSnackBar.error(
+        context,
+        lang.text(
+          "Unable to connect to server.",
+          "Koneksi ke server gagal!",
         ),
       );
     } finally {
