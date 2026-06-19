@@ -26,6 +26,7 @@ class ProfileRepository {
   Future<UserEntity> updateProfile({
     required String name,
     required String email,
+    required String languageCode,
   }) async {
     final token = _sessionStore.token;
     if (token == null || token.isEmpty) {
@@ -34,7 +35,7 @@ class ProfileRepository {
 
     final response = await _apiClient.postForm(
       '/profile',
-      body: {'name': name, 'email': email},
+      body: {'name': name, 'email': email, 'language': languageCode},
       token: token,
     );
     final user = UserEntity.fromJson(response['data'] as Map<String, dynamic>);
@@ -42,7 +43,10 @@ class ProfileRepository {
     return user;
   }
 
-  Future<UserEntity> updateProfilePhoto(PlatformFile file) async {
+  Future<UserEntity> updateProfilePhoto(
+    PlatformFile file, {
+    required String languageCode,
+  }) async {
     final token = _sessionStore.token;
     if (token == null || token.isEmpty) {
       throw StateError('User belum login');
@@ -58,6 +62,7 @@ class ProfileRepository {
       fieldName: 'photo',
       fileName: file.name,
       bytes: bytes,
+      fields: {'language': languageCode},
       token: token,
     );
     final user = UserEntity.fromJson(response['data'] as Map<String, dynamic>);
@@ -69,6 +74,7 @@ class ProfileRepository {
     required String currentPassword,
     required String password,
     required String passwordConfirmation,
+    required String languageCode,
   }) async {
     final token = _sessionStore.token;
     if (token == null || token.isEmpty) {
@@ -81,6 +87,7 @@ class ProfileRepository {
         'current_password': currentPassword,
         'password': password,
         'password_confirmation': passwordConfirmation,
+        'language': languageCode,
       },
       token: token,
     );

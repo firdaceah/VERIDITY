@@ -172,6 +172,56 @@ class ForensicController extends Controller
         }
     }
 
+    private function deleteAnalysisArtifacts(ForensicAnalysis $analysis): void
+    {
+        $this->evidenceStorage()->delete($analysis->s3_path);
+
+        $reportData = is_array($analysis->final_result) ? $analysis->final_result : [];
+        if (isset($reportData['full_report']['results']['ela'])) {
+            $elaFile = $reportData['full_report']['results']['ela']['image_url'] ?? null;
+            $noiseFile = $reportData['full_report']['results']['noise']['image_url'] ?? null;
+
+            if ($elaFile) {
+                $this->evidenceStorage()->delete('results/'.$analysis->user_id.'/'.basename($elaFile));
+            }
+            if ($noiseFile) {
+                $this->evidenceStorage()->delete('results/'.$analysis->user_id.'/'.basename($noiseFile));
+            }
+        }
+
+        $reportPaths = array_filter(array_merge(
+            [$analysis->report_pdf_path],
+            array_values($reportData['report_pdf_paths'] ?? [])
+        ));
+
+        foreach (array_unique($reportPaths) as $reportPath) {
+            $this->evidenceStorage()->delete($reportPath);
+        }
+
+        $analysis->delete();
+    }
+
+    private function deleteCancelledAnalysisForToken(string $token, ?int $userId): bool
+    {
+        if ($token === '' || ! $userId) {
+            return false;
+        }
+
+        $analysis = ForensicAnalysis::where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->take(12)
+            ->get()
+            ->first(fn (ForensicAnalysis $item) => data_get($item->final_result, 'analysis_token') === $token);
+
+        if (! $analysis) {
+            return false;
+        }
+
+        $this->deleteAnalysisArtifacts($analysis);
+
+        return true;
+    }
+
     private function integrationUserId(): ?int
     {
         $configuredUserId = config('services.veridity.integration_user_id');
@@ -196,6 +246,7 @@ class ForensicController extends Controller
 
         $token = $validated['analysis_token'];
         $this->markAnalysisCancelled($token);
+        $deletedLateResult = $this->deleteCancelledAnalysisForToken($token, Auth::id());
 
         if ($this->shouldCallRemotePython()) {
             try {
@@ -214,6 +265,7 @@ class ForensicController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => $this->message('analysis_cancel_requested', $language),
+            'deleted_late_result' => $deletedLateResult,
         ]);
     }
 
@@ -700,9 +752,21 @@ class ForensicController extends Controller
                 // Ambil map klasifikasi teks secara aman dari output response engine Python
                 $classificationMapData = $result['classification_map'] ?? $result['results'] ?? [];
 
+                if ($this->isAnalysisCancelled($analysisToken)) {
+                    Storage::disk('public')->delete($path);
+
+                    return $this->cancelledResponse($language);
+                }
+
                 $evidenceOriginalPath = $this->evidenceStorage()->makePath('forensics/original', Auth::id(), $filename);
                 $this->storeEvidenceFile($evidenceOriginalPath, $fullPathFile);
                 Storage::disk('public')->delete($path);
+
+                if ($this->isAnalysisCancelled($analysisToken)) {
+                    $this->evidenceStorage()->delete($evidenceOriginalPath);
+
+                    return $this->cancelledResponse($language);
+                }
 
                 // Simpan Data Hasil Olahan Dokumen ke Oracle Database dengan aman masuk ke final_result
                 $analysis = ForensicAnalysis::create([
@@ -719,6 +783,7 @@ class ForensicController extends Controller
                     ],
                     'noise_status' => 'Not Applicable',
                     'final_result' => [
+                        'analysis_token' => $analysisToken,
                         'language' => $language,
                         'summary_label' => $result['summary_label'] ?? ($language === 'id' ? 'TEKS CAMPURAN' : 'MIXED TEXT'),
                         'summary_color' => $result['summary_color'] ?? 'warning',
@@ -733,8 +798,20 @@ class ForensicController extends Controller
                     ],
                 ]);
 
+                if ($this->isAnalysisCancelled($analysisToken)) {
+                    $this->deleteAnalysisArtifacts($analysis);
+
+                    return $this->cancelledResponse($language);
+                }
+
                 $reportPath = $this->reportService()->ensureReport($analysis, $language);
                 $analysis->refresh();
+
+                if ($this->isAnalysisCancelled($analysisToken)) {
+                    $this->deleteAnalysisArtifacts($analysis);
+
+                    return $this->cancelledResponse($language);
+                }
 
                 if (! $request->expectsJson()) {
                     return redirect()->route('user.result', $analysis->id)->with('success', $this->message('document_success', $language));
@@ -804,10 +881,22 @@ class ForensicController extends Controller
                     : 'Noise is treated as a supporting signal and aligned with the final image-analysis decision.';
             }
 
+            if ($this->isAnalysisCancelled($analysisToken)) {
+                Storage::disk('public')->delete($path);
+
+                return $this->cancelledResponse($language);
+            }
+
             $evidenceOriginalPath = $this->evidenceStorage()->makePath('forensics/original', Auth::id(), $filename);
             $this->storeEvidenceFile($evidenceOriginalPath, $fullPathFile);
             $this->storeImageAnalysisAssets($result, (int) Auth::id(), $outputFolder);
             Storage::disk('public')->delete($path);
+
+            if ($this->isAnalysisCancelled($analysisToken)) {
+                $this->evidenceStorage()->delete($evidenceOriginalPath);
+
+                return $this->cancelledResponse($language);
+            }
 
             $analysis = ForensicAnalysis::create([
                 'user_id' => Auth::id(),
@@ -818,6 +907,7 @@ class ForensicController extends Controller
                 'metadata_details' => $result['results']['metadata'],
                 'noise_status' => $result['results']['noise']['warnings'][0] ?? ($isNoiseInconsistent ? 'Inconsistent Noise Detected' : 'Normal'),
                 'final_result' => [
+                    'analysis_token' => $analysisToken,
                     'language' => $language,
                     'summary_label' => $statusLabel,
                     'summary_color' => $statusColor,
@@ -825,8 +915,20 @@ class ForensicController extends Controller
                 ],
             ]);
 
+            if ($this->isAnalysisCancelled($analysisToken)) {
+                $this->deleteAnalysisArtifacts($analysis);
+
+                return $this->cancelledResponse($language);
+            }
+
             $this->reportService()->ensureReport($analysis, $language);
             $analysis->refresh();
+
+            if ($this->isAnalysisCancelled($analysisToken)) {
+                $this->deleteAnalysisArtifacts($analysis);
+
+                return $this->cancelledResponse($language);
+            }
 
             if (! $request->expectsJson()) {
                 return redirect()->route('user.result', $analysis->id)->with('success', $this->message('image_success', $language));
@@ -889,26 +991,7 @@ class ForensicController extends Controller
             return redirect()->back()->with('error', 'Kamu tidak punya akses!');
         }
 
-        $this->evidenceStorage()->delete($analysis->s3_path);
-
-        $reportData = $analysis->final_result;
-        if (isset($reportData['full_report']['results']['ela'])) {
-            $elaFile = $reportData['full_report']['results']['ela']['image_url'] ?? null;
-            $noiseFile = $reportData['full_report']['results']['noise']['image_url'] ?? null;
-
-            if ($elaFile) {
-                $elaPath = 'results/'.$analysis->user_id.'/'.$elaFile;
-                $this->evidenceStorage()->delete($elaPath);
-            }
-            if ($noiseFile) {
-                $noisePath = 'results/'.$analysis->user_id.'/'.$noiseFile;
-                $this->evidenceStorage()->delete($noisePath);
-            }
-        }
-
-        $this->evidenceStorage()->delete($analysis->report_pdf_path);
-
-        $analysis->delete();
+        $this->deleteAnalysisArtifacts($analysis);
 
         if (request()->expectsJson()) {
             return response()->json([

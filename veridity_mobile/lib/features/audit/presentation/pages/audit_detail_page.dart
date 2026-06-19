@@ -310,44 +310,47 @@ class _NetworkImageFallbackState extends State<_NetworkImageFallback> {
   Widget build(BuildContext context) {
     final url = widget.urls[_index];
 
-    return Image.network(
-      url,
-      width: double.infinity,
-      fit: BoxFit.contain,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) {
-          return child;
-        }
-        return const Center(
-          child: CircularProgressIndicator(color: Color(0xFF39D2DD)),
-        );
-      },
-      errorBuilder: (context, error, stackTrace) {
-        if (_index < widget.urls.length - 1) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              setState(() => _index += 1);
-            }
-          });
+    return InkWell(
+      onTap: () => _showImagePreview(context, url, title: 'Preview'),
+      child: Image.network(
+        url,
+        width: double.infinity,
+        fit: BoxFit.contain,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) {
+            return child;
+          }
           return const Center(
             child: CircularProgressIndicator(color: Color(0xFF39D2DD)),
           );
-        }
+        },
+        errorBuilder: (context, error, stackTrace) {
+          if (_index < widget.urls.length - 1) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() => _index += 1);
+              }
+            });
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF39D2DD)),
+            );
+          }
 
-        final lang = AppDependencies.language;
+          final lang = AppDependencies.language;
 
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.broken_image, color: Colors.white54, size: 54),
-            const SizedBox(height: 10),
-            Text(
-              lang.text('Image unavailable', 'Gambar tidak tersedia'),
-              style: const TextStyle(color: Colors.white54),
-            ),
-          ],
-        );
-      },
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.broken_image, color: Colors.white54, size: 54),
+              const SizedBox(height: 10),
+              Text(
+                lang.text('Image unavailable', 'Gambar tidak tersedia'),
+                style: const TextStyle(color: Colors.white54),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -521,26 +524,42 @@ class _ForensicMapItem extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: 16 / 10,
-            child: Image.network(
-              url,
-              fit: BoxFit.contain,
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) {
-                  return child;
-                }
-                return const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF39D2DD)),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                final lang = AppDependencies.language;
-                return Center(
-                  child: Text(
-                    lang.text('Map unavailable', 'Peta tidak tersedia'),
-                    style: const TextStyle(color: Colors.white54),
+            child: InkWell(
+              onTap: () => _showImagePreview(context, url, title: title),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Image.network(
+                      url,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) {
+                          return child;
+                        }
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF39D2DD),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        final lang = AppDependencies.language;
+                        return Center(
+                          child: Text(
+                            lang.text('Map unavailable', 'Peta tidak tersedia'),
+                            style: const TextStyle(color: Colors.white54),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                );
-              },
+                  const Positioned(
+                    top: 10,
+                    right: 10,
+                    child: _ZoomHint(),
+                  ),
+                ],
+              ),
             ),
           ),
           Padding(
@@ -567,6 +586,106 @@ class _ForensicMapItem extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ZoomHint extends StatelessWidget {
+  const _ZoomHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.52),
+        borderRadius: BorderRadius.circular(17),
+      ),
+      child: const Icon(Icons.open_in_full, color: Colors.white, size: 18),
+    );
+  }
+}
+
+Future<void> _showImagePreview(
+  BuildContext context,
+  String url, {
+  required String title,
+}) {
+  final lang = AppDependencies.language;
+
+  return showDialog<void>(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.9),
+    builder: (context) {
+      return Dialog(
+        insetPadding: EdgeInsets.zero,
+        backgroundColor: Colors.black,
+        child: SizedBox.expand(
+          child: SafeArea(
+            child: Stack(
+              children: [
+              Positioned.fill(
+                child: InteractiveViewer(
+                  minScale: 0.8,
+                  maxScale: 4,
+                  child: Center(
+                    child: Image.network(
+                      url,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) {
+                          return child;
+                        }
+                        return const CircularProgressIndicator(
+                          color: Color(0xFF39D2DD),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Text(
+                          lang.text(
+                            'Image unavailable',
+                            'Gambar tidak tersedia',
+                          ),
+                          style: const TextStyle(color: Colors.white70),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                left: 8,
+                child: IconButton.filled(
+                  tooltip: lang.text('Close', 'Tutup'),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white12,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ),
+              Positioned(
+                top: 16,
+                left: 64,
+                right: 18,
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class _MetricCard extends StatelessWidget {

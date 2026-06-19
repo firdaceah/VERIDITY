@@ -93,11 +93,17 @@ class SplashScreen2State extends State<SplashScreen2> {
                     ),
                   ),
                   const Spacer(),
-                  TextButton(
-                    onPressed: _finish,
-                    child: Text(
-                      lang.text('Skip', 'Lewati'),
-                      style: const TextStyle(color: Colors.white60),
+                  SizedBox(
+                    width: 76,
+                    child: _index == _items.length - 1
+                        ? const SizedBox.shrink()
+                        : TextButton(
+                            onPressed: _finish,
+                            child: Text(
+                              lang.text('Skip', 'Lewati'),
+                              style: const TextStyle(color: Colors.white60),
+                            ),
+                          ),
                     ),
                   ),
                 ],

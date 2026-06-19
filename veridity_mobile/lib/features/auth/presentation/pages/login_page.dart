@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/app_dependencies.dart';
+import '../../../../core/localization/app_language.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../audit/presentation/pages/home_page.dart';
 
@@ -20,6 +21,9 @@ class LoginState extends State<Login> {
   final TextEditingController _resetConfirmController = TextEditingController();
   bool _isObscure = true;
   bool _isLoading = false;
+
+  String get _languageCode =>
+      AppDependencies.language.value == AppLocale.id ? 'id' : 'en';
 
   String _localizedAuthError(String message) {
     final lang = AppDependencies.language;
@@ -62,6 +66,7 @@ class LoginState extends State<Login> {
       final session = await AppDependencies.authRepository.login(
         email: _emailController.text.trim(),
         password: _passController.text,
+        languageCode: _languageCode,
       );
 
       if (!mounted) {
@@ -132,7 +137,10 @@ class LoginState extends State<Login> {
               setDialogState(() => requesting = true);
               try {
                 final token = await AppDependencies.authRepository
-                    .forgotPassword(_forgotEmailController.text.trim());
+                    .forgotPassword(
+                      _forgotEmailController.text.trim(),
+                      languageCode: _languageCode,
+                    );
                 if (token != null && token.isNotEmpty) {
                   _resetTokenController.text = token;
                 }
@@ -174,6 +182,7 @@ class LoginState extends State<Login> {
                   token: _resetTokenController.text.trim(),
                   password: _resetPasswordController.text,
                   passwordConfirmation: _resetConfirmController.text,
+                  languageCode: _languageCode,
                 );
                 if (context.mounted) {
                   Navigator.pop(context);

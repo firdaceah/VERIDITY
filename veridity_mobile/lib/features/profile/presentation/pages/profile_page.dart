@@ -27,8 +27,14 @@ class ProfilState extends State<Profil> {
 
   bool _isEditing = false;
   bool _isSaving = false;
+  bool _hideCurrentPassword = true;
+  bool _hideNewPassword = true;
+  bool _hideConfirmPassword = true;
   String? _photoUrl;
   PlatformFile? _pendingPhoto;
+
+  String get _languageCode =>
+      AppDependencies.language.value == AppLocale.id ? 'id' : 'en';
 
   @override
   void initState() {
@@ -84,12 +90,14 @@ class ProfilState extends State<Profil> {
       final user = await AppDependencies.profileRepository.updateProfile(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
+        languageCode: _languageCode,
       );
 
       var latestUser = user;
       if (_pendingPhoto != null) {
         latestUser = await AppDependencies.profileRepository.updateProfilePhoto(
           _pendingPhoto!,
+          languageCode: _languageCode,
         );
       }
 
@@ -100,6 +108,7 @@ class ProfilState extends State<Profil> {
           currentPassword: _currentPasswordController.text,
           password: _newPasswordController.text,
           passwordConfirmation: _confirmPasswordController.text,
+          languageCode: _languageCode,
         );
       }
 
@@ -255,28 +264,37 @@ class ProfilState extends State<Profil> {
                     _buildProfileField(
                       lang.text("Current Password", "Password Lama"),
                       _currentPasswordController,
-                      obscure: true,
+                      obscure: _hideCurrentPassword,
                       hint: lang.text(
                         "Fill only if you want to change password",
                         "Isi jika ingin ganti password",
+                      ),
+                      onToggleObscure: () => setState(
+                        () => _hideCurrentPassword = !_hideCurrentPassword,
                       ),
                     ),
                     _buildProfileField(
                       lang.text("New Password", "Password Baru"),
                       _newPasswordController,
-                      obscure: true,
+                      obscure: _hideNewPassword,
                       hint: lang.text(
                         "Minimum 8 characters",
                         "Minimal 8 karakter",
+                      ),
+                      onToggleObscure: () => setState(
+                        () => _hideNewPassword = !_hideNewPassword,
                       ),
                     ),
                     _buildProfileField(
                       lang.text("Confirm Password", "Konfirmasi Password"),
                       _confirmPasswordController,
-                      obscure: true,
+                      obscure: _hideConfirmPassword,
                       hint: lang.text(
                         "Repeat new password",
                         "Ulangi password baru",
+                      ),
+                      onToggleObscure: () => setState(
+                        () => _hideConfirmPassword = !_hideConfirmPassword,
                       ),
                     ),
                   ],
@@ -567,6 +585,7 @@ class ProfilState extends State<Profil> {
     TextEditingController controller, {
     bool obscure = false,
     String? hint,
+    VoidCallback? onToggleObscure,
   }) {
     return _FieldShell(
       label: label,
@@ -580,6 +599,15 @@ class ProfilState extends State<Profil> {
           hintStyle: const TextStyle(color: Colors.white30),
           border: InputBorder.none,
           isDense: true,
+          suffixIcon: onToggleObscure == null
+              ? null
+              : IconButton(
+                  onPressed: onToggleObscure,
+                  icon: Icon(
+                    obscure ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.white54,
+                  ),
+                ),
         ),
       ),
     );

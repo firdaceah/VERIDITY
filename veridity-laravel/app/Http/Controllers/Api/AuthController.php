@@ -10,12 +10,76 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
+    private const MESSAGES = [
+        'login_failed' => [
+            'en' => 'Login failed. Check your email and password.',
+            'id' => 'Login gagal. Periksa email dan password.',
+        ],
+        'login_success' => [
+            'en' => 'Login successful!',
+            'id' => 'Login berhasil!',
+        ],
+        'logout_success' => [
+            'en' => 'Logged out successfully.',
+            'id' => 'Berhasil logout, token telah dihapus.',
+        ],
+        'profile_updated' => [
+            'en' => 'Profile updated successfully.',
+            'id' => 'Profil berhasil diperbarui.',
+        ],
+        'photo_updated' => [
+            'en' => 'Profile photo updated successfully.',
+            'id' => 'Foto profil berhasil diperbarui.',
+        ],
+        'photo_invalid' => [
+            'en' => 'Profile photo must be a JPG, JPEG, or PNG file.',
+            'id' => 'Foto profil harus berupa file JPG, JPEG, atau PNG.',
+        ],
+        'password_current_invalid' => [
+            'en' => 'Current password is incorrect.',
+            'id' => 'Password lama tidak sesuai.',
+        ],
+        'password_updated' => [
+            'en' => 'Password updated successfully.',
+            'id' => 'Password berhasil diperbarui.',
+        ],
+        'reset_created' => [
+            'en' => 'Reset token created.',
+            'id' => 'Token reset password berhasil dibuat.',
+        ],
+        'reset_invalid' => [
+            'en' => 'The reset token is invalid.',
+            'id' => 'Token reset password tidak valid.',
+        ],
+        'reset_expired' => [
+            'en' => 'The reset token has expired.',
+            'id' => 'Token reset password sudah kedaluwarsa.',
+        ],
+        'reset_success' => [
+            'en' => 'Password reset successfully. Please log in again.',
+            'id' => 'Password berhasil direset. Silakan login kembali.',
+        ],
+    ];
+
+    private function normalizeLanguage(?string $language): string
+    {
+        return strtolower((string) $language) === 'id' ? 'id' : 'en';
+    }
+
+    private function message(string $key, ?string $language): string
+    {
+        $locale = $this->normalizeLanguage($language);
+
+        return self::MESSAGES[$key][$locale] ?? self::MESSAGES[$key]['en'] ?? $key;
+    }
+
     private function evidenceStorage(): EvidenceStorage
     {
         return app(EvidenceStorage::class);
@@ -59,16 +123,19 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+        $language = $this->normalizeLanguage($request->input('language'));
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
+            'language' => 'nullable|string|in:en,id',
         ]);
+        unset($credentials['language']);
 
         if (! auth()->attempt($credentials)) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Login Gagal',
+                    'message' => $this->message('login_failed', $language),
                 ], 401);
             }
 
@@ -87,7 +154,7 @@ class AuthController extends Controller
             return redirect()->intended('/dashboard');
         }
 
-        return $this->tokenResponse($user, 'veridity_token', 'Login berhasil!');
+        return $this->tokenResponse($user, 'veridity_token', $this->message('login_success', $language));
     }
 
     public function logout(Request $request)
@@ -99,7 +166,7 @@ class AuthController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'status' => 'success',
-                'message' => 'Berhasil logout, token telah dihapus.',
+                'message' => $this->message('logout_success', $request->input('language')),
             ]);
         }
 
@@ -232,7 +299,7 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Profil berhasil diperbarui.',
+            'message' => $this->message('profile_updated', $request->input('language')),
             'data' => $user->fresh(),
         ]);
     }
@@ -250,7 +317,7 @@ class AuthController extends Controller
         if (! in_array($extension, ['jpg', 'jpeg', 'png'], true)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Foto profil harus berupa file JPG, JPEG, atau PNG.',
+                'message' => $this->message('photo_invalid', $request->input('language')),
             ], 422);
         }
 
@@ -262,7 +329,7 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Foto profil berhasil diperbarui.',
+            'message' => $this->message('photo_updated', $request->input('language')),
             'data' => $user->fresh(),
         ]);
     }
@@ -279,7 +346,7 @@ class AuthController extends Controller
         if (! Hash::check($validated['current_password'], $user->password)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Password lama tidak sesuai.',
+                'message' => $this->message('password_current_invalid', $request->input('language')),
             ], 422);
         }
 
@@ -287,15 +354,18 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Password berhasil diperbarui.',
+            'message' => $this->message('password_updated', $request->input('language')),
         ]);
     }
 
     public function forgotPassword(Request $request)
     {
+        $language = $this->normalizeLanguage($request->input('language'));
         $validated = $request->validate([
             'email' => ['required', 'email', 'exists:users,email'],
+            'language' => ['nullable', 'string', 'in:en,id'],
         ]);
+        unset($validated['language']);
 
         $token = Str::random(64);
 
@@ -309,13 +379,26 @@ class AuthController extends Controller
 
         $response = [
             'status' => 'success',
-            'message' => 'Instruksi reset password sudah dibuat.',
+            'message' => $this->message('reset_created', $language),
+            'dev_reset_token' => $token,
         ];
 
-        if (app()->environment(['local', 'testing'])) {
-            $response['dev_reset_token'] = $token;
-        } else {
-            Password::sendResetLink($validated);
+        try {
+            $resetUrl = url('/reset-password');
+            $emailBody = $language === 'id'
+                ? "Token reset password VERIDITY Anda:\n\n{$token}\n\nBuka {$resetUrl} untuk mengatur password baru."
+                : "Your VERIDITY password reset token:\n\n{$token}\n\nOpen {$resetUrl} to set a new password.";
+
+            Mail::raw($emailBody, function ($message) use ($validated, $language) {
+                $message
+                    ->to($validated['email'])
+                    ->subject($language === 'id' ? 'Token Reset Password VERIDITY' : 'VERIDITY Password Reset Token');
+            });
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send password reset email', [
+                'email' => $validated['email'],
+                'message' => $e->getMessage(),
+            ]);
         }
 
         return response()->json($response);
@@ -323,25 +406,28 @@ class AuthController extends Controller
 
     public function resetPassword(Request $request)
     {
+        $language = $this->normalizeLanguage($request->input('language'));
         $validated = $request->validate([
             'email' => ['required', 'email', 'exists:users,email'],
             'token' => ['required', 'string'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'language' => ['nullable', 'string', 'in:en,id'],
         ]);
+        unset($validated['language']);
 
         $record = DB::table('password_reset_tokens')->where('email', $validated['email'])->first();
 
         if (! $record || ! Hash::check($validated['token'], $record->token)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Token reset password tidak valid.',
+                'message' => $this->message('reset_invalid', $language),
             ], 422);
         }
 
         if ($record->created_at && now()->diffInMinutes($record->created_at) > 60) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Token reset password sudah kedaluwarsa.',
+                'message' => $this->message('reset_expired', $language),
             ], 422);
         }
 
@@ -353,7 +439,7 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Password berhasil direset. Silakan login kembali.',
+            'message' => $this->message('reset_success', $language),
         ]);
     }
 
