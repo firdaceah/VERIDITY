@@ -27,8 +27,11 @@ def perform_ela(image_path, quality=95, error_scale=10, overlay_opacity=0.5):
         diff_np = np.asarray(diff, dtype=np.float32)
         max_val = diff_np.max()
         
-        # Hitung parameter anomali piksel
-        anomaly_score = float(diff_np.mean() + 2 * diff_np.std())
+        # Hitung parameter anomali piksel. Skor global menangkap kompresi
+        # umum, sedangkan skor lokal membantu membaca tempelan kecil.
+        global_anomaly_score = float(diff_np.mean() + 2 * diff_np.std())
+        local_metrics = local_ela_splice_metrics(diff)
+        anomaly_score = max(global_anomaly_score, local_metrics["local_splice_score"])
         # KALKULASI MANDIRI: Mengubah skor anomali menjadi skor keaslian
         ela_auth_score = max(0.0, min(100.0, round(100.0 - (anomaly_score * 3), 2)))
 
@@ -36,9 +39,11 @@ def perform_ela(image_path, quality=95, error_scale=10, overlay_opacity=0.5):
             "max_diff": float(max_val),
             "mean_diff": float(diff_np.mean()),
             "std_diff": float(diff_np.std()),
+            "global_anomaly_score": global_anomaly_score,
             "anomaly_score": anomaly_score,
             "ela_authenticity_score": ela_auth_score # Suntikan metrik baru
         }
+        metrics.update(local_metrics)
 
         return ela_img, ela_overlay, metrics
 
@@ -76,6 +81,44 @@ def block_ela_stats(ela_img, block=8):
         "block_std_mean": float(blocks.mean()),
         "block_std_std": float(blocks.std()),
         "block_std_max": float(blocks.max())
+    }
+
+def local_ela_splice_metrics(diff_img, block=16):
+    ela = np.asarray(diff_img.convert("L"), dtype=np.float32)
+    h, w = ela.shape
+
+    block_means = []
+    for y in range(0, h - block + 1, block):
+        for x in range(0, w - block + 1, block):
+            region = ela[y:y+block, x:x+block]
+            block_means.append(float(region.mean()))
+
+    if not block_means:
+        return {
+            "local_splice_score": 0.0,
+            "local_outlier_ratio": 0.0,
+            "local_p95": 0.0,
+            "local_p99": 0.0,
+            "local_median": 0.0
+        }
+
+    blocks = np.asarray(block_means, dtype=np.float32)
+    median = float(np.median(blocks))
+    mad = float(np.median(np.abs(blocks - median)))
+    robust_spread = max(1.0, 1.4826 * mad)
+    threshold = median + max(6.0, robust_spread * 3.0)
+    outlier_ratio = float(np.mean(blocks > threshold))
+    p95 = float(np.percentile(blocks, 95))
+    p99 = float(np.percentile(blocks, 99))
+    local_contrast = max(0.0, p99 - median)
+    local_splice_score = min(100.0, round((local_contrast * 2.0) + (outlier_ratio * 250.0), 2))
+
+    return {
+        "local_splice_score": local_splice_score,
+        "local_outlier_ratio": round(outlier_ratio, 4),
+        "local_p95": round(p95, 4),
+        "local_p99": round(p99, 4),
+        "local_median": round(median, 4)
     }
 
 def noise_map(image_path):
@@ -143,7 +186,7 @@ def threshold_ela(ela_img, threshold=40):
 
 def forensic_analysis(image_path, qualities=[75, 85, 95], error_scale=10, overlay_opacity=0.5):
     ela_results = ela_multi_quality(image_path, qualities, error_scale=error_scale, overlay_opacity=overlay_opacity)
-    primary_quality = qualities[0] if qualities else 90
+    primary_quality = qualities[-1] if qualities else 95
 
     ela_primary, overlay_primary, metrics_primary = perform_ela(
         image_path, quality=primary_quality, error_scale=error_scale, overlay_opacity=overlay_opacity

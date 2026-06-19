@@ -218,7 +218,8 @@
                                     <ul class="list-none space-y-1 pl-1">
                                         <li>Rerata Selisih Eror (Mean Diff) : {{ number_format($analysis->final_result['full_report']['results']['ela']['metrics']['mean_diff'] ?? 0, 5) }}</li>
                                         <li>Standar Deviasi Eror (Std Dev) : {{ number_format($analysis->final_result['full_report']['results']['ela']['metrics']['std_diff'] ?? 0, 5) }}</li>
-                                        <li class="text-blue-400 font-bold">Rumus Deteksi Anomali : Anomaly Score = Mean + (2 * Std Dev)</li>
+                                        <li>Skor Tempelan Lokal : {{ number_format($analysis->final_result['full_report']['results']['ela']['metrics']['local_splice_score'] ?? 0, 4) }}%</li>
+                                        <li class="text-blue-400 font-bold">Rumus Deteksi Anomali : max(Global ELA, Local Splice Score)</li>
                                         <li>Hasil Akhir ELA Score Mentah : <span class="text-red-400 font-bold">{{ number_format($analysis->ela_score, 4) }}%</span></li>
                                     </ul>
                                     <div class="pt-2 border-t border-slate-800/60 mt-2">
