@@ -314,7 +314,7 @@
                                     <ul class="list-none space-y-1 pl-1">
                                         <li>Kamera/Tipe Manufaktur : {{ $analysis->metadata_details['metadata']['camera']['Make'] ?? 'KOSONG / TIDAK TERDETEKSI' }}</li>
                                         <li>Software Ekspor Vendor  : {{ $analysis->metadata_details['metadata']['software']['Software'] ?? 'MURNI OPTIK / TANPA APPLIKASI' }}</li>
-                                        <li class="text-blue-400 font-bold">Pinalti Pengurangan : Metadata hilang (0 Poin / Netral) | Jejak Aplikasi Editor (-20 Poin)</li>
+                                        <li class="text-blue-400 font-bold">Pinalti Pengurangan : Metadata hilang (-10 Poin) | Jejak Aplikasi Editor (-30 Poin)</li>
                                     </ul>
                                     <div class="pt-2 border-t border-slate-800/60 mt-2">
                                         <ul class="list-none space-y-1 pl-1 text-white font-bold">
@@ -324,7 +324,7 @@
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] pt-1">
-                                    <p><span class="text-amber-400 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i>Batas Aman Toleransi:</span> Metadata dipakai sebagai sinyal pendukung. EXIF yang hilang karena kompresi atau aplikasi pesan tidak langsung dianggap manipulasi; jejak aplikasi editor tetap menurunkan skor.</p>
+                                    <p><span class="text-amber-400 font-bold"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i>Batas Aman Toleransi:</span> Metadata dipakai sebagai sinyal pendukung. EXIF yang hilang diberi penalti ringan karena bisa berasal dari aplikasi pesan, sedangkan jejak aplikasi editor diberi penalti lebih besar.</p>
                                     <p><span class="text-emerald-400 font-bold"><i class="fa-solid fa-flask-vial mr-1.5"></i>Kesimpulan Eksperimen:</span>
                                         <span class="text-slate-300 font-semibold">{{ $analysis->metadata_details['summary']['status'] ?? 'No Status' }}.</span> Status vonis integritas riwayat tercatat sebagai berkas <span class="text-blue-400 font-bold">{{ $analysis->final_result['full_report']['results']['metadata']['summary']['verdict'] ?? 'UNKNOWN' }}</span>.
                                     </p>
@@ -346,7 +346,7 @@
                                     <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
                                         <p class="text-blue-400 font-bold">A. Integritas ELA</p>
                                         <p class="mt-1">Skor: {{ number_format($elaAuthScore, 2) }}%</p>
-                                        <p class="text-slate-600">Bobot(40%): {{ number_format($elaAuthScore * 0.40, 2) }}%</p>
+                                        <p class="text-slate-600">Bobot(30%): {{ number_format($elaAuthScore * 0.30, 2) }}%</p>
                                     </div>
                                     <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
                                         <p class="text-amber-400 font-bold">B. Kerapatan Noise</p>
@@ -356,7 +356,7 @@
                                     <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
                                         <p class="text-emerald-400 font-bold">C. EXIF Metadata</p>
                                         <p class="mt-1">Skor: {{ number_format($metaScore, 2) }}%</p>
-                                        <p class="text-slate-600">Bobot(10%): {{ number_format($metaScore * 0.10, 2) }}%</p>
+                                        <p class="text-slate-600">Bobot(20%): {{ number_format($metaScore * 0.20, 2) }}%</p>
                                     </div>
                                     <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
                                         <p class="text-purple-400 font-bold">D. Spektral AI</p>
@@ -387,7 +387,7 @@
                                 </div>
 
                                 <div class="pt-2 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs font-mono border-t border-slate-800/60">
-                                    <span class="text-slate-500">Formulasi Total: <span class="text-slate-600">(A * 0.40) + (B * 0.30) + (C * 0.10) + (D * 0.20)</span></span>
+                                    <span class="text-slate-500">Formulasi Total: <span class="text-slate-600">(A * 0.30) + (B * 0.30) + (C * 0.20) + (D * 0.20)</span></span>
                                     <span class="text-blue-400 font-bold text-sm">Skor Akhir Keaslian Citra: {{ number_format($analysis->final_result['full_report']['final_score'] ?? 0, 2) }}%</span>
                                 </div>
                             </div>

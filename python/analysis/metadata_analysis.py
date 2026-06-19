@@ -1,5 +1,5 @@
 import piexif
-from PIL import Image
+from PIL import Image, ExifTags
 import os
 from datetime import datetime
 
@@ -34,7 +34,11 @@ def extract_metadata(image_path):
             "megapixels": round((img.size[0] * img.size[1]) / 1_000_000, 2)
         })
 
-        exif_dict = piexif.load(image_path)
+        try:
+            exif_dict = piexif.load(image_path)
+        except Exception as exif_error:
+            exif_dict = {}
+            data["warnings"].append(f"Pembacaan EXIF piexif tidak lengkap: {str(exif_error)}")
 
         def decode_tag(v):
             if isinstance(v, bytes):
@@ -66,6 +70,26 @@ def extract_metadata(image_path):
                     else:
                         data["exif"][tag_name] = str(decoded)
 
+        if "GPS" in exif_dict:
+            for tag, value in exif_dict["GPS"].items():
+                if tag in piexif.TAGS["GPS"]:
+                    tag_name = piexif.TAGS["GPS"][tag]["name"]
+                    data["gps"][tag_name] = str(decode_tag(value))
+
+        # Beberapa file menyimpan EXIF lewat Pillow, tetapi tidak lengkap saat
+        # dibaca piexif. Fallback ini mencegah metadata valid terbaca kosong.
+        for tag, value in img.getexif().items():
+            tag_name = ExifTags.TAGS.get(tag, str(tag))
+            decoded = decode_tag(value)
+            if tag_name in ["Make", "Model"]:
+                data["camera"].setdefault(tag_name, decoded)
+            elif tag_name == "Software":
+                data["software"].setdefault(tag_name, decoded)
+            elif tag_name == "DateTime":
+                data["timestamps"].setdefault(tag_name, decoded)
+            else:
+                data["exif"].setdefault(tag_name, str(decoded))
+
     except Exception as e:
         data["warnings"].append(f"Gagal membaca rekam jejak metadata: {str(e)}")
 
@@ -83,20 +107,22 @@ def detect_anomalies(metadata):
 
     has_any_metadata = any([
         metadata["exif"], 
+        metadata["gps"],
         metadata["camera"], 
         metadata["software"], 
         metadata["timestamps"]
     ])
 
     if not has_any_metadata:
-        anomalies["info"].append("Informasi kamera asli tidak tersedia. Metadata dapat hilang karena kompresi, ekspor ulang, atau pengiriman melalui aplikasi pesan.")
+        anomalies["warning"].append("Informasi kamera asli hilang - File dapat berasal dari kompresi aplikasi pesan, hasil export, atau proses simpan ulang.")
         anomalies["metadata_missing"] = True
-        metadata["summary"]["status"] = "Metadata Tidak Tersedia / Netral"
+        score -= 10
+        metadata["summary"]["status"] = "Metadata Kamera Hilang / Hasil Export"
     else:
         if metadata["software"]:
             software_used = ", ".join(metadata["software"].values())
             anomalies["warning"].append(f"Terdeteksi jejak modifikasi digital: Berkas pernah disimpan menggunakan aplikasi {software_used}")
-            score -= 20
+            score -= 30
             metadata["summary"]["status"] = "Modifikasi via Aplikasi Editor"
         else:
             metadata["summary"]["status"] = "Metadata Kamera Asli Terverifikasi"
@@ -122,8 +148,8 @@ def full_metadata_analysis(image_path):
     score = anomalies["authenticity_score"]
     
     if anomalies.get("metadata_missing"):
-        verdict = "METADATA TIDAK TERSEDIA (NETRAL)"
-        verdict_key = "metadata_missing_neutral"
+        verdict = "METADATA TERBATAS / HILANG (PENALTI RINGAN)"
+        verdict_key = "metadata_missing_limited"
     elif score >= 85: 
         verdict = "KAMERA FISIK REAL (OTENTIK)"
         verdict_key = "metadata_authentic_camera"
@@ -139,7 +165,7 @@ def full_metadata_analysis(image_path):
         "anomalies": anomalies,
         "summary": {
             "authenticity_score": score,
-            "effective_authenticity_score": 100 if anomalies.get("metadata_missing") else score,
+            "effective_authenticity_score": score,
             "metadata_missing": anomalies.get("metadata_missing", False),
             "verdict": verdict,
             "verdict_key": verdict_key,

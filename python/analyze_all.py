@@ -107,12 +107,12 @@ def run_full_investigation(image_path, output_dir, language="en", is_cancelled=N
             return _cancelled(language)
 
         # --- 5. RUMUS HARMONISASI BOBOT FORENSIK ---
-        # Metadata dipakai sebagai sinyal pendukung karena EXIF sering hilang
-        # akibat kompresi/download dari aplikasi pesan seperti WhatsApp.
+        # ELA dan noise membaca anomali visual, sementara metadata dan AI
+        # menjadi sinyal pendukung yang tetap punya porsi seimbang.
         final_score = (
-            (ela_auth_score * 0.40)
+            (ela_auth_score * 0.30)
             + (noise_auth_score * 0.30)
-            + (effective_meta_auth_score * 0.10)
+            + (effective_meta_auth_score * 0.20)
             + (ai_auth_score * 0.20)
         )
 
@@ -132,8 +132,8 @@ def run_full_investigation(image_path, output_dir, language="en", is_cancelled=N
         )
         has_medium_signal = (
             final_score < 80
-            or ela_anomaly_score > 8
-            or gan_score > 0.25
+            or ela_anomaly_score > 15
+            or gan_score > 0.4
             or is_metadata_suspicious
             or has_noise_warning
         )

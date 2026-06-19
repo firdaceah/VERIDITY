@@ -887,8 +887,8 @@ class ForensicController extends Controller
                 $statusColor = 'danger';
             } elseif ($pythonVerdict === 'SUSPICIOUS'
                 || $finalScore < 80
-                || $elaScore > 8
-                || $ganScore > 0.25
+                || $elaScore > 15
+                || $ganScore > 0.4
                 || $isNoiseInconsistent
                 || $isMetaSuspicious) {
                 $statusLabel = $language === 'id' ? 'MENCURIGAKAN (TERINDIKASI REKAYASA)' : 'SUSPICIOUS (MANIPULATION INDICATED)';
