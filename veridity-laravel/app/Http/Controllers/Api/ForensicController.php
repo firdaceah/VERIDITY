@@ -853,21 +853,27 @@ class ForensicController extends Controller
             $noiseWarnings = $result['results']['noise']['warnings'] ?? [];
             $noiseAuthenticityScore = (float) ($result['results']['noise']['metrics']['noise_authenticity_score'] ?? 100);
             $metaAuthenticityScore = (float) ($result['results']['metadata']['summary']['authenticity_score'] ?? 100);
+            $isMetadataMissing = (bool) ($result['results']['metadata']['summary']['metadata_missing'] ?? false);
             $finalScore = $result['final_score'] ?? 0;
 
-            $isNoiseInconsistent = ! empty($noiseWarningKeys)
-                || ! empty($noiseWarnings)
-                || $noiseAuthenticityScore < 85
+            $hasStrongNoiseSignal = $noiseAuthenticityScore < 50
+                || in_array('noise_very_low', $noiseWarningKeys, true)
+                || ($noiseAuthenticityScore < 75 && $elaScore > 8);
+            $isNoiseInconsistent = $hasStrongNoiseSignal
                 || str_contains(strtolower($noiseInterpretation), 'tidak rata')
                 || str_contains(strtolower($noiseInterpretation), 'keanehan')
-                || str_contains(strtolower($noiseInterpretation), 'local variation');
+                || (
+                    str_contains(strtolower($noiseInterpretation), 'local variation')
+                    && ($noiseAuthenticityScore < 75 || $elaScore > 8)
+                );
             $isMetaManipulated = ($metaVerdict === 'REKAYASA DIGITAL / EDITING'
                 || $metaVerdict === 'REKAYASA DIGITAL / GENERATOR AI (SANGAT BERBAHAYA)'
                 || str_contains(strtoupper($metaVerdict), 'EDITING'));
-            $isMetaSuspicious = $isMetaManipulated
-                || $metaAuthenticityScore < 85
-                || str_contains(strtoupper($metaVerdict), 'MENCURIGAKAN')
-                || str_contains(strtoupper($metaVerdict), 'SUSPICIOUS');
+            $isMetaSuspicious = ! $isMetadataMissing
+                && ($isMetaManipulated
+                    || $metaAuthenticityScore < 85
+                    || str_contains(strtoupper($metaVerdict), 'MENCURIGAKAN')
+                    || str_contains(strtoupper($metaVerdict), 'SUSPICIOUS'));
             $pythonVerdict = strtoupper((string) ($result['verdict'] ?? ''));
 
             $statusLabel = $language === 'id' ? 'FOTO ASLI / JEPRETAN MURNI' : 'AUTHENTIC PHOTO / ORIGINAL CAPTURE';

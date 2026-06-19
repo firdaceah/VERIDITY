@@ -100,23 +100,36 @@ def run_full_investigation(image_path, output_dir, language="en", is_cancelled=N
         # Mengambil skor keaslian Noise murni dari sub-modul
         noise_auth_score = noise_results.get('metrics', {}).get('noise_authenticity_score', 100.0)
         meta_auth_score = meta_report['summary']['authenticity_score']
+        metadata_missing = bool(meta_report['summary'].get('metadata_missing'))
+        effective_meta_auth_score = meta_report['summary'].get('effective_authenticity_score', meta_auth_score)
 
         if is_cancelled():
             return _cancelled(language)
 
         # --- 5. RUMUS HARMONISASI BOBOT FORENSIK ---
-        # ELA dan metadata diberi porsi lebih besar karena keduanya lebih kuat
-        # untuk mendeteksi jejak edit lokal dan riwayat pemrosesan file.
+        # Metadata dipakai sebagai sinyal pendukung karena EXIF sering hilang
+        # akibat kompresi/download dari aplikasi pesan seperti WhatsApp.
         final_score = (
-            (ela_auth_score * 0.35)
-            + (noise_auth_score * 0.25)
-            + (meta_auth_score * 0.25)
-            + (ai_auth_score * 0.15)
+            (ela_auth_score * 0.40)
+            + (noise_auth_score * 0.30)
+            + (effective_meta_auth_score * 0.10)
+            + (ai_auth_score * 0.20)
         )
 
         noise_warning_keys = noise_results.get('warning_keys') or []
-        is_metadata_suspicious = meta_auth_score < 85 or meta_report['summary']['verdict'] != "KAMERA FISIK REAL (OTENTIK)"
-        has_noise_warning = bool(noise_warning_keys) or noise_auth_score < 85
+        metadata_verdict = meta_report['summary'].get('verdict', '')
+        is_metadata_suspicious = (
+            not metadata_missing
+            and (
+                meta_auth_score < 85
+                or metadata_verdict in ["REKAYASA DIGITAL / EDITING", "TERINDIKASI EDITING (MENCURIGAKAN)"]
+            )
+        )
+        has_noise_warning = (
+            noise_auth_score < 50
+            or (noise_auth_score < 75 and ela_anomaly_score > 8)
+            or ("noise_very_low" in noise_warning_keys)
+        )
         has_medium_signal = (
             final_score < 80
             or ela_anomaly_score > 8
@@ -134,20 +147,6 @@ def run_full_investigation(image_path, output_dir, language="en", is_cancelled=N
             verdict = "SUSPICIOUS"
         else:
             verdict = "AUTHENTIC"
-
-        # Sinkronisasi teks status berkas sub-report
-        if is_deepfake_positive:
-            meta_report['summary']['verdict'] = "REKAYASA DIGITAL / GENERATOR AI (SANGAT BERBAHAYA)"
-            meta_report['summary']['verdict_key'] = "metadata_ai_generated"
-        elif verdict == "MANIPULATED":
-            meta_report['summary']['verdict'] = "REKAYASA DIGITAL / EDITING"
-            meta_report['summary']['verdict_key'] = "metadata_digital_editing"
-        elif verdict == "SUSPICIOUS":
-            meta_report['summary']['verdict'] = "TERINDIKASI EDITING (MENCURIGAKAN)"
-            meta_report['summary']['verdict_key'] = "metadata_suspicious_editing"
-        else:
-            meta_report['summary']['verdict'] = "KAMERA FISIK REAL (OTENTIK)"
-            meta_report['summary']['verdict_key'] = "metadata_authentic_camera"
 
         full_report = {
             "status": "success",

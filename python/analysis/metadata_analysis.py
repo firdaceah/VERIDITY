@@ -76,7 +76,8 @@ def detect_anomalies(metadata):
         "critical": [],
         "warning": [],
         "info": [],
-        "authenticity_score": 100
+        "authenticity_score": 100,
+        "metadata_missing": False
     }
     score = 100
 
@@ -88,9 +89,9 @@ def detect_anomalies(metadata):
     ])
 
     if not has_any_metadata:
-        anomalies["critical"].append("Informasi kamera asli hilang - File gambar diproses ulang atau sengaja diekspor tanpa membawa riwayat kamera asli (Stripped)")
-        score -= 30
-        metadata["summary"]["status"] = "Metadata Kamera Hilang / Hasil Export"
+        anomalies["info"].append("Informasi kamera asli tidak tersedia. Metadata dapat hilang karena kompresi, ekspor ulang, atau pengiriman melalui aplikasi pesan.")
+        anomalies["metadata_missing"] = True
+        metadata["summary"]["status"] = "Metadata Tidak Tersedia / Netral"
     else:
         if metadata["software"]:
             software_used = ", ".join(metadata["software"].values())
@@ -120,7 +121,10 @@ def full_metadata_analysis(image_path):
     
     score = anomalies["authenticity_score"]
     
-    if score >= 85: 
+    if anomalies.get("metadata_missing"):
+        verdict = "METADATA TIDAK TERSEDIA (NETRAL)"
+        verdict_key = "metadata_missing_neutral"
+    elif score >= 85: 
         verdict = "KAMERA FISIK REAL (OTENTIK)"
         verdict_key = "metadata_authentic_camera"
     elif score >= 60: 
@@ -135,6 +139,8 @@ def full_metadata_analysis(image_path):
         "anomalies": anomalies,
         "summary": {
             "authenticity_score": score,
+            "effective_authenticity_score": 100 if anomalies.get("metadata_missing") else score,
+            "metadata_missing": anomalies.get("metadata_missing", False),
             "verdict": verdict,
             "verdict_key": verdict_key,
             "status": metadata["summary"]["status"]
