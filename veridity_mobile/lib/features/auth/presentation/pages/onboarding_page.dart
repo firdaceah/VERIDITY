@@ -104,7 +104,6 @@ class SplashScreen2State extends State<SplashScreen2> {
                               style: const TextStyle(color: Colors.white60),
                             ),
                           ),
-                    ),
                   ),
                 ],
               ),
