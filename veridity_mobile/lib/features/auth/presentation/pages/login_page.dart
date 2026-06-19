@@ -21,6 +21,39 @@ class LoginState extends State<Login> {
   bool _isObscure = true;
   bool _isLoading = false;
 
+  String _localizedAuthError(String message) {
+    final lang = AppDependencies.language;
+    final normalized = message.toLowerCase();
+
+    if (normalized.contains('login gagal') ||
+        normalized.contains('invalid') ||
+        normalized.contains('password salah') ||
+        normalized.contains('email atau password')) {
+      return lang.text(
+        'Login failed. Check your email and password.',
+        'Login gagal. Periksa email dan password.',
+      );
+    }
+
+    if (normalized.contains('token reset password tidak valid') ||
+        normalized.contains('invalid token')) {
+      return lang.text(
+        'The reset token is invalid.',
+        'Token reset password tidak valid.',
+      );
+    }
+
+    if (normalized.contains('kedaluwarsa') ||
+        normalized.contains('expired')) {
+      return lang.text(
+        'The reset token has expired. Request a new one.',
+        'Token reset password sudah kedaluwarsa. Minta token baru.',
+      );
+    }
+
+    return message;
+  }
+
   Future<void> loginUser() async {
     final lang = AppDependencies.language;
     setState(() => _isLoading = true);
@@ -48,7 +81,7 @@ class LoginState extends State<Login> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ).showSnackBar(SnackBar(content: Text(_localizedAuthError(e.message))));
     } catch (e) {
       if (!mounted) {
         return;
@@ -107,10 +140,15 @@ class LoginState extends State<Login> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        lang.text(
-                          "Password reset instructions have been created",
-                          "Instruksi reset password berhasil dibuat",
-                        ),
+                        token != null && token.isNotEmpty
+                            ? lang.text(
+                                "Reset token created and filled automatically.",
+                                "Token reset dibuat dan terisi otomatis.",
+                              )
+                            : lang.text(
+                                "Reset instructions were sent to your email. Open the link from your email to continue.",
+                                "Instruksi reset dikirim ke email. Buka tautan dari email untuk melanjutkan.",
+                              ),
                       ),
                     ),
                   );
@@ -119,7 +157,9 @@ class LoginState extends State<Login> {
                 if (context.mounted) {
                   ScaffoldMessenger.of(
                     context,
-                  ).showSnackBar(SnackBar(content: Text(e.message)));
+                  ).showSnackBar(
+                    SnackBar(content: Text(_localizedAuthError(e.message))),
+                  );
                 }
               } finally {
                 setDialogState(() => requesting = false);
@@ -152,7 +192,9 @@ class LoginState extends State<Login> {
                 if (context.mounted) {
                   ScaffoldMessenger.of(
                     context,
-                  ).showSnackBar(SnackBar(content: Text(e.message)));
+                  ).showSnackBar(
+                    SnackBar(content: Text(_localizedAuthError(e.message))),
+                  );
                 }
               } finally {
                 setDialogState(() => resetting = false);
@@ -174,6 +216,18 @@ class LoginState extends State<Login> {
                     _dialogField(
                       _resetTokenController,
                       lang.text("Reset token", "Token reset"),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      lang.text(
+                        "If the token is not filled automatically, use the reset link sent to your email.",
+                        "Jika token tidak terisi otomatis, gunakan tautan reset yang dikirim ke email.",
+                      ),
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                        height: 1.35,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     _dialogPasswordField(

@@ -93,6 +93,12 @@ class _AuditDetailState extends State<AuditDetail> {
                   _DocumentDetailCard(audit: audit)
                 else
                   _ImageDetailCard(audit: audit),
+                if (audit.isImage &&
+                    ((audit.elaImageUrl?.isNotEmpty ?? false) ||
+                        (audit.noiseImageUrl?.isNotEmpty ?? false))) ...[
+                  const SizedBox(height: 18),
+                  _ForensicMapsCard(audit: audit),
+                ],
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
                   onPressed: () => _downloadReport(context, audit),
@@ -448,6 +454,117 @@ class _DocumentDetailCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ForensicMapsCard extends StatelessWidget {
+  const _ForensicMapsCard({required this.audit});
+
+  final AuditEntity audit;
+
+  @override
+  Widget build(BuildContext context) {
+    final lang = AppDependencies.language;
+    final maps = [
+      if (audit.elaImageUrl?.isNotEmpty == true)
+        _ForensicMapItem(
+          title: 'ELA Map',
+          helper: lang.text(
+            'Compression-error visualization for spotting local edits.',
+            'Visualisasi eror kompresi untuk melihat edit lokal.',
+          ),
+          url: audit.elaImageUrl!,
+        ),
+      if (audit.noiseImageUrl?.isNotEmpty == true)
+        _ForensicMapItem(
+          title: lang.text('Noise Map', 'Peta Noise'),
+          helper: lang.text(
+            'Noise distribution used as supporting forensic evidence.',
+            'Sebaran noise sebagai bukti forensik pendukung.',
+          ),
+          url: audit.noiseImageUrl!,
+        ),
+    ];
+
+    return _MetricCard(
+      title: lang.text('Visual Evidence Maps', 'Peta Bukti Visual'),
+      icon: Icons.layers_outlined,
+      children: maps,
+    );
+  }
+}
+
+class _ForensicMapItem extends StatelessWidget {
+  const _ForensicMapItem({
+    required this.title,
+    required this.helper,
+    required this.url,
+  });
+
+  final String title;
+  final String helper;
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E0E20),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 10,
+            child: Image.network(
+              url,
+              fit: BoxFit.contain,
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) {
+                  return child;
+                }
+                return const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF39D2DD)),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                final lang = AppDependencies.language;
+                return Center(
+                  child: Text(
+                    lang.text('Map unavailable', 'Peta tidak tersedia'),
+                    style: const TextStyle(color: Colors.white54),
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFF39D2DD),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  helper,
+                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
