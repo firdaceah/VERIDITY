@@ -25,12 +25,12 @@
     </style>
 </head>
 
-<body class="bg-slate-900 text-white font-sans min-h-screen flex items-center justify-center px-6 py-12">
+<body class="bg-[#0E0E20] text-white font-sans min-h-screen flex items-center justify-center px-6 py-12">
 
     <div class="fixed top-6 left-6 z-50">
-        <a href="/" class="flex items-center gap-2 text-slate-400 hover:text-blue-500 transition-all group">
+        <a href="/" class="flex items-center gap-2 text-slate-400 hover:text-[#39D2DD] transition-all group">
             <div
-                class="w-10 h-10 rounded-full bg-slate-800/50 border border-slate-700 flex items-center justify-center group-hover:border-blue-500/50 shadow-lg">
+                class="w-10 h-10 rounded-full bg-[#1D143E]/50 border border-white/10 flex items-center justify-center group-hover:border-[#39D2DD]/50 shadow-lg">
                 <i class="fa-solid fa-arrow-left"></i>
             </div>
             <span class="text-sm font-medium hidden md:block">Kembali ke Beranda</span>
@@ -39,7 +39,7 @@
 
     <div class="w-full max-w-lg">
         <div class="text-center mb-8">
-            <a href="/" class="text-3xl font-bold tracking-tighter text-blue-500">
+            <a href="/" class="text-3xl font-bold tracking-tighter text-[#39D2DD]">
                 <i class="fa-solid fa-shield-halved"></i> VeriDity.
             </a>
 

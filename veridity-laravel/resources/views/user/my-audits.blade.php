@@ -9,7 +9,7 @@
         {{-- Header Section --}}
         <div class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-                <h1 class="text-3xl font-bold italic">My <span class="text-blue-500">Audits</span></h1>
+                <h1 class="text-3xl font-bold italic">My <span class="text-[#39D2DD]">Audits</span></h1>
                 <p class="text-slate-400 text-sm mt-1">Daftar rekaman riwayat investigasi forensik digital milik Anda.</p>
             </div>
 
@@ -17,16 +17,16 @@
             <div class="relative">
                 <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
                 <input x-model="query" type="search" placeholder="Cari nama file atau status..."
-                    class="w-full sm:w-72 pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-600">
+                    class="w-full sm:w-72 pl-10 pr-4 py-3 bg-[#111028] border border-white/10 rounded-2xl text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#4338CA]">
             </div>
-            <div class="flex bg-slate-950 p-1 rounded-2xl border border-slate-800/80 self-start">
+            <div class="flex bg-[#111028] p-1 rounded-2xl border border-white/10/80 self-start">
                 <button @click="activeTab = 'images'" 
-                    :class="activeTab === 'images' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'"
+                    :class="activeTab === 'images' ? 'bg-[#4338CA] text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'"
                     class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2">
                     <i class="fa-solid fa-image"></i> Citra Gambar
                 </button>
                 <button @click="activeTab = 'documents'" 
-                    :class="activeTab === 'documents' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'"
+                    :class="activeTab === 'documents' ? 'bg-[#4338CA] text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'"
                     class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2">
                     <i class="fa-solid fa-file-lines"></i> Dokumen Teks
                 </button>
@@ -55,9 +55,9 @@
                 @php
                     $auditFileExists = app(\App\Services\EvidenceStorage::class)->exists($audit->s3_path);
                 @endphp
-                <div x-show="'{{ strtolower($audit->image_name.' '.($audit->final_result['summary_label'] ?? '')) }}'.includes(query.toLowerCase())" class="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden group hover:border-blue-500/50 transition-all duration-300 shadow-xl flex flex-col justify-between">
+                <div x-show="'{{ strtolower($audit->image_name.' '.($audit->final_result['summary_label'] ?? '')) }}'.includes(query.toLowerCase())" class="bg-[#0E0E20] border border-white/10 rounded-[2.5rem] overflow-hidden group hover:border-[#39D2DD]/50 transition-all duration-300 shadow-xl flex flex-col justify-between">
                     <div>
-                        <div class="aspect-video bg-slate-950 relative overflow-hidden border-b border-slate-800/40">
+                        <div class="aspect-video bg-[#111028] relative overflow-hidden border-b border-white/10/40">
                             @if ($auditFileExists)
                                 <img src="{{ route('files.public', ['path' => $audit->s3_path]) }}"
                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -89,7 +89,7 @@
                     </div>
 
                     <div class="px-6 pb-6">
-                        <div class="flex justify-between items-center pt-4 border-t border-slate-800/60">
+                        <div class="flex justify-between items-center pt-4 border-t border-white/10/60">
                             <div class="flex flex-col">
                                 <span class="text-[9px] uppercase text-slate-500 font-bold tracking-wider">Maks Deviasi ELA</span>
                                 <span class="text-xs font-mono {{ $audit->ela_score > 15 ? 'text-red-400' : 'text-emerald-400' }} font-bold">
@@ -108,14 +108,14 @@
                                     </button>
                                 </form>
                                 <a href="{{ route('user.result', $audit->id) }}"
-                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all duration-150 shadow-md">Detail</a>
+                                    class="px-4 py-2 bg-[#4338CA] hover:bg-[#39D2DD] text-white text-xs font-bold rounded-xl transition-all duration-150 shadow-md">Detail</a>
                             </div>
                         </div>
                     </div>
                 </div>
             @empty
-                <div class="col-span-full py-20 text-center bg-slate-900/40 rounded-[3rem] border-2 border-dashed border-slate-800/80">
-                    <div class="w-14 h-14 bg-slate-800/40 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-600 text-xl">
+                <div class="col-span-full py-20 text-center bg-[#0E0E20]/40 rounded-[3rem] border-2 border-dashed border-white/10/80">
+                    <div class="w-14 h-14 bg-[#1D143E]/40 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-600 text-xl">
                         <i class="fa-solid fa-image"></i>
                     </div>
                     <p class="text-slate-400 font-bold text-sm">Belum Ada Riwayat Citra Gambar</p>
@@ -131,11 +131,11 @@
                 @php
                     $ext = strtolower(pathinfo($audit->image_name, PATHINFO_EXTENSION));
                 @endphp
-                <div x-show="'{{ strtolower($audit->image_name.' '.($audit->final_result['summary_label'] ?? '')) }}'.includes(query.toLowerCase())" class="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden group hover:border-blue-500/50 transition-all duration-300 shadow-xl flex flex-col justify-between">
+                <div x-show="'{{ strtolower($audit->image_name.' '.($audit->final_result['summary_label'] ?? '')) }}'.includes(query.toLowerCase())" class="bg-[#0E0E20] border border-white/10 rounded-[2.5rem] overflow-hidden group hover:border-[#39D2DD]/50 transition-all duration-300 shadow-xl flex flex-col justify-between">
                     <div>
                         {{-- Tampilan Header Kartu Khusus File Dokumen --}}
-                        <div class="aspect-video bg-gradient-to-br from-slate-950 to-slate-900 relative overflow-hidden border-b border-slate-800/40 flex items-center justify-center p-6">
-                            <div class="w-16 h-16 rounded-2xl {{ $ext == 'pdf' ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400' }} flex items-center justify-center text-3xl group-hover:scale-110 transition-transform duration-500 shadow-inner">
+                        <div class="aspect-video bg-gradient-to-br from-[#111028] to-[#0E0E20] relative overflow-hidden border-b border-white/10/40 flex items-center justify-center p-6">
+                            <div class="w-16 h-16 rounded-2xl {{ $ext == 'pdf' ? 'bg-red-500/10 text-red-400' : 'bg-[#39D2DD]/10 text-[#39D2DD]' }} flex items-center justify-center text-3xl group-hover:scale-110 transition-transform duration-500 shadow-inner">
                                 <i class="fa-solid {{ $ext == 'pdf' ? 'fa-file-pdf' : 'fa-file-word' }}"></i>
                             </div>
 
@@ -159,10 +159,10 @@
                     </div>
 
                     <div class="px-6 pb-6">
-                        <div class="flex justify-between items-center pt-4 border-t border-slate-800/60">
+                        <div class="flex justify-between items-center pt-4 border-t border-white/10/60">
                             <div class="flex flex-col">
                                 <span class="text-[9px] uppercase text-slate-500 font-bold tracking-wider">Tipe Dokumen</span>
-                                <span class="text-xs font-mono font-bold uppercase tracking-wider text-blue-400">
+                                <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#39D2DD]">
                                     {{ $ext }} File
                                 </span>
                             </div>
@@ -178,14 +178,14 @@
                                     </button>
                                 </form>
                                 <a href="{{ route('user.result', $audit->id) }}"
-                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all duration-150 shadow-md">Detail</a>
+                                    class="px-4 py-2 bg-[#4338CA] hover:bg-[#39D2DD] text-white text-xs font-bold rounded-xl transition-all duration-150 shadow-md">Detail</a>
                             </div>
                         </div>
                     </div>
                 </div>
             @empty
-                <div class="col-span-full py-20 text-center bg-slate-900/40 rounded-[3rem] border-2 border-dashed border-slate-800/80">
-                    <div class="w-14 h-14 bg-slate-800/40 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-600 text-xl">
+                <div class="col-span-full py-20 text-center bg-[#0E0E20]/40 rounded-[3rem] border-2 border-dashed border-white/10/80">
+                    <div class="w-14 h-14 bg-[#1D143E]/40 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-600 text-xl">
                         <i class="fa-solid fa-file-circle-exclamation"></i>
                     </div>
                     <p class="text-slate-400 font-bold text-sm">Belum Ada Riwayat Dokumen Teks</p>
@@ -207,10 +207,10 @@
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#ef4444', 
-                cancelButtonColor: '#334155',  
+                cancelButtonColor: '#1D143E',
                 confirmButtonText: 'Ya, Hapus!',
                 cancelButtonText: 'Batal',
-                background: '#0f172a',         
+                background: '#0E0E20',
                 color: '#ffffff'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -224,9 +224,9 @@
                 icon: 'success',
                 title: 'Berhasil!',
                 text: "{{ session('success') }}",
-                background: '#0f172a',
+                background: '#0E0E20',
                 color: '#ffffff',
-                confirmButtonColor: '#3b82f6',
+                confirmButtonColor: '#4338CA',
                 timer: 2500
             });
         @endif

@@ -3,10 +3,10 @@
 @section('title', 'Penghapusan Data')
 
 @section('content')
-    <section class="bg-slate-950 py-16 md:py-24">
-        <div class="container mx-auto px-6 max-w-4xl">
-            <p class="text-blue-400 text-sm font-bold uppercase tracking-[0.25em] mb-4">VERIDITY</p>
-            <h1 class="text-4xl md:text-5xl font-black italic mb-4">Penghapusan <span class="text-blue-500">Data</span></h1>
+    <section class="bg-[#111028] py-16 md:py-24">
+        <div class="container mx-auto px-6 max-w-4xl bg-[#0E0E20]/70 border border-white/10 rounded-[2rem] p-6 md:p-10 shadow-2xl">
+            <p class="text-[#39D2DD] text-sm font-bold uppercase tracking-[0.25em] mb-4">VERIDITY</p>
+            <h1 class="text-4xl md:text-5xl font-black italic mb-4">Penghapusan <span class="text-[#39D2DD]">Data</span></h1>
             <p class="text-slate-400 mb-10">Pengguna dapat meminta penghapusan sebagian data tanpa menghapus akun.</p>
 
             <div class="space-y-8 text-slate-300 leading-relaxed">
@@ -32,7 +32,7 @@
                 <div>
                     <h2 class="text-xl font-bold text-white mb-3">Cara Meminta Bantuan Penghapusan Data</h2>
                     <ol class="list-decimal pl-6 space-y-2">
-                        <li>Kirim email ke <a href="mailto:firdarahayu105@gmail.com" class="text-blue-400 font-bold hover:underline">firdarahayu105@gmail.com</a>.</li>
+                        <li>Kirim email ke <a href="mailto:firdarahayu105@gmail.com" class="text-[#39D2DD] font-bold hover:underline">firdarahayu105@gmail.com</a>.</li>
                         <li>Gunakan subjek email: <span class="font-bold text-white">Permintaan Hapus Data VERIDITY</span>.</li>
                         <li>Sebutkan data yang ingin dihapus, misalnya riwayat analisis, laporan PDF, atau foto profil.</li>
                     </ol>
@@ -50,7 +50,7 @@
                     <h2 class="text-xl font-bold text-white mb-3">Penghapusan Akun</h2>
                     <p>
                         Jika ingin menghapus seluruh akun dan data terkait, ikuti panduan pada halaman
-                        <a href="{{ route('account-deletion') }}" class="text-blue-400 font-bold hover:underline">Penghapusan Akun</a>.
+                        <a href="{{ route('account-deletion') }}" class="text-[#39D2DD] font-bold hover:underline">Penghapusan Akun</a>.
                     </p>
                 </div>
             </div>

@@ -11,31 +11,31 @@
 
         .scanner-line {
             height: 2px;
-            background: #3b82f6;
+            background: #39D2DD;
             position: absolute;
             width: 100%;
-            box-shadow: 0 0 15px #3b82f6;
+            box-shadow: 0 0 15px #39D2DD;
             animation: scan 2s linear infinite;
         }
     </style>
 
     <div class="max-w-4xl mx-auto">
         <div class="text-center mb-12">
-            <h1 class="text-4xl font-bold mb-4">Mulai <span class="text-blue-500 italic">Analisis Forensik</span></h1>
+            <h1 class="text-4xl font-bold mb-4">Mulai <span class="text-[#39D2DD] italic">Analisis Forensik</span></h1>
             <p class="text-slate-400">Unggah foto atau dokumen untuk verifikasi keaslian digital.</p>
         </div>
 
         {{-- Loading Modal --}}
         <div id="loadingModal"
-            class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] hidden flex items-center justify-center">
+            class="fixed inset-0 bg-[#111028]/90 backdrop-blur-md z-[100] hidden flex items-center justify-center">
             <div class="text-center">
                 <div class="relative w-32 h-32 mx-auto mb-6">
-                    <div class="absolute inset-0 border-2 border-blue-500/30 rounded-2xl overflow-hidden">
+                    <div class="absolute inset-0 border-2 border-[#39D2DD]/30 rounded-2xl overflow-hidden">
                         <div class="scanner-line"></div>
                     </div>
-                    <i id="loadingIcon" class="fa-solid fa-microscope text-5xl text-blue-500 absolute inset-0 m-auto h-fit"></i>
+                    <i id="loadingIcon" class="fa-solid fa-microscope text-5xl text-[#39D2DD] absolute inset-0 m-auto h-fit"></i>
                 </div>
-                <h2 id="loadingTitle" class="text-2xl font-bold italic mb-2">Analyzing <span class="text-blue-500">Evidence...</span></h2>
+                <h2 id="loadingTitle" class="text-2xl font-bold italic mb-2">Analyzing <span class="text-[#39D2DD]">Evidence...</span></h2>
                 <p id="loadingSubtitle" class="text-slate-400 text-sm animate-pulse">Menjalankan 4-Layer Forensic Engine</p>
                 <div class="mt-8 space-y-2 text-[10px] text-left max-w-xs mx-auto font-mono text-slate-500">
                     <p id="status1" class="hidden">>> Checking ELA Levels...</p>
@@ -47,7 +47,7 @@
 
         <form id="uploadForm" action="{{ route('audit.analyze') }}" method="POST" enctype="multipart/form-data">
             @csrf
-            <div class="bg-slate-900 border-2 border-dashed border-slate-700 rounded-[2.5rem] p-12 text-center hover:border-blue-500/50 transition">
+            <div class="bg-[#0E0E20] border-2 border-dashed border-white/10 rounded-[2.5rem] p-12 text-center hover:border-[#39D2DD]/50 transition">
                 <input type="file" name="image" class="hidden" id="fileInput" onchange="previewFile(this)"
                     accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf">
 
@@ -55,10 +55,10 @@
                 <div id="previewContainer" class="hidden mb-6">
                     <div class="relative inline-block">
                         <img id="imagePreview" src="#"
-                            class="hidden max-h-64 mx-auto rounded-2xl border border-slate-700 shadow-2xl">
+                            class="hidden max-h-64 mx-auto rounded-2xl border border-white/10 shadow-2xl">
                         <div id="documentPreview"
-                            class="hidden w-40 h-44 mx-auto rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl flex-col items-center justify-center gap-3">
-                            <i id="documentPreviewIcon" class="fa-solid fa-file-lines text-5xl text-blue-400"></i>
+                            class="hidden w-40 h-44 mx-auto rounded-2xl border border-white/10 bg-[#111028] shadow-2xl flex-col items-center justify-center gap-3">
+                            <i id="documentPreviewIcon" class="fa-solid fa-file-lines text-5xl text-[#39D2DD]"></i>
                             <span id="documentPreviewType" class="text-[11px] font-bold uppercase tracking-widest text-slate-500">Dokumen</span>
                         </div>
                         {{-- Tombol Hapus (Floating X) --}}
@@ -67,7 +67,7 @@
                             <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
-                    <p id="fileName" class="text-xs text-blue-400 mt-2 italic font-bold"></p>
+                    <p id="fileName" class="text-xs text-[#39D2DD] mt-2 italic font-bold"></p>
                 </div>
 
                 {{-- Default Dropzone Content --}}
@@ -82,7 +82,7 @@
                     <div class="flex gap-2">
                         {{-- Tombol Pilih/Ganti File --}}
                         <button type="button" onclick="document.getElementById('fileInput').click()"
-                            class="bg-slate-800 hover:bg-slate-700 px-8 py-3 rounded-2xl font-bold transition">
+                            class="bg-[#1D143E] hover:bg-[#251549] px-8 py-3 rounded-2xl font-bold transition">
                             <span id="btnText">Pilih File</span>
                         </button>
 
@@ -95,7 +95,7 @@
 
                     {{-- Tombol Submit --}}
                     <button type="submit" id="submitBtn"
-                        class="hidden bg-blue-600 hover:bg-blue-700 px-12 py-4 rounded-2xl font-bold shadow-lg shadow-blue-600/30 transition-all scale-105 active:scale-95">
+                        class="hidden bg-[#4338CA] hover:bg-[#372FA8] px-12 py-4 rounded-2xl font-bold shadow-lg shadow-[#4338CA]/30 transition-all scale-105 active:scale-95">
                         Mulai Analisis <i class="fa-solid fa-magnifying-glass-chart ml-2"></i>
                     </button>
                 </div>
@@ -113,8 +113,8 @@
                 ];
             @endphp
             @foreach($layers as $index => $layer)
-                <div class="p-4 bg-slate-900/50 border border-slate-800 rounded-2xl text-center">
-                    <div class="text-blue-500 font-bold text-[10px] uppercase tracking-widest italic">Layer {{ $index + 1 }}</div>
+                <div class="p-4 bg-[#0E0E20]/50 border border-white/10 rounded-2xl text-center">
+                    <div class="text-[#39D2DD] font-bold text-[10px] uppercase tracking-widest italic">Layer {{ $index + 1 }}</div>
                     <div class="text-[9px] text-slate-500">{{ $layer[1] }}</div>
                 </div>
             @endforeach
@@ -140,15 +140,15 @@
             document.getElementById('status3').classList.add('hidden');
 
             if (isDocument) {
-                loadingIcon.className = 'fa-solid fa-file-lines text-5xl text-blue-500 absolute inset-0 m-auto h-fit';
-                loadingTitle.innerHTML = 'Analyzing <span class="text-blue-500">Document...</span>';
+                loadingIcon.className = 'fa-solid fa-file-lines text-5xl text-[#39D2DD] absolute inset-0 m-auto h-fit';
+                loadingTitle.innerHTML = 'Analyzing <span class="text-[#39D2DD]">Document...</span>';
                 loadingSubtitle.textContent = 'Membaca struktur teks dan probabilitas konten AI';
                 document.getElementById('status1').textContent = '>> Extracting document text...';
                 document.getElementById('status2').textContent = '>> Segmenting linguistic patterns...';
                 document.getElementById('status3').textContent = '>> Calculating human, AI, and hybrid probabilities...';
             } else {
-                loadingIcon.className = 'fa-solid fa-microscope text-5xl text-blue-500 absolute inset-0 m-auto h-fit';
-                loadingTitle.innerHTML = 'Analyzing <span class="text-blue-500">Image...</span>';
+                loadingIcon.className = 'fa-solid fa-microscope text-5xl text-[#39D2DD] absolute inset-0 m-auto h-fit';
+                loadingTitle.innerHTML = 'Analyzing <span class="text-[#39D2DD]">Image...</span>';
                 loadingSubtitle.textContent = 'Menjalankan ELA, noise, metadata, dan AI detection';
                 document.getElementById('status1').textContent = '>> Checking ELA levels...';
                 document.getElementById('status2').textContent = '>> Extracting metadata and noise pattern...';

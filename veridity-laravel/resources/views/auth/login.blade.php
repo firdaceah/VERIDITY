@@ -3,7 +3,7 @@
 @section('title', 'Login')
 
 @section('auth-form')
-    <div class="bg-slate-800/40 backdrop-blur-xl p-8 rounded-3xl border border-slate-700 shadow-2xl">
+    <div class="bg-[#1D143E]/40 backdrop-blur-xl p-8 rounded-3xl border border-white/10 shadow-2xl">
         @if (session('success'))
             <div class="bg-emerald-500/10 border border-emerald-500/50 p-4 rounded-2xl mb-6 flex items-start gap-3">
                 <i class="fa-solid fa-circle-check text-emerald-500 mt-0.5"></i>
@@ -35,7 +35,7 @@
                         <i class="fa-solid fa-envelope"></i>
                     </span>
                     <input type="email" name="email" required
-                        class="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm"
+                        class="w-full pl-10 pr-4 py-3 bg-[#0E0E20]/50 border border-white/10 rounded-xl focus:ring-2 focus:ring-[#39D2DD] focus:border-transparent outline-none transition text-sm"
                         placeholder="nama@student.pens.ac.id">
                 </div>
             </div>
@@ -47,30 +47,30 @@
                         <i class="fa-solid fa-lock"></i>
                     </span>
                     <input id="loginPassword" type="password" name="password" required
-                        class="w-full pl-10 pr-12 py-3 bg-slate-900/50 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-sm"
+                        class="w-full pl-10 pr-12 py-3 bg-[#0E0E20]/50 border border-white/10 rounded-xl focus:ring-2 focus:ring-[#39D2DD] focus:border-transparent outline-none transition text-sm"
                         placeholder="password">
                     <button type="button" onclick="togglePassword('loginPassword', 'loginPasswordIcon')"
-                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-blue-400">
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-[#39D2DD]">
                         <i id="loginPasswordIcon" class="fa-solid fa-eye"></i>
                     </button>
                 </div>
             </div>
 
             <div class="flex justify-end">
-                <a href="{{ route('password.request') }}" class="text-sm text-blue-400 hover:underline font-semibold">
+                <a href="{{ route('password.request') }}" class="text-sm text-[#39D2DD] hover:underline font-semibold">
                     Lupa password?
                 </a>
             </div>
 
             <button type="submit"
-                class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold transition shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2">
+                class="w-full bg-[#4338CA] hover:bg-[#372FA8] py-3 rounded-xl font-bold transition shadow-lg shadow-[#4338CA]/20 flex items-center justify-center gap-2">
                 Masuk Sekarang <i class="fa-solid fa-right-to-bracket"></i>
             </button>
         </form>
 
-        <div class="mt-8 pt-6 border-t border-slate-700/50 text-center text-sm">
+        <div class="mt-8 pt-6 border-t border-white/10/50 text-center text-sm">
             <span class="text-slate-400">Belum punya akun?</span>
-            <a href="{{ route('register') }}" class="text-blue-400 font-bold ml-1 hover:underline">Daftar Gratis</a>
+            <a href="{{ route('register') }}" class="text-[#39D2DD] font-bold ml-1 hover:underline">Daftar Gratis</a>
         </div>
     </div>
 
