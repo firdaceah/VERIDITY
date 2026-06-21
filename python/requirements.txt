@@ -12,12 +12,6 @@ imagehash
 
 PyMuPDF==1.25.3
 python-docx==1.1.2
-torch==2.6.0
-transformers==4.49.0
-tokenizers==0.21.0
-safetensors==0.5.2
-huggingface-hub==0.29.1
-spacy==3.8.4
 nltk==3.9.1
 regex==2024.11.6
 fastapi==0.100.0

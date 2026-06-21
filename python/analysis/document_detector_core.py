@@ -155,9 +155,156 @@ def _classify_text_with_hf(text, threshold):
 
     return classification_map, _percentages(counts)
 
+def _words(text):
+    return re.findall(r"[a-zA-ZÀ-ÿ0-9_]+", text.lower())
+
+def _valid_document_stats(text):
+    sentences = [
+        sentence.strip()
+        for sentence in _document_sentences(text)
+        if len(_words(sentence)) >= 3
+    ]
+    words = _words(" ".join(sentences))
+    return sentences, words
+
+def _phrase_repetition_ratio(words, size=3):
+    if len(words) < size * 2:
+        return 0.0
+
+    phrases = [" ".join(words[index:index + size]) for index in range(len(words) - size + 1)]
+    unique_phrases = set(phrases)
+    return 1.0 - (len(unique_phrases) / max(len(phrases), 1))
+
+def _coefficient_of_variation(values):
+    if not values:
+        return 0.0
+
+    average = sum(values) / len(values)
+    if average == 0:
+        return 0.0
+
+    variance = sum((value - average) ** 2 for value in values) / len(values)
+    return (variance ** 0.5) / average
+
+def _marker_count(text, markers):
+    normalized = re.sub(r"\s+", " ", text.lower())
+    return sum(1 for marker in markers if marker in normalized)
+
+def _lightweight_document_score(text, sentences, words):
+    normalized = re.sub(r"\s+", " ", text.lower())
+    sentence_lengths = [len(_words(sentence)) for sentence in sentences]
+    length_variation = _coefficient_of_variation(sentence_lengths)
+    unique_ratio = len(set(words)) / max(len(words), 1)
+    repetition_ratio = _phrase_repetition_ratio(words)
+
+    ai_markers = [
+        "in conclusion",
+        "furthermore",
+        "moreover",
+        "therefore",
+        "overall",
+        "it is important",
+        "structured manner",
+        "important considerations",
+        "secara keseluruhan",
+        "dengan demikian",
+        "oleh karena itu",
+        "selain itu",
+        "di sisi lain",
+        "dalam konteks",
+        "dapat disimpulkan",
+        "penting untuk",
+        "berperan penting",
+        "secara signifikan",
+        "komprehensif",
+    ]
+    natural_markers = [
+        "i ",
+        "my ",
+        "we ",
+        "mistake",
+        "correction",
+        "catatan",
+        "contoh",
+        "koreksi",
+        "saya",
+        "kami",
+        "menurut",
+        "tidak terlalu rapi",
+    ]
+
+    ai_marker_count = _marker_count(normalized, ai_markers)
+    natural_marker_count = _marker_count(normalized, natural_markers)
+
+    score = 84.0
+    score += min(length_variation, 0.65) * 22.0
+    score += min(unique_ratio, 0.9) * 7.0
+    score += min(natural_marker_count, 4) * 2.0
+    score -= min(ai_marker_count, 5) * 5.0
+    score -= min(repetition_ratio * 100.0, 18.0)
+
+    if length_variation < 0.18 and len(sentences) >= 4:
+        score -= 12.0
+    if unique_ratio < 0.55:
+        score -= 8.0
+    if ai_marker_count >= 3 and natural_marker_count <= 1:
+        score -= 4.0
+
+    return max(0.0, min(100.0, round(score, 2)))
+
+def _label_for_score(score):
+    if score >= 80.0:
+        return "Likely Human", "success"
+    if score >= 60.0:
+        return "Mixed Indicators", "warning"
+    return "Likely AI-Written", "danger"
+
+def analyze_text_lightweight_v2(text):
+    sentences, words = _valid_document_stats(text or "")
+
+    if len(words) < 35 or len(sentences) < 4:
+        return {
+            "status": "insufficient_text",
+            "message_key": "document_insufficient_text",
+            "engine": "lightweight_v2",
+            "metrics": {
+                "valid_word_count": len(words),
+                "valid_sentence_count": len(sentences),
+            },
+        }
+
+    classification_map, percentages = _classify_text_lightweight(text)
+    score = _lightweight_document_score(text, sentences, words)
+    label, color = _label_for_score(score)
+
+    return {
+        "status": "success",
+        "engine": "lightweight_v2",
+        "score": score,
+        "label": label,
+        "summary_color": color,
+        "classification_map": classification_map,
+        "percentages": percentages,
+        "metrics": {
+            "valid_word_count": len(words),
+            "valid_sentence_count": len(sentences),
+            "human_p": round(percentages.get("Human-written", 0.0), 2),
+            "ai_p": round(percentages.get("AI-generated", 0.0), 2),
+            "hybrid_p": round(
+                percentages.get("AI-generated & AI-refined", 0.0)
+                + percentages.get("Human-written & AI-refined", 0.0),
+                2,
+            ),
+        },
+    }
+
 def classify_text_hf(text, threshold=0.8):
     """
     Splits text into sentences and classifies each sentence.
-    Uses the original roberta-base-openai-detector pipeline.
+    Compatibility wrapper for the document pipeline. The default detector is
+    lightweight_v2 so Render free-tier deployments do not load RoBERTa.
     """
-    return _classify_text_with_hf(text, threshold)
+    result = analyze_text_lightweight_v2(text)
+    if result["status"] != "success":
+        return {}, _empty_counts()
+    return result["classification_map"], result["percentages"]

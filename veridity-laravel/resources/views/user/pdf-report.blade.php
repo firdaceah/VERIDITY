@@ -26,17 +26,17 @@
     };
     $analysisMessage = function (?string $key, ?string $fallback = '') use ($t, $analysisText) {
         return match ($key) {
-            'document_human_style' => $t(
-                'The language style has dynamic sentence-length variation and natural word choice typical of human writing.',
-                'Gaya bahasa memiliki variasi panjang kalimat yang sangat dinamis dengan kekayaan diksi yang alami khas tulisan manusia murni.'
+            'document_human_style', 'document_likely_human_style' => $t(
+                'The document shows varied sentence rhythm, natural wording, and limited signs of overly uniform AI-style structure.',
+                'Dokumen menunjukkan variasi ritme kalimat, pilihan kata yang natural, dan sedikit tanda struktur seragam khas tulisan AI.'
             ),
-            'document_mixed_style' => $t(
-                'Mixed language patterns were detected. Some paragraphs appear manually written while others contain AI-assisted sentences.',
-                'Terdeteksi kombinasi gaya bahasa campuran. Sebagian paragraf terindikasi disusun manual dan sebagian lainnya disisipi kalimat bentukan AI.'
+            'document_mixed_style', 'document_mixed_indicators_style' => $t(
+                'The document contains a mix of natural writing patterns and structured or repetitive indicators that may suggest AI assistance.',
+                'Dokumen memiliki campuran pola tulisan natural dan indikator struktur atau repetisi yang dapat mengarah ke bantuan AI.'
             ),
-            'document_mostly_ai_style' => $t(
-                'Most sentences are strongly indicated as AI-generated. Any detected human-written portions are still counted in the NLP metrics.',
-                'Mayoritas kalimat terindikasi kuat dibuat AI. Bagian yang terdeteksi human-written tetap dihitung dalam metrik NLP.'
+            'document_mostly_ai_style', 'document_likely_ai_written_style' => $t(
+                'The document contains repeated, uniform, or highly structured linguistic patterns often associated with AI-written text.',
+                'Dokumen memiliki pola bahasa yang repetitif, seragam, atau terlalu terstruktur yang sering berkaitan dengan teks buatan AI.'
             ),
             'noise_very_low' => $t(
                 'Noise level is very low, indicating possible local retouching or smoothing.',
@@ -211,10 +211,10 @@
     {{-- KONDISIONAL PERFORMA MATRIKS RISET --}}
     @if ($isDocument)
         {{-- BLOK PRINT DATA KHUSUS DOKUMEN TEKS --}}
-        <div class="section-title">{{ $t('Language Computation Details (NLP Metrics)', 'Rincian Komputasi Bahasa (NLP Metrics)') }}</div>
+        <div class="section-title">{{ $t('Document Text Analysis', 'Analisis Teks Dokumen') }}</div>
         <p>{{ $t(
-            'Based on sentence distribution parsing using the RoBERTa-Base OpenAI Text Classification Pipeline, the following probabilities describe the wording distribution:',
-            'Berdasarkan hasil parsing sebaran kalimat menggunakan *RoBERTa-Base OpenAI Text Classification Pipeline*, berikut adalah probabilitas sebaran susunan kata:'
+            'Based on lightweight linguistic pattern analysis, the following indicators describe the wording distribution:',
+            'Berdasarkan analisis pola linguistik ringan, indikator berikut menjelaskan distribusi susunan kata:'
         ) }}</p>
         <table>
             <thead>
@@ -240,7 +240,7 @@
                     </td>
                 </tr>
                 <tr style="font-weight: bold; background-color: #f8fafc;">
-                    <td>{{ $t('TOTAL LANGUAGE ORIGINALITY SCORE (HUMAN SCORE)', 'SKOR TOTAL ORISINALITAS BAHASA (HUMAN SCORE)') }}</td>
+                    <td>{{ $t('TOTAL LINGUISTIC INDICATION SCORE', 'SKOR TOTAL INDIKASI LINGUISTIK') }}</td>
                     <td style="color: #1e3a8a;">{{ $analysis->final_result['full_report']['final_score'] ?? 0 }}%</td>
                 </tr>
             </tbody>
@@ -258,20 +258,20 @@
         <div class="section-title">{{ $t('Conclusion Rationale and Decision Formula', 'Alasan Kesimpulan dan Rumus Keputusan') }}</div>
         <table>
             <tr>
-                <th>Rumus Human Score</th>
-                <td>{{ $t('Human Score = percentage of sentences classified as Human-written.', 'Human Score = persentase kalimat yang diklasifikasikan sebagai Human-written.') }}</td>
+                <th>{{ $t('Score Formula', 'Rumus Skor') }}</th>
+                <td>{{ $t('The score combines sentence variation, repetition, vocabulary diversity, and structured AI-like indicators.', 'Skor menggabungkan variasi kalimat, repetisi, keragaman kosakata, dan indikator struktur yang menyerupai teks AI.') }}</td>
             </tr>
             <tr>
                 <th>{{ $t('Safe Threshold', 'Ambang Aman') }}</th>
-                <td>{{ $t('>= 80% Human Score is categorized as AUTHENTIC (HUMAN WRITTEN).', '>= 80% Human Score dikategorikan AUTHENTIC (HUMAN WRITTEN).') }}</td>
+                <td>{{ $t('>= 80% is categorized as Likely Human.', '>= 80% dikategorikan Kemungkinan Ditulis Manusia.') }}</td>
             </tr>
             <tr>
                 <th>{{ $t('Mixed Threshold', 'Ambang Mixed') }}</th>
-                <td>{{ $t('60% - 79% Human Score is categorized as MIXED TEXT (AI ASSISTED).', '60% - 79% Human Score dikategorikan MIXED TEXT (AI ASSISTED).') }}</td>
+                <td>{{ $t('60% - 79% is categorized as Mixed Indicators.', '60% - 79% dikategorikan Indikator Campuran.') }}</td>
             </tr>
             <tr>
-                <th>{{ $t('Mostly-AI Threshold', 'Ambang Mayoritas AI') }}</th>
-                <td>{{ $t('< 60% Human Score is categorized as MOSTLY AI GENERATED.', '< 60% Human Score dikategorikan MAYORITAS AI GENERATED.') }}</td>
+                <th>{{ $t('AI-Written Threshold', 'Ambang Kemungkinan AI') }}</th>
+                <td>{{ $t('< 60% is categorized as Likely AI-Written.', '< 60% dikategorikan Kemungkinan Ditulis AI.') }}</td>
             </tr>
         </table>
     @else

@@ -120,29 +120,33 @@ class AppLanguage extends ValueNotifier<AppLocale> {
 
   String analysisMessage(String key, {String fallback = ''}) {
     return switch (key) {
-      'document_authentic_human' => text(
-          'Authentic / human written',
-          'Otentik / ditulis manusia',
+      'document_likely_human' || 'document_authentic_human' => text(
+          'Likely Human',
+          'Kemungkinan Ditulis Manusia',
         ),
-      'document_mixed_ai_assisted' => text(
-          'Mixed text / AI assisted',
-          'Teks campuran / dibantu AI',
+      'document_mixed_indicators' || 'document_mixed_ai_assisted' => text(
+          'Mixed Indicators',
+          'Indikator Campuran',
         ),
-      'document_mostly_ai' => text(
-          'Mostly AI generated',
-          'Mayoritas AI generated',
+      'document_likely_ai_written' || 'document_mostly_ai' => text(
+          'Likely AI-Written',
+          'Kemungkinan Ditulis AI',
         ),
-      'document_human_style' => text(
-          'The language style has dynamic sentence-length variation and natural word choice typical of human writing.',
-          'Gaya bahasa memiliki variasi panjang kalimat yang sangat dinamis dengan kekayaan diksi yang alami khas tulisan manusia murni.',
+      'document_insufficient_text' => text(
+          'This document does not contain enough readable text for reliable analysis. Please upload a text-based PDF with more content.',
+          'Dokumen ini tidak memiliki teks terbaca yang cukup untuk dianalisis dengan andal. Silakan unggah PDF berbasis teks dengan isi yang lebih lengkap.',
         ),
-      'document_mixed_style' => text(
-          'Mixed language patterns were detected. Some paragraphs appear manually written while others contain AI-assisted sentences.',
-          'Terdeteksi kombinasi gaya bahasa campuran. Sebagian paragraf terindikasi disusun manual dan sebagian lainnya disisipi kalimat bentukan AI.',
+      'document_likely_human_style' || 'document_human_style' => text(
+          'The document shows varied sentence rhythm, natural wording, and limited signs of overly uniform AI-style structure.',
+          'Dokumen menunjukkan variasi ritme kalimat, pilihan kata yang natural, dan sedikit tanda struktur seragam khas tulisan AI.',
         ),
-      'document_mostly_ai_style' => text(
-          'Most sentences are strongly indicated as AI-generated. Any detected human-written portions are still counted in the NLP metrics.',
-          'Mayoritas kalimat terindikasi kuat dibuat AI. Bagian yang terdeteksi human-written tetap dihitung dalam metrik NLP.',
+      'document_mixed_indicators_style' || 'document_mixed_style' => text(
+          'The document contains a mix of natural writing patterns and structured or repetitive indicators that may suggest AI assistance.',
+          'Dokumen memiliki campuran pola tulisan natural dan indikator struktur atau repetisi yang dapat mengarah ke bantuan AI.',
+        ),
+      'document_likely_ai_written_style' || 'document_mostly_ai_style' => text(
+          'The document contains repeated, uniform, or highly structured linguistic patterns often associated with AI-written text.',
+          'Dokumen memiliki pola bahasa yang repetitif, seragam, atau terlalu terstruktur yang sering berkaitan dengan teks buatan AI.',
         ),
       'noise_very_low' => text(
           'Noise level is very low, indicating possible local retouching or smoothing.',

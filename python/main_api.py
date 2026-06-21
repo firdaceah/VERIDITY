@@ -176,7 +176,7 @@ async def analyze_image_endpoint(
 async def generate_pdf_report_endpoint(
     file: UploadFile = File(...),
     classification_map_str: str = Form(...),
-    summary_label: str = Form("MIXED TEXT"), 
+    summary_label: str = Form("Mixed Indicators"), 
     audit_id: str = Form("64"),
     analyzed_at: str = Form(None),
     extension: str = Form("pdf"),

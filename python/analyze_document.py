@@ -5,7 +5,7 @@ from io import BytesIO
 
 # Memperbaiki jalur import internal agar mengarah ke folder analysis milikmu
 from analysis.document_pdf_utils import extract_any_document
-from analysis.document_detector_core import classify_text_hf
+from analysis.document_detector_core import analyze_text_lightweight_v2
 
 MESSAGES = {
     "cancelled": {
@@ -13,12 +13,49 @@ MESSAGES = {
         "id": "Analisis dibatalkan.",
     },
     "empty_document": {
-        "en": "The document is empty or too short for forensic analysis. Use a text-based PDF document, not a PDF exported from slides or scanned images.",
-        "id": "Dokumen kosong atau teks terlalu pendek untuk dianalisis forensik. Gunakan PDF dokumen teks, bukan PDF hasil ekspor PPT/slide atau scan gambar.",
+        "en": "This document does not contain enough readable text for reliable analysis. Please upload a text-based PDF with more content.",
+        "id": "Dokumen ini tidak memiliki teks terbaca yang cukup untuk dianalisis dengan andal. Silakan unggah PDF berbasis teks dengan isi yang lebih lengkap.",
+    },
+    "document_insufficient_text": {
+        "en": "This document does not contain enough readable text for reliable analysis. Please upload a text-based PDF with more content.",
+        "id": "Dokumen ini tidak memiliki teks terbaca yang cukup untuk dianalisis dengan andal. Silakan unggah PDF berbasis teks dengan isi yang lebih lengkap.",
     },
     "system_failure": {
-        "en": "A system failure occurred in the document forensic module: ",
-        "id": "Terjadi kegagalan sistem pada modul forensik dokumen: ",
+        "en": "Document analysis is temporarily unavailable. Please try again later.",
+        "id": "Analisis dokumen sementara tidak tersedia. Silakan coba lagi nanti.",
+    },
+}
+
+LABELS = {
+    "Likely Human": {
+        "en": "Likely Human",
+        "id": "Kemungkinan Ditulis Manusia",
+        "key": "document_likely_human",
+        "interpretation": {
+            "en": "The document shows varied sentence rhythm, natural wording, and limited signs of overly uniform AI-style structure.",
+            "id": "Dokumen menunjukkan variasi ritme kalimat, pilihan kata yang natural, dan sedikit tanda struktur seragam khas tulisan AI.",
+        },
+        "interpretation_key": "document_likely_human_style",
+    },
+    "Mixed Indicators": {
+        "en": "Mixed Indicators",
+        "id": "Indikator Campuran",
+        "key": "document_mixed_indicators",
+        "interpretation": {
+            "en": "The document contains a mix of natural writing patterns and structured or repetitive indicators that may suggest AI assistance.",
+            "id": "Dokumen memiliki campuran pola tulisan natural dan indikator struktur atau repetisi yang dapat mengarah ke bantuan AI.",
+        },
+        "interpretation_key": "document_mixed_indicators_style",
+    },
+    "Likely AI-Written": {
+        "en": "Likely AI-Written",
+        "id": "Kemungkinan Ditulis AI",
+        "key": "document_likely_ai_written",
+        "interpretation": {
+            "en": "The document contains repeated, uniform, or highly structured linguistic patterns often associated with AI-written text.",
+            "id": "Dokumen memiliki pola bahasa yang repetitif, seragam, atau terlalu terstruktur yang sering berkaitan dengan teks buatan AI.",
+        },
+        "interpretation_key": "document_likely_ai_written_style",
     },
 }
 
@@ -39,6 +76,19 @@ def _cancelled(language):
     }
 
 
+def _insufficient_text(language):
+    return {
+        "status": "insufficient_text",
+        "message_key": "document_insufficient_text",
+        "message": message("document_insufficient_text", language),
+    }
+
+
+def _localized_label(label, language):
+    config = LABELS.get(label, LABELS["Mixed Indicators"])
+    return config.get(language, config["en"]), config
+
+
 def run_document_analysis(file_bytes, file_extension, language="en", is_cancelled=None):
     """
     Fungsi utama untuk pipeline analisis forensik dokumen teks Veridity.
@@ -57,47 +107,38 @@ def run_document_analysis(file_bytes, file_extension, language="en", is_cancelle
         if is_cancelled():
             return _cancelled(language)
         
-        # Validasi batas minimal teks dokumen agar model NLP presisi
         if not raw_text or len(raw_text.split()) < 5:
-            return {
-                "status": "error",
-                "message": message("empty_document", language)
-            }
+            return _insufficient_text(language)
             
-        # 2. Eksekusi analisis teks lewat model Hugging Face
-        # classify_text_hf mengembalikan: (classification_map, percentages)
-        classification_map, percentages = classify_text_hf(raw_text)
+        # 2. Eksekusi analisis teks ringan berbasis pola linguistik.
+        detection = analyze_text_lightweight_v2(raw_text)
+
+        if detection.get("status") == "insufficient_text":
+            return {
+                **_insufficient_text(language),
+                "metrics": detection.get("metrics", {}),
+                "engine": detection.get("engine", "lightweight_v2"),
+            }
+
+        classification_map = detection["classification_map"]
+        percentages = detection["percentages"]
 
         if is_cancelled():
             return _cancelled(language)
         
-        # 3. Hitung Skor Akhir Keaslian Berdasarkan Kontribusi Kalimat Manusia
-        # Nilai total keaslian bergerak searah dengan persentase 'Human-written'
+        # 3. Hitung Skor Akhir dari engine lightweight_v2.
         human_p = percentages.get("Human-written", 0.0)
         ai_p = percentages.get("AI-generated", 0.0)
         hybrid_p = percentages.get("AI-generated & AI-refined", 0.0) + percentages.get("Human-written & AI-refined", 0.0)
         
-        final_score = human_p
+        final_score = detection.get("score", human_p)
         
-        # 4. Tentukan Klasifikasi Vonis dan Deskripsi Hasil Eksperimen untuk Matriks Sidang
-        if final_score >= 80.0:
-            summary_label = "AUTHENTIC (HUMAN WRITTEN)" if language == "en" else "OTENTIK (DITULIS MANUSIA)"
-            summary_key = "document_authentic_human"
-            summary_color = "success"
-            interpretation = "The language style has dynamic sentence-length variation and natural word choice typical of human writing." if language == "en" else "Gaya bahasa memiliki variasi panjang kalimat yang sangat dinamis dengan kekayaan diksi yang alami khas tulisan manusia murni."
-            interpretation_key = "document_human_style"
-        elif final_score >= 60.0:
-            summary_label = "MIXED TEXT (AI ASSISTED)" if language == "en" else "TEKS CAMPURAN (DIBANTU AI)"
-            summary_key = "document_mixed_ai_assisted"
-            summary_color = "warning"
-            interpretation = "Mixed language patterns were detected. Some paragraphs appear manually written while others contain AI-assisted sentences." if language == "en" else "Terdeteksi kombinasi gaya bahasa campuran. Sebagian paragraf terindikasi disusun manual dan sebagian lainnya disisipi kalimat bentukan AI."
-            interpretation_key = "document_mixed_style"
-        else:
-            summary_label = "MOSTLY AI GENERATED" if language == "en" else "MAYORITAS AI GENERATED"
-            summary_key = "document_mostly_ai"
-            summary_color = "danger"
-            interpretation = "Most sentences are strongly indicated as AI-generated. Any detected human-written portions are still counted and shown in the highlights and NLP metrics." if language == "en" else "Mayoritas kalimat terindikasi kuat dibuat AI. Jika masih ada bagian yang terdeteksi Human-written, bagian tersebut tetap dihitung sebagai porsi tulisan manusia dan dapat dilihat pada arsiran serta rincian NLP metrics."
-            interpretation_key = "document_mostly_ai_style"
+        # 4. Tentukan label dokumen yang lebih hati-hati.
+        summary_label, label_config = _localized_label(detection.get("label"), language)
+        summary_key = label_config["key"]
+        summary_color = detection.get("summary_color", "warning")
+        interpretation = label_config["interpretation"].get(language, label_config["interpretation"]["en"])
+        interpretation_key = label_config["interpretation_key"]
 
         return {
             "status": "success",
@@ -105,10 +146,12 @@ def run_document_analysis(file_bytes, file_extension, language="en", is_cancelle
             "summary_label": summary_label,
             "summary_key": summary_key,
             "summary_color": summary_color,
+            "engine": detection.get("engine", "lightweight_v2"),
             # SERTAKAN VARIABEL INI AGAR LARAVEL BISA MENYIMPANNYA
             "classification_map": classification_map, 
             "results": {
                 "document": {
+                    "engine": detection.get("engine", "lightweight_v2"),
                     "verdict": summary_label,
                     "verdict_key": summary_key,
                     "text_authenticity_score": round(final_score, 2),
@@ -117,7 +160,8 @@ def run_document_analysis(file_bytes, file_extension, language="en", is_cancelle
                     "metrics": {
                         "human_p": round(human_p, 2),
                         "ai_p": round(ai_p, 2),
-                        "hybrid_p": round(hybrid_p, 2)
+                        "hybrid_p": round(hybrid_p, 2),
+                        **detection.get("metrics", {}),
                     }
                 }
             }
@@ -126,7 +170,7 @@ def run_document_analysis(file_bytes, file_extension, language="en", is_cancelle
     except Exception as e:
         return {
             "status": "error",
-            "message": f"{message('system_failure', language)}{str(e)}"
+            "message": message("system_failure", language)
         }
 
 # Blok testing mandiri via CLI Terminal lokal

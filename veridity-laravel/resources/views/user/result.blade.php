@@ -153,9 +153,9 @@
                                         <li><i class="fa-solid fa-circle-dot text-amber-400 mr-2 text-[8px]"></i>Porsi Kalimat Hasil Modifikasi/Hybrid : <span class="text-amber-400 font-bold">{{ $hybridP }}%</span></li>
                                     </ul>
                                     <div class="pt-2 border-t border-slate-800/60 mt-2 text-white font-bold">
-                                        <p><i class="fa-solid fa-diagram-project text-blue-400 mr-2 text-[10px]"></i>Model Classifier Baseline : RoBERTa-Base OpenAI Detector Pipeline</p>
-                                        <p><i class="fa-solid fa-gauge-high text-blue-400 mr-2 text-[10px]"></i>Hasil Akhir Skor Orisinalitas : <span class="text-blue-400 font-bold">{{ $analysis->final_result['full_report']['final_score'] ?? 0 }}%</span></p>
-                                        <p><i class="fa-solid fa-square-root-variable text-blue-400 mr-2 text-[10px]"></i>Rumus Human Score : (Jumlah kalimat Human-written / Total kalimat terklasifikasi) x 100%</p>
+                                        <p><i class="fa-solid fa-diagram-project text-blue-400 mr-2 text-[10px]"></i>Model Analisis : Lightweight Linguistic Pattern Detector</p>
+                                        <p><i class="fa-solid fa-gauge-high text-blue-400 mr-2 text-[10px]"></i>Skor Indikasi Linguistik : <span class="text-blue-400 font-bold">{{ $analysis->final_result['full_report']['final_score'] ?? 0 }}%</span></p>
+                                        <p><i class="fa-solid fa-square-root-variable text-blue-400 mr-2 text-[10px]"></i>Rumus Skor : variasi kalimat, repetisi, keragaman kosakata, dan indikator struktur AI-like</p>
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-1 gap-4 text-[11px] pt-1">
@@ -168,11 +168,11 @@
                             {{-- KONSOLIDASI BOBOT NILAI DOKUMEN --}}
                             <div class="bg-slate-900/40 p-5 rounded-3xl border border-blue-500/20 space-y-4">
                                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-800 pb-3 gap-2">
-                                    <h5 class="font-bold text-blue-500 font-mono text-xs uppercase tracking-wider">KONSOLIDASI BOBOT NILAI AKHIR (MATRIKS SIDANG)</h5>
+                                    <h5 class="font-bold text-blue-500 font-mono text-xs uppercase tracking-wider">RINGKASAN INDIKATOR LINGUISTIK DOKUMEN</h5>
                                     <div class="flex flex-wrap gap-2 font-mono text-[9px]">
-                                        <span class="px-2 py-0.5 rounded bg-emerald-600/20 text-emerald-400 border border-emerald-500/20 font-bold">Otentik: &gt;= 80.00%</span>
-                                        <span class="px-2 py-0.5 rounded bg-orange-600/20 text-orange-400 border border-orange-500/20 font-bold">Campuran: 60.00% - 79.99%</span>
-                                        <span class="px-2 py-0.5 rounded bg-red-600/20 text-red-400 border border-red-500/20 font-bold">AI Murni: &lt; 60.00%</span>
+                                        <span class="px-2 py-0.5 rounded bg-emerald-600/20 text-emerald-400 border border-emerald-500/20 font-bold">Kemungkinan Manusia: &gt;= 80.00%</span>
+                                        <span class="px-2 py-0.5 rounded bg-orange-600/20 text-orange-400 border border-orange-500/20 font-bold">Indikator Campuran: 60.00% - 79.99%</span>
+                                        <span class="px-2 py-0.5 rounded bg-red-600/20 text-red-400 border border-red-500/20 font-bold">Kemungkinan AI: &lt; 60.00%</span>
                                     </div>
                                 </div>
 
@@ -181,25 +181,25 @@
                                     <div class="space-y-2.5">
                                         <div class="grid grid-cols-1 md:grid-cols-12 items-start gap-1 md:gap-4">
                                             <div class="md:col-span-3 font-bold text-emerald-400 flex items-center gap-2">Skor 80.00% - 100%</div>
-                                            <div class="md:col-span-3 font-extrabold uppercase tracking-wide text-emerald-500">[ HUMAN WRITTEN ]</div>
-                                            <div class="md:col-span-6 text-slate-400 text-[11px]">Teks murni buatan manusia asli dengan variasi diksi natural yang dinamis.</div>
+                                            <div class="md:col-span-3 font-extrabold uppercase tracking-wide text-emerald-500">[ KEMUNGKINAN DITULIS MANUSIA ]</div>
+                                            <div class="md:col-span-6 text-slate-400 text-[11px]">Teks menunjukkan variasi ritme kalimat, pilihan kata natural, dan sedikit tanda struktur seragam AI-like.</div>
                                         </div>
                                         <div class="grid grid-cols-1 md:grid-cols-12 items-start gap-1 md:gap-4 border-t border-slate-900/60 pt-2">
                                             <div class="md:col-span-3 font-bold text-orange-400 flex items-center gap-2">Skor 60.00% - 79.99%</div>
-                                            <div class="md:col-span-3 font-extrabold uppercase tracking-wide text-orange-400">[ MIXED / CAMPURAN ]</div>
-                                            <div class="md:col-span-6 text-slate-400 text-[11px]">Terindikasi adanya campur tangan AI (setengah kalimat dibuat sendiri, setengahnya sisipan AI).</div>
+                                            <div class="md:col-span-3 font-extrabold uppercase tracking-wide text-orange-400">[ INDIKATOR CAMPURAN ]</div>
+                                            <div class="md:col-span-6 text-slate-400 text-[11px]">Terdapat campuran pola tulisan natural dan indikator struktur atau repetisi yang dapat mengarah ke bantuan AI.</div>
                                         </div>
                                         <div class="grid grid-cols-1 md:grid-cols-12 items-start gap-1 md:gap-4 border-t border-slate-900/60 pt-2">
                                             <div class="md:col-span-3 font-bold text-red-400 flex items-center gap-2">Skor 0.00% - 59.99%</div>
-                                            <div class="md:col-span-3 font-extrabold uppercase tracking-wide text-red-500">[ MAYORITAS AI GENERATED ]</div>
-                                            <div class="md:col-span-6 text-slate-400 text-[11px]">Mayoritas kalimat utama menunjukkan pola AI. Elemen administratif seperti cover, nama dosen, nama mahasiswa, dan nama kampus diperlakukan sebagai konteks pendukung sehingga tidak menjadi dasar arsiran utama.</div>
+                                            <div class="md:col-span-3 font-extrabold uppercase tracking-wide text-red-500">[ KEMUNGKINAN DITULIS AI ]</div>
+                                            <div class="md:col-span-6 text-slate-400 text-[11px]">Banyak bagian menunjukkan pola bahasa yang repetitif, seragam, atau terlalu terstruktur dan sering berkaitan dengan teks buatan AI.</div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="pt-2 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs font-mono border-t border-slate-800/60">
-                                    <span class="text-slate-500">Metode Evaluasi: <span class="text-slate-600">Linguistic Sequence Tokenizer Probability</span></span>
-                                    <span class="text-blue-400 font-bold text-sm">Skor Akhir Keaslian Dokumen: {{ number_format($analysis->final_result['full_report']['final_score'] ?? 0, 2) }}%</span>
+                                    <span class="text-slate-500">Metode Evaluasi: <span class="text-slate-600">Lightweight Linguistic Pattern Detector</span></span>
+                                    <span class="text-blue-400 font-bold text-sm">Skor Indikasi Dokumen: {{ number_format($analysis->final_result['full_report']['final_score'] ?? 0, 2) }}%</span>
                                 </div>
                             </div>
 
@@ -406,7 +406,7 @@
                         <div>
                             <div class="flex justify-between text-[10px] mb-2 font-bold uppercase tracking-wide">
                                 @if($isDocument)
-                                    <span class="text-slate-400">Originality (Human Score)</span>
+                                    <span class="text-slate-400">Linguistic Indication Score</span>
                                     <span class="{{ ($analysis->final_result['full_report']['final_score'] ?? 100) < 60 ? 'text-red-400' : 'text-emerald-400' }} font-mono text-xs">
                                         {{ number_format($analysis->final_result['full_report']['final_score'] ?? 100, 2) }}%
                                     </span>

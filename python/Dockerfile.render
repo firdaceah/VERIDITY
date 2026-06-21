@@ -2,7 +2,6 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-ENV HF_HOME=/app/.cache/huggingface
 ENV NLTK_DATA=/app/nltk_data
 ENV PYTHONUNBUFFERED=1
 
@@ -23,8 +22,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY . .
 
-RUN python -c "import nltk; nltk.download('punkt', download_dir='/app/nltk_data'); nltk.download('punkt_tab', download_dir='/app/nltk_data')" \
-    && python -c "from transformers import pipeline; pipeline('text-classification', model='roberta-base-openai-detector')"
+RUN python -c "import nltk; nltk.download('punkt', download_dir='/app/nltk_data'); nltk.download('punkt_tab', download_dir='/app/nltk_data')"
 
 EXPOSE 10000
 

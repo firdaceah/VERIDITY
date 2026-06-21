@@ -1,11 +1,11 @@
-from transformers import pipeline
-
 _detector_pipeline = None
 
 def load_detector_model():
     """Load the roberta-base-openai-detector pipeline murni tanpa dependency Streamlit."""
     global _detector_pipeline
     if _detector_pipeline is None:
+        from transformers import pipeline
+
         _detector_pipeline = pipeline("text-classification", model="roberta-base-openai-detector")
     return _detector_pipeline
 

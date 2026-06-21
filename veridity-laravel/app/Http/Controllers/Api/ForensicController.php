@@ -20,6 +20,8 @@ use Laravel\Sanctum\PersonalAccessToken;
 class ForensicController extends Controller
 {
     private const ANALYSIS_CANCEL_TTL_SECONDS = 1800;
+    private const IMAGE_MAX_KB = 10240;
+    private const DOCUMENT_MAX_KB = 5120;
 
     private const MESSAGES = [
         'analysis_cancel_requested' => [
@@ -39,16 +41,32 @@ class ForensicController extends Controller
             'id' => 'Layanan analisis dokumen forensik sedang sibuk atau baru aktif. Silakan tunggu 30-60 detik lalu coba lagi.',
         ],
         'document_failed' => [
-            'en' => 'Document analysis failed: ',
-            'id' => 'Analisis dokumen gagal: ',
+            'en' => 'Document analysis could not be completed. Use a text-based PDF under 5MB, then try again.',
+            'id' => 'Analisis dokumen belum dapat diselesaikan. Gunakan PDF berbasis teks di bawah 5MB, lalu coba lagi.',
+        ],
+        'document_insufficient_text' => [
+            'en' => 'This document does not contain enough readable text for reliable analysis. Please upload a text-based PDF with more content.',
+            'id' => 'Dokumen ini tidak memiliki teks terbaca yang cukup untuk dianalisis dengan andal. Silakan unggah PDF berbasis teks dengan isi yang lebih lengkap.',
+        ],
+        'file_too_large_document' => [
+            'en' => 'PDF documents must be 5MB or smaller. Compress the PDF or choose a shorter text-based document.',
+            'id' => 'Ukuran PDF maksimal 5MB. Kompres PDF atau pilih dokumen teks yang lebih pendek.',
+        ],
+        'file_too_large_image' => [
+            'en' => 'Photos must be 10MB or smaller. Compress the photo or choose a smaller JPG, JPEG, or PNG file.',
+            'id' => 'Ukuran foto maksimal 10MB. Kompres foto atau pilih file JPG, JPEG, atau PNG yang lebih kecil.',
         ],
         'document_success' => [
             'en' => 'Document analysis completed successfully!',
             'id' => 'Analisis dokumen berhasil selesai!',
         ],
         'image_failed' => [
-            'en' => 'Image analysis failed: ',
-            'id' => 'Analisis gambar gagal: ',
+            'en' => 'Image analysis could not be completed. Please try again in a moment or choose a smaller photo.',
+            'id' => 'Analisis gambar belum dapat diselesaikan. Coba lagi beberapa saat lagi atau pilih foto yang lebih kecil.',
+        ],
+        'image_service_busy' => [
+            'en' => 'The image analysis service is busy or waking up. Please wait 30-60 seconds, then try again.',
+            'id' => 'Layanan analisis gambar sedang sibuk atau baru aktif. Silakan tunggu 30-60 detik lalu coba lagi.',
         ],
         'image_success' => [
             'en' => 'Image analysis completed!',
@@ -336,7 +354,7 @@ class ForensicController extends Controller
         if (! is_resource($process)) {
             return [
                 'status' => 'error',
-                'message' => 'Analisis gambar gagal karena proses Python tidak dapat dijalankan.',
+                'message' => $this->message('image_service_busy', $language),
             ];
         }
 
@@ -359,7 +377,7 @@ class ForensicController extends Controller
 
             return [
                 'status' => 'error',
-                'message' => 'Analisis gambar gagal karena Python tidak mengembalikan output. '.str($errorOutput ?: 'Pastikan dependency Python sudah terpasang.')->limit(180),
+                'message' => $this->message('image_service_busy', $language),
             ];
         }
 
@@ -375,7 +393,7 @@ class ForensicController extends Controller
 
             return [
                 'status' => 'error',
-                'message' => 'Analisis gambar gagal karena output Python tidak valid: '.str($output)->limit(180),
+                'message' => $this->message('image_service_busy', $language),
             ];
         }
 
@@ -421,13 +439,9 @@ class ForensicController extends Controller
             }
 
             if ($response->failed()) {
-                $pythonMessage = $response->json('message')
-                    ?? $response->json('error')
-                    ?? $response->body();
-
                 return [
                     'status' => 'error',
-                    'message' => 'Layanan analisis gambar Python gagal: '.str((string) $pythonMessage)->limit(220),
+                    'message' => $this->message('image_service_busy', $language),
                 ];
             }
 
@@ -436,7 +450,7 @@ class ForensicController extends Controller
             if (! is_array($result)) {
                 return [
                     'status' => 'error',
-                    'message' => 'Analisis gambar gagal karena output layanan Python tidak valid.',
+                    'message' => $this->message('image_service_busy', $language),
                 ];
             }
 
@@ -466,7 +480,7 @@ class ForensicController extends Controller
 
             return [
                 'status' => 'error',
-                'message' => 'Analisis gambar gagal karena layanan Python tidak dapat dihubungi.',
+                'message' => $this->message('image_service_busy', $language),
             ];
         }
     }
@@ -547,7 +561,7 @@ class ForensicController extends Controller
             if (! $result || ($result['status'] ?? null) === 'error') {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Analisis bukti pembayaran gagal: '.($result['message'] ?? 'Output Python tidak tersedia'),
+                    'message' => 'Analisis bukti pembayaran belum dapat diselesaikan. Silakan coba lagi beberapa saat.',
                 ], 500);
             }
 
@@ -650,20 +664,30 @@ class ForensicController extends Controller
 
         // 1. Validasi Fleksibel: Menerima rumpun Gambar (Citra) ATAU Dokumen Teks
         $request->validate([
-            'image' => 'required|file|mimes:jpeg,png,jpg,pdf|max:15000',
+            'image' => 'required|file|mimes:jpeg,png,jpg,pdf|max:'.self::IMAGE_MAX_KB,
             'language' => 'nullable|string|in:en,id',
             'analysis_token' => 'nullable|string|max:120',
         ], [
             'image.required' => $language === 'id' ? 'File analisis wajib dipilih.' : 'Analysis file is required.',
             'image.file' => $language === 'id' ? 'File analisis tidak valid.' : 'Analysis file is invalid.',
             'image.uploaded' => $language === 'id'
-                ? 'File gagal diunggah. Pastikan ukuran file maksimal 15MB dan formatnya JPG, JPEG, PNG, atau PDF dokumen teks.'
-                : 'File upload failed. Make sure the file is under 15MB and uses JPG, JPEG, PNG, or text-based PDF format.',
+                ? 'File gagal diunggah. Pastikan foto maksimal 10MB, PDF maksimal 5MB, dan formatnya didukung.'
+                : 'File upload failed. Make sure photos are under 10MB, PDFs are under 5MB, and the format is supported.',
             'image.mimes' => $language === 'id'
                 ? 'Format file belum didukung. Gunakan JPG, JPEG, PNG, atau PDF dokumen teks.'
                 : 'Unsupported file format. Use JPG, JPEG, PNG, or text-based PDF documents.',
-            'image.max' => $language === 'id' ? 'Ukuran file maksimal 15MB.' : 'Maximum file size is 15MB.',
+            'image.max' => $language === 'id' ? 'Ukuran foto maksimal 10MB dan PDF maksimal 5MB.' : 'Maximum size is 10MB for photos and 5MB for PDFs.',
         ]);
+
+        $uploadedFile = $request->file('image');
+        $uploadedExtension = strtolower((string) $uploadedFile->getClientOriginalExtension());
+        $uploadedSizeKb = (int) ceil($uploadedFile->getSize() / 1024);
+        if ($uploadedExtension === 'pdf' && $uploadedSizeKb > self::DOCUMENT_MAX_KB) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $this->message('file_too_large_document', $language),
+            ], 422);
+        }
 
         if ($this->isAnalysisCancelled($analysisToken)) {
             return $this->cancelledResponse($language);
@@ -741,11 +765,22 @@ class ForensicController extends Controller
                     return $this->cancelledResponse($language);
                 }
 
-                // Proteksi Fail-Safe untuk Output JSON Dokumen
-                if (! isset($result['status']) || $result['status'] === 'error') {
+                if (($result['status'] ?? null) === 'insufficient_text') {
+                    Storage::disk('public')->delete($path);
+
                     return response()->json([
                         'status' => 'error',
-                        'message' => $this->message('document_failed', $language).($result['message'] ?? ($language === 'id' ? 'Output data kosong' : 'No output data')),
+                        'message' => $this->message('document_insufficient_text', $language),
+                    ], 422);
+                }
+
+                // Proteksi Fail-Safe untuk Output JSON Dokumen
+                if (! isset($result['status']) || $result['status'] === 'error') {
+                    Storage::disk('public')->delete($path);
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => $this->message('document_failed', $language),
                     ], 500);
                 }
 
@@ -777,20 +812,20 @@ class ForensicController extends Controller
                     'is_deepfake' => (($result['summary_color'] ?? '') === 'danger'),
                     'metadata_details' => [
                         'summary' => [
-                            'status' => $result['summary_label'] ?? ($language === 'id' ? 'TEKS CAMPURAN' : 'MIXED TEXT'),
-                            'verdict' => $result['summary_label'] ?? ($language === 'id' ? 'TEKS CAMPURAN' : 'MIXED TEXT'),
+                            'status' => $result['summary_label'] ?? ($language === 'id' ? 'Indikator Campuran' : 'Mixed Indicators'),
+                            'verdict' => $result['summary_label'] ?? ($language === 'id' ? 'Indikator Campuran' : 'Mixed Indicators'),
                         ],
                     ],
                     'noise_status' => 'Not Applicable',
                     'final_result' => [
                         'analysis_token' => $analysisToken,
                         'language' => $language,
-                        'summary_label' => $result['summary_label'] ?? ($language === 'id' ? 'TEKS CAMPURAN' : 'MIXED TEXT'),
+                        'summary_label' => $result['summary_label'] ?? ($language === 'id' ? 'Indikator Campuran' : 'Mixed Indicators'),
                         'summary_color' => $result['summary_color'] ?? 'warning',
                         'full_report' => [
                             'language' => $language,
                             'final_score' => $result['final_score'] ?? 0,
-                            'summary_label' => $result['summary_label'] ?? ($language === 'id' ? 'TEKS CAMPURAN' : 'MIXED TEXT'),
+                            'summary_label' => $result['summary_label'] ?? ($language === 'id' ? 'Indikator Campuran' : 'Mixed Indicators'),
                             'summary_color' => $result['summary_color'] ?? 'warning',
                             'results' => $result['results'] ?? [],
                             'classification_map' => $classificationMapData,
@@ -841,7 +876,7 @@ class ForensicController extends Controller
             if (! $result || $result['status'] === 'error') {
                 return response()->json([
                     'status' => 'error',
-                    'message' => $this->message('image_failed', $language).($result['message'] ?? ($language === 'id' ? 'Output Python tidak tersedia' : 'Python output is unavailable')),
+                    'message' => $result['message'] ?? $this->message('image_failed', $language),
                 ], 500);
             }
 

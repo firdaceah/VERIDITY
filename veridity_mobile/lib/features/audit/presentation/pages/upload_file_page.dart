@@ -17,6 +17,9 @@ class UploadFoto extends StatefulWidget {
 }
 
 class _UploadFotoState extends State<UploadFoto> {
+  static const int _maxPhotoBytes = 10 * 1024 * 1024;
+  static const int _maxPdfBytes = 5 * 1024 * 1024;
+
   PlatformFile? _selectedFile;
   bool _isLoading = false;
   bool _isCancelling = false;
@@ -49,17 +52,35 @@ class _UploadFotoState extends State<UploadFoto> {
     final lang = AppDependencies.language;
     final normalized = message.toLowerCase();
 
+    if (normalized.contains('python') ||
+        normalized.contains('output') ||
+        normalized.contains('tidak dapat dihubungi') ||
+        normalized.contains('service is busy') ||
+        normalized.contains('layanan analisis') ||
+        normalized.contains('server mengirim respons') ||
+        normalized.contains('server sent a response')) {
+      return _isDocument
+          ? lang.text(
+              'Document analysis could not be completed. Use a text-based PDF under 5MB, then try again in a moment.',
+              'Analisis dokumen belum dapat diselesaikan. Gunakan PDF berbasis teks di bawah 5MB, lalu coba lagi beberapa saat.',
+            )
+          : lang.text(
+              'Image analysis could not be completed. Try again in a moment or choose a smaller photo.',
+              'Analisis gambar belum dapat diselesaikan. Coba lagi beberapa saat lagi atau pilih foto yang lebih kecil.',
+            );
+    }
+
     if (normalized.contains('image failed to upload') ||
         normalized.contains('file failed to upload') ||
         normalized.contains('failed to upload')) {
       return _isDocument
           ? lang.text(
-              'Document upload failed. Make sure the PDF is under 15MB and contains text content, not slides/presentations exported as PDF.',
-              'Dokumen gagal diunggah. Pastikan file PDF tidak lebih dari 15MB dan berisi teks dokumen, bukan slide/presentasi yang diekspor menjadi PDF.',
+              'Document upload failed. Make sure the PDF is under 5MB and contains text content, not slides/presentations exported as PDF.',
+              'Dokumen gagal diunggah. Pastikan file PDF tidak lebih dari 5MB dan berisi teks dokumen, bukan slide/presentasi yang diekspor menjadi PDF.',
             )
           : lang.text(
-              'Photo upload failed. Make sure the JPG/JPEG/PNG file is under 15MB. If the size is valid, try compressing the photo or retry after the server is active.',
-              'Foto gagal diunggah. Pastikan file JPG/JPEG/PNG tidak lebih dari 15MB. Jika ukuran sudah benar, coba kompres foto atau ulangi setelah server aktif.',
+              'Photo upload failed. Make sure the JPG/JPEG/PNG file is under 10MB. If the size is valid, try compressing the photo or retry after the server is active.',
+              'Foto gagal diunggah. Pastikan file JPG/JPEG/PNG tidak lebih dari 10MB. Jika ukuran sudah benar, coba kompres foto atau ulangi setelah server aktif.',
             );
     }
 
@@ -74,6 +95,27 @@ class _UploadFotoState extends State<UploadFoto> {
     }
 
     return message;
+  }
+
+  String? _sizeValidationMessage(PlatformFile file) {
+    final lang = AppDependencies.language;
+    final size = file.bytes?.length ?? file.size;
+
+    if (_isDocument && size > _maxPdfBytes) {
+      return lang.text(
+        'PDF documents must be 5MB or smaller. Compress the PDF or choose a shorter text-based document.',
+        'Ukuran PDF maksimal 5MB. Kompres PDF atau pilih dokumen teks yang lebih pendek.',
+      );
+    }
+
+    if (_isImage && size > _maxPhotoBytes) {
+      return lang.text(
+        'Photos must be 10MB or smaller. Compress the photo or choose a smaller JPG, JPEG, or PNG file.',
+        'Ukuran foto maksimal 10MB. Kompres foto atau pilih file JPG, JPEG, atau PNG yang lebih kecil.',
+      );
+    }
+
+    return null;
   }
 
   Future<void> _pickFile() async {
@@ -105,6 +147,13 @@ class _UploadFotoState extends State<UploadFoto> {
     }
 
     final analysisToken = _newAnalysisToken();
+    final sizeError = _sizeValidationMessage(file);
+    if (sizeError != null) {
+      setState(() => _errorMessage = sizeError);
+      AppTopSnackBar.error(context, sizeError);
+      return;
+    }
+
     setState(() {
       _analysisToken = analysisToken;
       _cancelRequested = false;
@@ -249,8 +298,8 @@ class _UploadFotoState extends State<UploadFoto> {
             const SizedBox(height: 40),
             Text(
               lang.text(
-                "Format: JPG, JPEG, PNG, or text-based PDF documents. PDFs exported from PPT/slides or scanned images are not supported for text analysis yet.",
-                "Format: JPG, JPEG, PNG, atau PDF dokumen teks. PDF dari PPT/slide atau hasil scan gambar belum didukung untuk analisis teks.",
+                "Format: JPG/JPEG/PNG photos up to 10MB, or text-based PDF documents up to 5MB. PDFs exported from PPT/slides or scanned images are not supported for text analysis yet.",
+                "Format: foto JPG/JPEG/PNG maksimal 10MB, atau PDF dokumen teks maksimal 5MB. PDF dari PPT/slide atau hasil scan gambar belum didukung untuk analisis teks.",
               ),
               style: const TextStyle(
                 color: Colors.white60,
@@ -346,8 +395,8 @@ class _UploadFotoState extends State<UploadFoto> {
         const SizedBox(height: 8),
         Text(
           lang.text(
-            "PNG, JPG, JPEG, text-based PDF (max. 15MB)",
-            "PNG, JPG, JPEG, PDF dokumen teks (max. 15MB)",
+            "PNG, JPG, JPEG (max. 10MB), text-based PDF (max. 5MB)",
+            "PNG, JPG, JPEG (max. 10MB), PDF dokumen teks (max. 5MB)",
           ),
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.white54, fontSize: 12),

@@ -58,6 +58,7 @@ test('authenticated user can cancel analysis with indonesian message', function 
 
 test('authenticated user can analyze a document through the audits endpoint using configured python engine url', function () {
     config()->set('services.veridity.python_engine_url', 'http://python-engine.test');
+    config()->set('filesystems.evidence_disk', 'public');
     Http::fake([
         'http://python-engine.test/analyze-document' => Http::response([
             'status' => 'success',
@@ -96,6 +97,31 @@ test('authenticated user can analyze a document through the audits endpoint usin
     expect($analysis->report_status)->toBe('ready');
     expect($analysis->report_pdf_path)->not->toBeNull();
     Storage::disk('public')->assertExists($analysis->report_pdf_path);
+});
+
+test('insufficient text document analysis fails without creating history', function () {
+    config()->set('services.veridity.python_engine_url', 'http://python-engine.test');
+    Http::fake([
+        'http://python-engine.test/analyze-document' => Http::response([
+            'status' => 'insufficient_text',
+            'message_key' => 'document_insufficient_text',
+        ]),
+    ]);
+
+    $user = User::factory()->create();
+    $file = UploadedFile::fake()->createWithContent('short.pdf', '%PDF-1.4 short');
+
+    $this
+        ->actingAs($user, 'sanctum')
+        ->postJson('/api/audits', [
+            'image' => $file,
+            'language' => 'en',
+        ])
+        ->assertStatus(422)
+        ->assertJsonPath('status', 'error')
+        ->assertJsonPath('message', 'This document does not contain enough readable text for reliable analysis. Please upload a text-based PDF with more content.');
+
+    expect(ForensicAnalysis::query()->count())->toBe(0);
 });
 
 test('docx upload is rejected so document analysis remains pdf only', function () {

@@ -75,7 +75,7 @@ class AuditReportService
         $pdfPath = $this->sourceFilePath($analysis);
         $finalResult = $this->finalResult($analysis);
         $classificationMap = $finalResult['full_report']['classification_map'] ?? [];
-        $summaryLabel = $finalResult['summary_label'] ?? 'MIXED TEXT';
+        $summaryLabel = $finalResult['summary_label'] ?? ($language === 'id' ? 'Indikator Campuran' : 'Mixed Indicators');
         $document = $finalResult['full_report']['results']['document'] ?? [];
         $metrics = $document['metrics'] ?? [];
         $interpretation = $document['interpretation'] ?? '';
@@ -107,8 +107,8 @@ class AuditReportService
 
         if ($response->failed()) {
             throw new \RuntimeException($language === 'id'
-                ? 'Gagal terhubung dengan Layanan Analisis Forensik (Python Engine).'
-                : 'Failed to connect to the Forensic Analysis Service (Python Engine).');
+                ? 'Gagal terhubung dengan layanan analisis. Silakan coba lagi nanti.'
+                : 'Failed to connect to the analysis service. Please try again later.');
         }
 
         return $response->body();

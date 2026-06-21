@@ -258,16 +258,28 @@ def _tr(language, en, id_text):
 def _message(language, key, fallback=""):
     messages = {
         "document_human_style": (
-            "The language style has dynamic sentence-length variation and natural word choice typical of human writing.",
-            "Gaya bahasa memiliki variasi panjang kalimat yang sangat dinamis dengan kekayaan diksi yang alami khas tulisan manusia murni.",
+            "The document shows varied sentence rhythm, natural wording, and limited signs of overly uniform AI-style structure.",
+            "Dokumen menunjukkan variasi ritme kalimat, pilihan kata yang natural, dan sedikit tanda struktur seragam khas tulisan AI.",
+        ),
+        "document_likely_human_style": (
+            "The document shows varied sentence rhythm, natural wording, and limited signs of overly uniform AI-style structure.",
+            "Dokumen menunjukkan variasi ritme kalimat, pilihan kata yang natural, dan sedikit tanda struktur seragam khas tulisan AI.",
         ),
         "document_mixed_style": (
-            "Mixed language patterns were detected. Some paragraphs appear manually written while others contain AI-assisted sentences.",
-            "Terdeteksi kombinasi gaya bahasa campuran. Sebagian paragraf terindikasi disusun manual dan sebagian lainnya disisipi kalimat bentukan AI.",
+            "The document contains a mix of natural writing patterns and structured or repetitive indicators that may suggest AI assistance.",
+            "Dokumen memiliki campuran pola tulisan natural dan indikator struktur atau repetisi yang dapat mengarah ke bantuan AI.",
+        ),
+        "document_mixed_indicators_style": (
+            "The document contains a mix of natural writing patterns and structured or repetitive indicators that may suggest AI assistance.",
+            "Dokumen memiliki campuran pola tulisan natural dan indikator struktur atau repetisi yang dapat mengarah ke bantuan AI.",
         ),
         "document_mostly_ai_style": (
-            "Most sentences are strongly indicated as AI-generated. Any detected human-written portions are still counted in the NLP metrics.",
-            "Mayoritas kalimat terindikasi kuat dibuat AI. Bagian yang terdeteksi human-written tetap dihitung dalam metrik NLP.",
+            "The document contains repeated, uniform, or highly structured linguistic patterns often associated with AI-written text.",
+            "Dokumen memiliki pola bahasa yang repetitif, seragam, atau terlalu terstruktur yang sering berkaitan dengan teks buatan AI.",
+        ),
+        "document_likely_ai_written_style": (
+            "The document contains repeated, uniform, or highly structured linguistic patterns often associated with AI-written text.",
+            "Dokumen memiliki pola bahasa yang repetitif, seragam, atau terlalu terstruktur yang sering berkaitan dengan teks buatan AI.",
         ),
     }
 
@@ -281,7 +293,7 @@ def _message(language, key, fallback=""):
 def _draw_nlp_metrics(page, metrics, interpretation, interpretation_key="", language="en"):
     metrics = metrics or {}
     page.draw_rect(fitz.Rect(50, 440, 545, 460), color=None, fill=(248/255, 250/255, 252/255))
-    page.insert_text(fitz.Point(55, 454), _tr(language, "LANGUAGE COMPUTATION DETAILS (NLP METRICS)", "RINCIAN KOMPUTASI BAHASA (NLP METRICS)"), fontsize=10, fontname="helvetica-bold", color=(30/255, 58/255, 138/255))
+    page.insert_text(fitz.Point(55, 454), _tr(language, "DOCUMENT TEXT ANALYSIS", "ANALISIS TEKS DOKUMEN"), fontsize=10, fontname="helvetica-bold", color=(30/255, 58/255, 138/255))
     rows = [
         (_tr(language, "Original Sentences (Human-written)", "Kalimat Orisinal (Human-written)"), metrics.get("human_p", 0)),
         (_tr(language, "Synthetic Sentences (AI-generated)", "Kalimat Sintetis (AI-generated)"), metrics.get("ai_p", 0)),
@@ -307,8 +319,8 @@ def _draw_nlp_metrics(page, metrics, interpretation, interpretation_key="", lang
     page.draw_rect(fitz.Rect(55, 650, 540, 720), color=(226/255, 232/255, 240/255), fill=(255/255, 247/255, 237/255))
     formula = _tr(
         language,
-        "Decision formula: Human Score = percentage of Human-written sentences. >= 80%: Authentic, 60-79%: Mixed AI Assisted, < 60%: Mostly AI Generated.",
-        "Rumus keputusan: Human Score = persentase kalimat Human-written. >= 80%: Aman, 60-79%: Mixed AI Assisted, < 60%: Mayoritas AI Generated.",
+        "Decision formula: score combines sentence variation, repetition, vocabulary diversity, and structured AI-like indicators. >= 80%: Likely Human, 60-79%: Mixed Indicators, < 60%: Likely AI-Written.",
+        "Rumus keputusan: skor menggabungkan variasi kalimat, repetisi, keragaman kosakata, dan indikator struktur AI-like. >= 80%: Kemungkinan Ditulis Manusia, 60-79%: Indikator Campuran, < 60%: Kemungkinan Ditulis AI.",
     )
     page.insert_textbox(
         fitz.Rect(65, 662, 530, 710),
@@ -321,7 +333,7 @@ def _draw_nlp_metrics(page, metrics, interpretation, interpretation_key="", lang
 def generate_annotated_pdf(
     pdf_bytes,
     classification_map,
-    metadata_summary="MIXED TEXT (AI ASSISTED)",
+    metadata_summary="Mixed Indicators",
     audit_id="61",
     analyzed_at=None,
     document_metrics=None,
@@ -366,9 +378,9 @@ def generate_annotated_pdf(
     status_upper = str(metadata_summary).upper()
     badge_color = (22/255, 163/255, 74/255) # Default: Hijau
     
-    if "MAYORITAS" in status_upper or "FULL" in status_upper or "FORGED" in status_upper:
+    if "MAYORITAS" in status_upper or "LIKELY AI" in status_upper or "KEMUNGKINAN DITULIS AI" in status_upper or "FORGED" in status_upper:
         badge_color = (220/255, 38/255, 38/255) # Red
-    elif "AI" in status_upper or "MIXED" in status_upper:
+    elif "MIXED" in status_upper or "CAMPURAN" in status_upper:
         badge_color = (234/255, 88/255, 12/255) # Orange
 
     kop_page.draw_rect(fitz.Rect(175, 224, 380, 246), color=badge_color, fill=badge_color, radius=None)
@@ -387,7 +399,7 @@ def generate_annotated_pdf(
 
     # Catatan Kaki Validasi Kampus PENS
     kop_page.draw_line(fitz.Point(50, 780), fitz.Point(545, 780), color=(226/255, 232/255, 240/255), width=1)
-    kop_page.insert_text(fitz.Point(50, 795), _tr(language, "This document was issued by the Veridity Forensic Platform. Generated automatically through the Python Engine Gateway.", "Dokumen ini diterbitkan oleh Veridity Platform Forensik. Dicetak otomatis via Python Engine Gateway."), fontsize=8, fontname="helvetica", color=(148/255, 163/255, 184/255))
+    kop_page.insert_text(fitz.Point(50, 795), _tr(language, "This document was issued by the Veridity Forensic Platform. Generated automatically by the analysis service.", "Dokumen ini diterbitkan oleh Veridity Platform Forensik. Dicetak otomatis oleh layanan analisis."), fontsize=8, fontname="helvetica", color=(148/255, 163/255, 184/255))
     kop_page.insert_text(fitz.Point(50, 808), _tr(language, "Politeknik Elektronika Negeri Surabaya (PENS) - Informatics Engineering Department", "Politeknik Elektronika Negeri Surabaya (PENS) - Jurusan Teknik Informatika"), fontsize=8, fontname="helvetica-bold", color=(148/255, 163/255, 184/255))
 
     # Logika Penyorotan Kalimat
