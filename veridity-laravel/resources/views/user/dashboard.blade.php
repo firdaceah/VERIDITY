@@ -109,7 +109,7 @@
                     ['L1', 'Error Level Analysis'],
                     ['L2', 'Metadata Extraction'],
                     ['L3', 'Noise Analysis'],
-                    ['L4', 'AI Detection']
+                    ['L4', 'Linguistic / AI Indicators']
                 ];
             @endphp
             @foreach($layers as $index => $layer)
@@ -142,10 +142,10 @@
             if (isDocument) {
                 loadingIcon.className = 'fa-solid fa-file-lines text-5xl text-[#39D2DD] absolute inset-0 m-auto h-fit';
                 loadingTitle.innerHTML = 'Analyzing <span class="text-[#39D2DD]">Document...</span>';
-                loadingSubtitle.textContent = 'Membaca struktur teks dan probabilitas konten AI';
+                loadingSubtitle.textContent = 'Membaca teks dan memetakan indikator linguistik ringan';
                 document.getElementById('status1').textContent = '>> Extracting document text...';
                 document.getElementById('status2').textContent = '>> Segmenting linguistic patterns...';
-                document.getElementById('status3').textContent = '>> Calculating human, AI, and hybrid probabilities...';
+                document.getElementById('status3').textContent = '>> Calculating linguistic indication score...';
             } else {
                 loadingIcon.className = 'fa-solid fa-microscope text-5xl text-[#39D2DD] absolute inset-0 m-auto h-fit';
                 loadingTitle.innerHTML = 'Analyzing <span class="text-[#39D2DD]">Image...</span>';

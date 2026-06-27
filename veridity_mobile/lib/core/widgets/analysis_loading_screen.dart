@@ -24,8 +24,8 @@ class AnalysisLoadingScreen extends StatelessWidget {
         : lang.text('Analyzing Photo', 'Menganalisis Foto');
     final subtitle = isDocument
         ? lang.text(
-            'Reading text, segmenting sentences, and calculating AI probability.',
-            'Membaca teks, segmentasi kalimat, dan probabilitas AI.',
+            'Reading text and mapping lightweight linguistic indicators.',
+            'Membaca teks dan memetakan indikator linguistik ringan.',
           )
         : lang.text(
             'Running ELA, noise, metadata, and deepfake detection.',
@@ -39,8 +39,8 @@ class AnalysisLoadingScreen extends StatelessWidget {
               'Pemetaan pola linguistik',
             ),
             lang.text(
-              'Calculating human, AI, and hybrid scores',
-              'Kalkulasi human, AI, hybrid',
+              'Calculating linguistic indication score',
+              'Kalkulasi skor indikasi linguistik',
             ),
           ]
         : [

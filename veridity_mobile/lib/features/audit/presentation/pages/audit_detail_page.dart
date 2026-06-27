@@ -425,27 +425,27 @@ class _DocumentDetailCard extends StatelessWidget {
       icon: Icons.manage_search,
       children: [
         _MetricTile(
-          label: 'Human Written',
+          label: lang.text('Natural Writing Indicators', 'Indikator Tulisan Natural'),
           value: '${audit.humanPercentage.toStringAsFixed(1)}%',
           helper: lang.text(
-            'Share of sentences that appear naturally human-written.',
-            'Porsi kalimat yang tampak natural ditulis manusia.',
+            'Share of text with varied, natural sentence patterns.',
+            'Porsi teks dengan variasi pola kalimat yang natural.',
           ),
         ),
         _MetricTile(
-          label: 'AI Generated',
+          label: lang.text('AI-Like Indicators', 'Indikator Mirip AI'),
           value: '${audit.aiPercentage.toStringAsFixed(1)}%',
           helper: lang.text(
-            'Share of sentences with AI-generative patterns.',
-            'Porsi kalimat dengan pola generatif AI.',
+            'Share of text with uniform or structured AI-like patterns.',
+            'Porsi teks dengan pola seragam atau terstruktur yang menyerupai AI.',
           ),
         ),
         _MetricTile(
-          label: 'Hybrid Refined',
+          label: lang.text('Mixed Indicators', 'Indikator Campuran'),
           value: '${audit.hybridPercentage.toStringAsFixed(1)}%',
           helper: lang.text(
-            'Share of mixed human writing and AI assistance.',
-            'Porsi teks campuran manusia dan bantuan AI.',
+            'Share of text with mixed natural and AI-like indicators.',
+            'Porsi teks dengan campuran indikator natural dan mirip AI.',
           ),
         ),
         _MetricTile(

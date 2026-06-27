@@ -52,9 +52,9 @@
                         <i
                             class="fa-solid fa-file-invoice text-3xl text-[#39D2DD] group-hover:scale-110 transition-transform"></i>
                     </div>
-                    <h4 class="text-xl font-bold mb-2">Dokumen & Teks</h4>
-                    <p class="text-slate-400 text-sm">Analisis integritas dokumen scan, bukti transfer, atau ID card untuk
-                        mendeteksi editing teks dalam format file gambar.</p>
+                    <h4 class="text-xl font-bold mb-2">Analisis Teks Dokumen</h4>
+                    <p class="text-slate-400 text-sm">Menganalisis PDF berbasis teks melalui variasi kalimat, repetisi,
+                        keragaman kosakata, dan indikator struktur yang menyerupai AI.</p>
                 </div>
                 <div
                     class="p-8 rounded-2xl bg-[#0E0E20] border border-white/10 hover:border-[#39D2DD]/50 transition-all group sm:col-span-2 lg:col-span-1">

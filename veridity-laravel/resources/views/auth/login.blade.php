@@ -68,7 +68,7 @@
             </button>
         </form>
 
-        <div class="mt-8 pt-6 border-t border-white/10/50 text-center text-sm">
+        <div class="mt-8 pt-6 border-t border-white/10 text-center text-sm">
             <span class="text-slate-400">Belum punya akun?</span>
             <a href="{{ route('register') }}" class="text-[#39D2DD] font-bold ml-1 hover:underline">Daftar Gratis</a>
         </div>

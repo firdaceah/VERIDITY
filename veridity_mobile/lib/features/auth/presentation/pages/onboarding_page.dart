@@ -28,9 +28,9 @@ class SplashScreen2State extends State<SplashScreen2> {
       titleEn: 'Layered Analysis',
       titleId: 'Metode Berlapis',
       subtitleEn:
-          'Images are analyzed through ELA, noise, metadata, and AI detection. Documents are checked through language patterns and sentence mapping.',
+          'Images are analyzed through ELA, noise, metadata, and AI detection. Documents are checked through lightweight linguistic pattern indicators.',
       subtitleId:
-          'Foto dianalisis melalui ELA, noise, metadata, dan deteksi AI. Dokumen dianalisis melalui pola bahasa dan pemetaan kalimat.',
+          'Foto dianalisis melalui ELA, noise, metadata, dan deteksi AI. Dokumen dianalisis melalui indikator pola linguistik ringan.',
     ),
     _OnboardingItem(
       icon: Icons.picture_as_pdf_rounded,

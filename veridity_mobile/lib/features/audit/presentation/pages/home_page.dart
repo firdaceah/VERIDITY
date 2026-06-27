@@ -181,14 +181,17 @@ class _HomeState extends State<Home> {
                       ),
                       _buildMethodItem(
                         Icons.description_outlined,
-                        lang.text("Document NLP", "NLP Dokumen"),
                         lang.text(
-                          "Human vs AI sentence patterns",
-                          "Pola kalimat manusia vs AI",
+                          "Document Text Analysis",
+                          "Analisis Teks Dokumen",
                         ),
                         lang.text(
-                          "Measures the distribution of human-written, AI-generated, and hybrid text in PDF documents.",
-                          "Mengukur distribusi kalimat human-written, AI-generated, dan hybrid pada dokumen PDF.",
+                          "Lightweight linguistic indicators",
+                          "Indikator linguistik ringan",
+                        ),
+                        lang.text(
+                          "Analyzes sentence variation, repetition, vocabulary diversity, and structured AI-like writing patterns in text-based PDF documents.",
+                          "Menganalisis variasi kalimat, repetisi, keragaman kosakata, dan pola struktur penulisan yang menyerupai AI pada dokumen PDF berbasis teks.",
                         ),
                       ),
                       _buildMethodItem(

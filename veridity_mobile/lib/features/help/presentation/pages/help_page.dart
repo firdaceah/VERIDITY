@@ -86,8 +86,8 @@ class HelpState extends State<Help> {
                       "Apa perbedaan analisis foto dan dokumen?",
                     ),
                     lang.text(
-                      "Photos are analyzed using ELA, noise, metadata, and AI/deepfake detection. Documents are analyzed using human, AI, and hybrid text mapping.",
-                      "Foto dianalisis memakai ELA, noise, metadata, dan AI/deepfake detection. Dokumen dianalisis memakai pemetaan teks manusia, AI, dan hybrid.",
+                      "Photos are analyzed using ELA, noise, metadata, and AI/deepfake detection. Documents are analyzed using lightweight linguistic indicators such as sentence variation, repetition, and AI-like structure.",
+                      "Foto dianalisis memakai ELA, noise, metadata, dan AI/deepfake detection. Dokumen dianalisis memakai indikator linguistik ringan seperti variasi kalimat, repetisi, dan struktur yang menyerupai AI.",
                     ),
                   ),
                   _faq(

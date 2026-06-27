@@ -19,7 +19,7 @@
                 <input x-model="query" type="search" placeholder="Cari nama file atau status..."
                     class="w-full sm:w-72 pl-10 pr-4 py-3 bg-[#111028] border border-white/10 rounded-2xl text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-[#4338CA]">
             </div>
-            <div class="flex bg-[#111028] p-1 rounded-2xl border border-white/10/80 self-start">
+            <div class="flex bg-[#111028] p-1 rounded-2xl border border-white/10 self-start">
                 <button @click="activeTab = 'images'" 
                     :class="activeTab === 'images' ? 'bg-[#4338CA] text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'"
                     class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2">
@@ -57,7 +57,7 @@
                 @endphp
                 <div x-show="'{{ strtolower($audit->image_name.' '.($audit->final_result['summary_label'] ?? '')) }}'.includes(query.toLowerCase())" class="bg-[#0E0E20] border border-white/10 rounded-[2.5rem] overflow-hidden group hover:border-[#39D2DD]/50 transition-all duration-300 shadow-xl flex flex-col justify-between">
                     <div>
-                        <div class="aspect-video bg-[#111028] relative overflow-hidden border-b border-white/10/40">
+                        <div class="aspect-video bg-[#111028] relative overflow-hidden border-b border-white/10">
                             @if ($auditFileExists)
                                 <img src="{{ route('files.public', ['path' => $audit->s3_path]) }}"
                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -89,7 +89,7 @@
                     </div>
 
                     <div class="px-6 pb-6">
-                        <div class="flex justify-between items-center pt-4 border-t border-white/10/60">
+                        <div class="flex justify-between items-center pt-4 border-t border-white/10">
                             <div class="flex flex-col">
                                 <span class="text-[9px] uppercase text-slate-500 font-bold tracking-wider">Maks Deviasi ELA</span>
                                 <span class="text-xs font-mono {{ $audit->ela_score > 15 ? 'text-red-400' : 'text-emerald-400' }} font-bold">
@@ -114,7 +114,7 @@
                     </div>
                 </div>
             @empty
-                <div class="col-span-full py-20 text-center bg-[#0E0E20]/40 rounded-[3rem] border-2 border-dashed border-white/10/80">
+                <div class="col-span-full py-20 text-center bg-[#0E0E20]/40 rounded-[3rem] border-2 border-dashed border-white/10">
                     <div class="w-14 h-14 bg-[#1D143E]/40 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-600 text-xl">
                         <i class="fa-solid fa-image"></i>
                     </div>
@@ -134,7 +134,7 @@
                 <div x-show="'{{ strtolower($audit->image_name.' '.($audit->final_result['summary_label'] ?? '')) }}'.includes(query.toLowerCase())" class="bg-[#0E0E20] border border-white/10 rounded-[2.5rem] overflow-hidden group hover:border-[#39D2DD]/50 transition-all duration-300 shadow-xl flex flex-col justify-between">
                     <div>
                         {{-- Tampilan Header Kartu Khusus File Dokumen --}}
-                        <div class="aspect-video bg-gradient-to-br from-[#111028] to-[#0E0E20] relative overflow-hidden border-b border-white/10/40 flex items-center justify-center p-6">
+                        <div class="aspect-video bg-gradient-to-br from-[#111028] to-[#0E0E20] relative overflow-hidden border-b border-white/10 flex items-center justify-center p-6">
                             <div class="w-16 h-16 rounded-2xl {{ $ext == 'pdf' ? 'bg-red-500/10 text-red-400' : 'bg-[#39D2DD]/10 text-[#39D2DD]' }} flex items-center justify-center text-3xl group-hover:scale-110 transition-transform duration-500 shadow-inner">
                                 <i class="fa-solid {{ $ext == 'pdf' ? 'fa-file-pdf' : 'fa-file-word' }}"></i>
                             </div>
@@ -159,7 +159,7 @@
                     </div>
 
                     <div class="px-6 pb-6">
-                        <div class="flex justify-between items-center pt-4 border-t border-white/10/60">
+                        <div class="flex justify-between items-center pt-4 border-t border-white/10">
                             <div class="flex flex-col">
                                 <span class="text-[9px] uppercase text-slate-500 font-bold tracking-wider">Tipe Dokumen</span>
                                 <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#39D2DD]">
@@ -184,7 +184,7 @@
                     </div>
                 </div>
             @empty
-                <div class="col-span-full py-20 text-center bg-[#0E0E20]/40 rounded-[3rem] border-2 border-dashed border-white/10/80">
+                <div class="col-span-full py-20 text-center bg-[#0E0E20]/40 rounded-[3rem] border-2 border-dashed border-white/10">
                     <div class="w-14 h-14 bg-[#1D143E]/40 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-600 text-xl">
                         <i class="fa-solid fa-file-circle-exclamation"></i>
                     </div>
